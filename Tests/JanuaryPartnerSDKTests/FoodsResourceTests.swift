@@ -80,7 +80,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
             query: "banana",
             category: .branded,
             limit: 10,
-            endUserID: PartnerUserID(rawValue: "oren-sdk-test")
+            endUserID: PartnerUserID(rawValue: "test-user-123")
         )
     )
 
@@ -95,7 +95,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     let request = try #require(await transport.requests().first)
     #expect(request.operationID == "searchFoods")
     #expect(request.authorization == "Bearer fixture-api-key")
-    #expect(request.endUserID == "oren-sdk-test")
+    #expect(request.endUserID == "test-user-123")
     #expect(request.userAgent?.hasPrefix("JanuaryPartnerSDK/0.1.0 ") == true)
     #expect(request.userAgent?.contains("Swift/6") == true)
     #expect(request.userAgent?.contains("Platform/") == true)
