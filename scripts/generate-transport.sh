@@ -34,8 +34,13 @@ if [[ ! -f "$archive_path" ]]; then
     fi
     archive_path="$working_directory/$archive_name"
     gh api \
-        -H "Accept: application/vnd.github.raw+json" \
         "repos/January-ai/partner-api-contract/contents/artifacts/releases/$contract_version/$archive_name" \
+        --jq '.content' \
+        | node --input-type=module -e '
+            let content = "";
+            for await (const chunk of process.stdin) content += chunk;
+            process.stdout.write(Buffer.from(content.replace(/\s/g, ""), "base64"));
+        ' \
         > "$archive_path"
 fi
 
@@ -83,7 +88,7 @@ node --input-type=module - "$generator_openapi" <<'NODE'
 import fs from "node:fs";
 
 const path = process.argv[2];
-const source = fs.readFileSync(path, "utf8");
+let source = fs.readFileSync(path, "utf8");
 const schemaStart = source.indexOf("    CompleteScanNutritionFacts:\n");
 const schemaEnd = source.indexOf("\n    NaturalLanguageServing:\n", schemaStart);
 if (schemaStart < 0 || schemaEnd < 0) {
@@ -98,10 +103,26 @@ if (requiredStart < 0 || metadataStart < 0) {
 }
 
 const tolerantSchema = schema.slice(0, requiredStart) + schema.slice(metadataStart);
-fs.writeFileSync(
-    path,
-    source.slice(0, schemaStart) + tolerantSchema + source.slice(schemaEnd)
-);
+source = source.slice(0, schemaStart) + tolerantSchema + source.slice(schemaEnd);
+
+// Restaurant menu results currently omit scaling_factor for a canonical
+// one-serving option. Decode that field as optional; the public SDK applies
+// the documented 1.0 compatibility default.
+const servingStart = source.indexOf("    ServingOption:\n");
+const servingEnd = source.indexOf("\n    FoodSearchItem:\n", servingStart);
+if (servingStart < 0 || servingEnd < 0) {
+    throw new Error("ServingOption schema was not found.");
+}
+const servingSchema = source.slice(servingStart, servingEnd);
+const requiredScalingFactor = "        - scaling_factor\n";
+if (!servingSchema.includes(requiredScalingFactor)) {
+    throw new Error("ServingOption scaling_factor requirement was not found.");
+}
+source = source.slice(0, servingStart)
+    + servingSchema.replace(requiredScalingFactor, "")
+    + source.slice(servingEnd);
+
+fs.writeFileSync(path, source);
 NODE
 
 swift package \

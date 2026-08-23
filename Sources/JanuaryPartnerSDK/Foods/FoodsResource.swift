@@ -33,33 +33,22 @@ public struct FoodsResource: Sendable {
             headers: .init(xEndUserId: request.endUserID?.rawValue)
         )
 
-        do {
-            return try map(await client.searchFoods(input))
-        } catch let error as CancellationError {
-            throw error
-        } catch let error as JanuaryError {
-            throw error
-        } catch is DecodingError {
-            throw JanuaryError(
-                category: .decoding,
-                message: "The January API returned an unreadable response."
-            )
-        } catch let error as URLError where error.code == .timedOut {
-            throw JanuaryError(
-                category: .timeout,
-                message: "The request to the January API timed out."
-            )
-        } catch {
-            throw JanuaryError(
-                category: .transport,
-                message: "The request to the January API failed."
-            )
+        return try await performTransportRequest {
+            try map(await client.searchFoods(input))
         }
     }
 
     /// Looks up a food by UPC/EAN/GTIN barcode.
     public func lookupByBarcode(_ request: LookupFoodByBarcodeRequest) async throws -> FoodSearchResults {
-        try await performTransportRequest {
+        let upcBytes = request.upc.utf8
+        guard (6...14).contains(upcBytes.count), upcBytes.allSatisfy({ (48...57).contains($0) }) else {
+            throw JanuaryError(
+                category: .validation,
+                message: "Barcode must contain between 6 and 14 ASCII digits."
+            )
+        }
+
+        return try await performTransportRequest {
             let output = try await client.lookupFoodByBarcode(
                 .init(
                     path: .init(upc: request.upc),
@@ -81,7 +70,14 @@ public struct FoodsResource: Sendable {
     public func searchByNaturalLanguage(
         _ request: SearchFoodsByNaturalLanguageRequest
     ) async throws -> SearchFoodsByNaturalLanguageResponse {
-        try await performTransportRequest {
+        guard !request.query.isEmpty, request.query.count <= 512 else {
+            throw JanuaryError(
+                category: .validation,
+                message: "Natural-language food search query must contain between 1 and 512 characters."
+            )
+        }
+
+        return try await performTransportRequest {
             let output = try await client.searchFoodsByNaturalLanguage(
                 .init(
                     query: .init(query: request.query),
@@ -102,7 +98,14 @@ public struct FoodsResource: Sendable {
     public func suggestAlternatives(
         _ request: SuggestFoodAlternativesRequest
     ) async throws -> SuggestFoodAlternativesResponse {
-        try await performTransportRequest {
+        guard !request.dietRestrictions.isEmpty, !request.dietPreferences.isEmpty else {
+            throw JanuaryError(
+                category: .validation,
+                message: "Diet restrictions and preferences must each contain at least one value; use .none when none apply."
+            )
+        }
+
+        return try await performTransportRequest {
             let transportBody: Components.Schemas.SuggestFoodAlternativesBody = try ModelBridge.convert(
                 SuggestBody(
                     dietRestrictions: request.dietRestrictions,
@@ -170,7 +173,7 @@ public struct FoodsResource: Sendable {
                             id: ServingID(rawValue: serving.id),
                             quantity: serving.quantity,
                             unit: serving.unit,
-                            scalingFactor: serving.scalingFactor,
+                            scalingFactor: serving.scalingFactor ?? 1.0,
                             weightGrams: serving.weightGrams,
                             isPrimary: serving.isPrimary
                         )

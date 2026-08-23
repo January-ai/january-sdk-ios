@@ -6,10 +6,16 @@ public struct ScanFoodPhotoRequest: Hashable, Sendable {
     public init(image: String, endUserID: PartnerUserID? = nil) { self.image = image; self.endUserID = endUserID }
 }
 
+public enum ConfidenceScore: String, Codable, Hashable, Sendable, CaseIterable {
+    case high
+    case medium
+    case low
+}
+
 public struct FoodDetection: Codable, Hashable, Sendable {
     public var food: DetectedFood
-    public var confidenceScore: String?
-    public init(food: DetectedFood, confidenceScore: String? = nil) { self.food = food; self.confidenceScore = confidenceScore }
+    public var confidenceScore: ConfidenceScore?
+    public init(food: DetectedFood, confidenceScore: ConfidenceScore? = nil) { self.food = food; self.confidenceScore = confidenceScore }
     enum CodingKeys: String, CodingKey { case food; case confidenceScore = "confidence_score" }
 }
 
@@ -46,4 +52,3 @@ public struct CorrectPhotoScanRequest: Hashable, Sendable {
         self.mealName = mealName; self.detections = detections; self.userInput = userInput; self.endUserID = endUserID
     }
 }
-

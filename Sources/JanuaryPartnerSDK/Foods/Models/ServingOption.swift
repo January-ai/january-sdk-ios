@@ -22,4 +22,23 @@ public struct ServingOption: Codable, Hashable, Sendable {
         self.weightGrams = weightGrams
         self.isPrimary = isPrimary
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case quantity
+        case unit
+        case scalingFactor = "scaling_factor"
+        case weightGrams = "weight_grams"
+        case isPrimary = "is_primary"
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(ServingID.self, forKey: .id)
+        quantity = try container.decode(Double.self, forKey: .quantity)
+        unit = try container.decode(String.self, forKey: .unit)
+        scalingFactor = try container.decodeIfPresent(Double.self, forKey: .scalingFactor) ?? 1.0
+        weightGrams = try container.decodeIfPresent(Double.self, forKey: .weightGrams)
+        isPrimary = try container.decode(Bool.self, forKey: .isPrimary)
+    }
 }

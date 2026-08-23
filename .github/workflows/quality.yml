@@ -27,10 +27,12 @@ jobs:
       - name: Show Swift toolchain
         run: swift --version
 
-      - name: Run package tests
+      - name: Verify public vocabulary
         run: |
           node scripts/check-public-api-vocabulary.mjs
-          swift test --disable-automatic-resolution
+
+      - name: Run package tests with 100% handwritten SDK coverage
+        run: node scripts/check-coverage.mjs
 
       - name: Build for iOS
         run: >-
