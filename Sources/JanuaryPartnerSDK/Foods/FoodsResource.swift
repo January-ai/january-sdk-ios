@@ -58,7 +58,7 @@ public struct FoodsResource: Sendable {
     }
 
     /// Looks up a food by UPC/EAN/GTIN barcode.
-    public func lookupBarcode(_ request: LookupFoodByBarcodeRequest) async throws -> FoodSearchResults {
+    public func lookupByBarcode(_ request: LookupFoodByBarcodeRequest) async throws -> FoodSearchResults {
         try await performTransportRequest {
             let output = try await client.lookupFoodByBarcode(
                 .init(
@@ -68,17 +68,17 @@ public struct FoodsResource: Sendable {
             )
             switch output {
             case .ok(let response): return map(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .notFound(let response): throw apiError(.notFound, status: 404, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
 
     /// Parses a natural-language meal description into foods and servings.
-    public func searchNaturalLanguage(
+    public func searchByNaturalLanguage(
         _ request: SearchFoodsByNaturalLanguageRequest
     ) async throws -> SearchFoodsByNaturalLanguageResponse {
         try await performTransportRequest {
@@ -90,9 +90,9 @@ public struct FoodsResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
@@ -118,10 +118,10 @@ public struct FoodsResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .notFound(let response): throw apiError(.notFound, status: 404, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
@@ -132,13 +132,13 @@ public struct FoodsResource: Sendable {
         case .ok(let response):
             return map(try response.body.json)
         case .badRequest(let response):
-            throw apiError(.validation, status: 400, message: try response.body.json.message)
+            throw apiError(.validation, status: 400, response: try response.body.json)
         case .unauthorized(let response):
-            throw apiError(.authentication, status: 401, message: try response.body.json.message)
+            throw apiError(.authentication, status: 401, response: try response.body.json)
         case .tooManyRequests(let response):
-            throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            throw apiError(.rateLimited, status: 429, response: try response.body.json)
         case .undocumented(let statusCode, _):
-            throw apiError(category(for: statusCode), status: statusCode)
+            throw apiError(errorCategory(for: statusCode), status: statusCode)
         }
     }
 
@@ -180,26 +180,6 @@ public struct FoodsResource: Sendable {
         )
     }
 
-    private func category(for statusCode: Int) -> ErrorCategory {
-        switch statusCode {
-        case 403: .authorization
-        case 404: .notFound
-        case 500...599: .server
-        default: .transport
-        }
-    }
-
-    private func apiError(
-        _ category: ErrorCategory,
-        status: Int,
-        message: String? = nil
-    ) -> JanuaryError {
-        JanuaryError(
-            category: category,
-            message: message ?? "The January API returned HTTP \(status).",
-            httpStatus: status
-        )
-    }
 }
 
 private struct SuggestBody: Codable {

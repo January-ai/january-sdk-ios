@@ -48,7 +48,7 @@ private actor SurfaceTransport: ClientTransport {
 }
 
 @Test
-func allThirteenOperationsAreExposedThroughThePublicClient() async throws {
+func allContractOperationsAreExposedThroughThePublicClient() async throws {
     let transport = SurfaceTransport()
     let client = try JanuaryPartnerClient(
         developmentAPIKey: "fixture-api-key",
@@ -66,8 +66,8 @@ func allThirteenOperationsAreExposedThroughThePublicClient() async throws {
     )
 
     _ = try await client.foods.search(.init(query: "banana", endUserID: userID))
-    _ = try await client.foods.lookupBarcode(.init(upc: "049000006346", endUserID: userID))
-    _ = try await client.foods.searchNaturalLanguage(.init(query: "one banana", endUserID: userID))
+    _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346", endUserID: userID))
+    _ = try await client.foods.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
     _ = try await client.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1), endUserID: userID))
     _ = try await client.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74, endUserID: userID))
     _ = try await client.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74, endUserID: userID))

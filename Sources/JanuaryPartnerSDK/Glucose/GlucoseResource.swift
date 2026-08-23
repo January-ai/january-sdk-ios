@@ -27,10 +27,10 @@ public struct GlucoseResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
-            case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
+            case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }

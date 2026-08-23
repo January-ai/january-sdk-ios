@@ -8,6 +8,7 @@ generated_root="$generator_root/Sources/JanuaryPartnerTransport/GeneratedSources
 destination_root="$repository_root/Sources/JanuaryPartnerTransport/Generated"
 lock_path="$repository_root/Contract/sdk-contract.lock.json"
 generator_openapi="$generator_root/Sources/JanuaryPartnerTransport/openapi.yaml"
+vocabulary_path="$repository_root/Contract/sdk-vocabulary.json"
 working_directory="$(mktemp -d)"
 
 cleanup() {
@@ -47,9 +48,37 @@ fi
 tar -xzf "$archive_path" -C "$working_directory"
 cp "$working_directory/$archive_root/openapi/partner-api.generator.yaml" "$generator_openapi"
 
+node --input-type=module - \
+    "$working_directory/$archive_root/sdk-surface.json" \
+    "$vocabulary_path" \
+    "$contract_version" <<'NODE'
+import fs from "node:fs";
+
+const [surfacePath, outputPath, contractVersion] = process.argv.slice(2);
+const surface = JSON.parse(fs.readFileSync(surfacePath, "utf8"));
+const vocabulary = {
+    version: 1,
+    contractVersion,
+    operations: surface.operations.map((operation) => ({
+        operationId: operation.operationId,
+        resource: operation.resource,
+        resourceType: operation.resourceType,
+        publicMethod: operation.publicMethod,
+        publicInput: operation.publicInput,
+        publicResult: operation.publicResult.type,
+    })),
+    swiftSymbols: surface.rendering.symbols.map(({ symbol, scope, swift }) => ({
+        symbol,
+        scope,
+        swift,
+    })),
+};
+fs.writeFileSync(outputPath, `${JSON.stringify(vocabulary, null, 2)}\n`);
+NODE
+
 # The deployed API omits individual nutrient keys when they are unavailable.
-# The locked contract records that response decoders must remain tolerant until
-# the shared MacroNutrientsDto requiredness is corrected upstream.
+# Keep the generated response decoder tolerant until the shared schema is
+# corrected upstream.
 node --input-type=module - "$generator_openapi" <<'NODE'
 import fs from "node:fs";
 

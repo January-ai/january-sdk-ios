@@ -16,6 +16,8 @@ public enum ErrorCategory: String, Codable, Hashable, Sendable, CaseIterable {
 /// An error returned by the January Partner SDK.
 public struct JanuaryError: Error, LocalizedError, Sendable {
     public let category: ErrorCategory
+    /// Stable machine-readable API error code when provided by the server.
+    public let code: String?
     public let message: String
     public let httpStatus: Int?
     public let requestID: String?
@@ -25,12 +27,14 @@ public struct JanuaryError: Error, LocalizedError, Sendable {
 
     internal init(
         category: ErrorCategory,
+        code: String? = nil,
         message: String,
         httpStatus: Int? = nil,
         requestID: String? = nil,
         retryAfterSeconds: Double? = nil
     ) {
         self.category = category
+        self.code = code
         self.message = message
         self.httpStatus = httpStatus
         self.requestID = requestID

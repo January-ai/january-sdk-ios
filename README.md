@@ -71,8 +71,8 @@ for food in results.items {
 
 ## Error handling
 
-SDK requests throw `JanuaryError`, which provides a category, message, and HTTP
-status when available.
+SDK requests throw `JanuaryError`, which provides a category, machine-readable
+API code, message, and HTTP status when available.
 
 ```swift
 do {

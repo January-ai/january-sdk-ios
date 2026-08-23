@@ -128,6 +128,7 @@ func foodSearchMapsAuthenticationErrors() async throws {
         Issue.record("Expected authentication error")
     } catch let error as JanuaryError {
         #expect(error.category == .authentication)
+        #expect(error.code == "unauthorized")
         #expect(error.httpStatus == 401)
         #expect(!error.message.isEmpty)
     }

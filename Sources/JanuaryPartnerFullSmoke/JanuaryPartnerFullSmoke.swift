@@ -13,7 +13,7 @@ struct JanuaryPartnerFullSmoke {
         }
         let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
         try await run(client: client, userID: PartnerUserID(rawValue: rawUserID))
-        print("PASS all 13 Partner API v1.2 operations through the public Swift SDK")
+        print("PASS all Partner API v1.2 operations through the public Swift SDK")
     }
 
     private static func run(client: JanuaryPartnerClient, userID: PartnerUserID) async throws {
@@ -23,16 +23,16 @@ struct JanuaryPartnerFullSmoke {
         }
         pass("foods.search", "\(results.items.count) items")
 
-        let natural = try await client.foods.searchNaturalLanguage(
+        let natural = try await client.foods.searchByNaturalLanguage(
             .init(query: "one banana and a bowl of oatmeal", endUserID: userID)
         )
-        pass("foods.searchNaturalLanguage", "\(natural.detections.count) detections")
+        pass("foods.searchByNaturalLanguage", "\(natural.detections.count) detections")
 
         let alternatives = try await client.foods.suggestAlternatives(.init(foodID: food.id, endUserID: userID))
         pass("foods.suggestAlternatives", "\(alternatives.alternatives.count) alternatives")
 
-        let barcode = try await client.foods.lookupBarcode(.init(upc: "049000006346", endUserID: userID))
-        pass("foods.lookupBarcode", "\(barcode.items.count) items")
+        let barcode = try await client.foods.lookupByBarcode(.init(upc: "049000006346", endUserID: userID))
+        pass("foods.lookupByBarcode", "\(barcode.items.count) items")
 
         let restaurants = try await client.restaurants.search(
             .init(query: "mcdonalds", latitude: 37.7749, longitude: -122.4194, limit: 3, endUserID: userID)

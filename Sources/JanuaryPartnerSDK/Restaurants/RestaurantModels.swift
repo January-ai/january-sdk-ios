@@ -13,6 +13,19 @@ public struct SearchRestaurantsRequest: Hashable, Sendable {
     }
 }
 
+public struct SearchRestaurantMenuItemsRequest: Hashable, Sendable {
+    public var query: String
+    public var latitude: Double
+    public var longitude: Double
+    public var radius: Double
+    public var limit: Int
+    public var endUserID: PartnerUserID?
+    public init(query: String, latitude: Double, longitude: Double, radius: Double = 8000, limit: Int = 10, endUserID: PartnerUserID? = nil) {
+        self.query = query; self.latitude = latitude; self.longitude = longitude
+        self.radius = radius; self.limit = limit; self.endUserID = endUserID
+    }
+}
+
 public enum RestaurantResultType: String, Codable, Hashable, Sendable { case restaurant; case menuItem = "menu_item" }
 
 public struct Restaurant: Codable, Hashable, Sendable {
@@ -73,4 +86,3 @@ public struct SearchRestaurantMenuItemsResponse: Codable, Hashable, Sendable {
     public init(totalCount: Int, items: [RestaurantMenuItem]) { self.totalCount = totalCount; self.items = items }
     enum CodingKeys: String, CodingKey { case items; case totalCount = "total_count" }
 }
-

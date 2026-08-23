@@ -1,4 +1,5 @@
 import Foundation
+import JanuaryPartnerTransport
 
 internal enum ModelBridge {
     static func convert<Source: Encodable, Target: Decodable>(
@@ -36,6 +37,19 @@ internal func apiError(_ category: ErrorCategory, status: Int, message: String? 
     )
 }
 
+internal func apiError(
+    _ category: ErrorCategory,
+    status: Int,
+    response: Components.Schemas.ErrorResponse
+) -> JanuaryError {
+    JanuaryError(
+        category: category,
+        code: response.code,
+        message: response.message,
+        httpStatus: status
+    )
+}
+
 internal func errorCategory(for status: Int) -> ErrorCategory {
     switch status {
     case 400, 422: .validation
@@ -48,4 +62,3 @@ internal func errorCategory(for status: Int) -> ErrorCategory {
     default: .transport
     }
 }
-

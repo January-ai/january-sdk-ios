@@ -1,0 +1,44 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Build and test Swift SDK
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show Swift toolchain
+        run: swift --version
+
+      - name: Run package tests
+        run: |
+          node scripts/check-public-api-vocabulary.mjs
+          swift test --disable-automatic-resolution
+
+      - name: Build for iOS
+        run: >-
+          xcodebuild
+          -scheme JanuaryPartnerSDK
+          -destination 'generic/platform=iOS'
+          -configuration Release
+          -disableAutomaticPackageResolution
+          -onlyUsePackageVersionsFromResolvedFile
+          CODE_SIGNING_ALLOWED=NO
+          build

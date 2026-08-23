@@ -357,15 +357,25 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ErrorResponse/message`.
             package var message: Swift.String
+            /// A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited and the four 5xx codes are safe to retry (with backoff). New codes may be added over time; treat an unknown code according to its HTTP status class.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ErrorResponse/code`.
+            package var code: Swift.String
             /// Creates a new `ErrorResponse`.
             ///
             /// - Parameters:
             ///   - message: A developer-facing explanation of what went wrong and how to fix it.
-            package init(message: Swift.String) {
+            ///   - code: A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited and the four 5xx codes are safe to retry (with backoff). New codes may be added over time; treat an unknown code according to its HTTP status class.
+            package init(
+                message: Swift.String,
+                code: Swift.String
+            ) {
                 self.message = message
+                self.code = code
             }
             package enum CodingKeys: String, CodingKey {
                 case message
+                case code
             }
         }
         /// - Remark: Generated from `#/components/schemas/ServingOption`.

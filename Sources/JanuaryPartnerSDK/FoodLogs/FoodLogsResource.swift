@@ -17,9 +17,9 @@ public struct FoodLogsResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
@@ -38,9 +38,9 @@ public struct FoodLogsResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
@@ -56,10 +56,10 @@ public struct FoodLogsResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .notFound(let response): throw apiError(.notFound, status: 404, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
@@ -78,9 +78,9 @@ public struct FoodLogsResource: Sendable {
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, message: try response.body.json.message)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, message: try response.body.json.message)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, message: try response.body.json.message)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
