@@ -389,7 +389,7 @@ package enum Components {
             /// Multiplier applied to the food's nutrition values for this serving.
             ///
             /// - Remark: Generated from `#/components/schemas/ServingOption/scaling_factor`.
-            package var scalingFactor: Swift.Double
+            package var scalingFactor: Swift.Double?
             /// - Remark: Generated from `#/components/schemas/ServingOption/weight_grams`.
             package var weightGrams: Swift.Double?
             /// Whether this is the default serving for the food.
@@ -409,7 +409,7 @@ package enum Components {
                 id: Components.Schemas.ServingId,
                 quantity: Swift.Double,
                 unit: Swift.String,
-                scalingFactor: Swift.Double,
+                scalingFactor: Swift.Double? = nil,
                 weightGrams: Swift.Double? = nil,
                 isPrimary: Swift.Bool
             ) {
