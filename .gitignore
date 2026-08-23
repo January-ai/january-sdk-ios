@@ -1,0 +1,9 @@
+.DS_Store
+.build/
+.swiftpm/
+DerivedData/
+xcuserdata/
+.env
+Secrets.xcconfig
+Tools/ContractGenerator/Sources/JanuaryPartnerTransport/GeneratedSources/
+Tools/ContractGenerator/Sources/JanuaryPartnerTransport/openapi.yaml

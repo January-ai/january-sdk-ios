@@ -1,0 +1,24 @@
+{
+  "total_count": 1,
+  "items": [{
+    "id": 84222716,
+    "name": "Banana",
+    "brand_name": "One",
+    "protein": 2,
+    "energy": 160,
+    "carbs": 15,
+    "fat": 10,
+    "fat_total_saturated": 5,
+    "net_carbs": 13,
+    "sodium": 20,
+    "sugars": 13,
+    "added_sugars": 11,
+    "gi": 34.9,
+    "gl": 5.2,
+    "fiber": 2,
+    "potassium": 170,
+    "cholesterol": 2.5,
+    "photo_url": null,
+    "servings": [{"id":67943292,"quantity":1,"unit":"bar","scaling_factor":1,"weight_grams":60,"is_primary":true}]
+  }]
+}
