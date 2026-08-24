@@ -267,14 +267,6 @@ This is a structured form, not a dashboard.
 - Meal start date/time with timezone.
 - Require at least one food.
 
-#### Optional personalization
-
-Place **Use my CGM & meal history** inside the **This meal** card, below **Add food**, with the subtitle “Personalizes the prediction.” When enabled, CGM readings and consumed-food history are a paired input and must be provided together.
-
-- CGM readings: timestamp and value in mg/dL; prevent more than one reading in a 15-minute window.
-- Consumed foods: timestamp, food, serving, and quantity.
-- Provide clear Add/Remove controls and validation close to the affected row.
-
 Primary action: **Predict glucose response**.
 
 ### 14. Prediction result

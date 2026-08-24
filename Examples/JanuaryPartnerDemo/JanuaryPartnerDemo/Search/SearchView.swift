@@ -1,6 +1,23 @@
 import JanuaryPartnerSDK
 import SwiftUI
 
+private struct DemoSearchCity: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let latitude: Double
+    let longitude: Double
+
+    static let cities = [
+        DemoSearchCity(id: "san-francisco", name: "San Francisco, CA", latitude: 37.7749, longitude: -122.4194),
+        DemoSearchCity(id: "new-york", name: "New York, NY", latitude: 40.7128, longitude: -74.0060),
+        DemoSearchCity(id: "los-angeles", name: "Los Angeles, CA", latitude: 34.0522, longitude: -118.2437),
+        DemoSearchCity(id: "chicago", name: "Chicago, IL", latitude: 41.8781, longitude: -87.6298),
+        DemoSearchCity(id: "austin", name: "Austin, TX", latitude: 30.2672, longitude: -97.7431),
+        DemoSearchCity(id: "miami", name: "Miami, FL", latitude: 25.7617, longitude: -80.1918),
+        DemoSearchCity(id: "seattle", name: "Seattle, WA", latitude: 47.6062, longitude: -122.3321),
+    ]
+}
+
 struct SearchView: View {
     enum Scope: String, CaseIterable { case foods = "Foods"; case restaurants = "Restaurants" }
     enum FoodMode: String, CaseIterable { case name = "Name"; case meal = "Meal description"; case barcode = "Barcode" }
@@ -25,6 +42,7 @@ struct SearchView: View {
     @State private var isShowingBarcodeScanner = false
     @State private var latitude = 37.7749
     @State private var longitude = -122.4194
+    @State private var selectedLocationID = "san-francisco"
     @State private var radius = 8000.0
     @State private var foodResultLimit = 10
     @State private var restaurantResultLimit = 10
@@ -59,6 +77,7 @@ struct SearchView: View {
                 RestaurantFiltersSheet(
                     latitude: $latitude,
                     longitude: $longitude,
+                    selectedLocationID: $selectedLocationID,
                     radius: $radius,
                     limit: $restaurantResultLimit,
                     locationProvider: locationProvider
@@ -75,6 +94,7 @@ struct SearchView: View {
                 guard let location else { return }
                 latitude = location.latitude
                 longitude = location.longitude
+                selectedLocationID = "current"
             }
         }
     }
@@ -236,10 +256,11 @@ struct SearchView: View {
     }
 
     private var locationSummary: String {
-        if let location = locationProvider.location {
+        if selectedLocationID == "current", let location = locationProvider.location {
             return "Current location · \(location.coordinateDescription)"
         }
-        return "Demo location · San Francisco"
+        let city = DemoSearchCity.cities.first { $0.id == selectedLocationID } ?? DemoSearchCity.cities[0]
+        return "Preset city · \(city.name)"
     }
 
     private var submitButton: some View {
@@ -1097,6 +1118,7 @@ private struct RestaurantFiltersSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var latitude: Double
     @Binding var longitude: Double
+    @Binding var selectedLocationID: String
     @Binding var radius: Double
     @Binding var limit: Int
     let locationProvider: DemoLocationProvider
@@ -1109,6 +1131,25 @@ private struct RestaurantFiltersSheet: View {
                 Form {
                 Section("Location") {
                     LabeledContent("Status", value: locationProvider.authorizationDescription)
+
+                    Picker("City", selection: $selectedLocationID) {
+                        if selectedLocationID == "current" {
+                            Text("Current location").tag("current")
+                        }
+                        ForEach(DemoSearchCity.cities) { city in
+                            Text(city.name).tag(city.id)
+                        }
+                    }
+                    .onChange(of: selectedLocationID) { _, id in
+                        guard let city = DemoSearchCity.cities.first(where: { $0.id == id }) else { return }
+                        latitude = city.latitude
+                        longitude = city.longitude
+                    }
+
+                    LabeledContent("Coordinates") {
+                        Text("\(latitude.formatted(.number.precision(.fractionLength(4)))), \(longitude.formatted(.number.precision(.fractionLength(4))))")
+                            .monospacedDigit()
+                    }
 
                     Button {
                         locationProvider.requestCurrentLocation()
@@ -1135,10 +1176,6 @@ private struct RestaurantFiltersSheet: View {
                     }
                 }
 
-                Section("Manual coordinates") {
-                    TextField("Latitude", value: $latitude, format: .number).keyboardType(.numbersAndPunctuation)
-                    TextField("Longitude", value: $longitude, format: .number).keyboardType(.numbersAndPunctuation)
-                }
                 Section("Radius") {
                     Slider(value: $radius, in: 500...17_000, step: 500)
                     LabeledContent("Distance", value: "\((radius / 1609.344).formatted(.number.precision(.fractionLength(1)))) mi · \(Int(radius)) m")

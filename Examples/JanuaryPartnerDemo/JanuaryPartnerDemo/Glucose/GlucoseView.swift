@@ -14,10 +14,7 @@ struct GlucoseView: View {
     @State private var conditions: Set<MedicalCondition> = []
     @State private var foods: [DemoSelectedFood] = []
     @State private var startTime = Date.now
-    @State private var includesHistory = false
-    @State private var history: [DemoHistoryEntry] = []
     @State private var isShowingFoodPicker = false
-    @State private var historyFoodIndex: Int?
     @State private var prediction: GlucosePrediction?
     @State private var isLoading = false
     @State private var error: Error?
@@ -29,7 +26,7 @@ struct GlucoseView: View {
                     GlucoseResultView(prediction: prediction, foods: foods) {
                         self.prediction = nil
                     } startOver: {
-                        self.prediction = nil; self.foods = []; self.history = []; self.includesHistory = false
+                        self.prediction = nil; self.foods = []
                     }
                 } else {
                     predictionForm
@@ -40,12 +37,6 @@ struct GlucoseView: View {
             .sheet(isPresented: $isShowingFoodPicker) {
                 FoodPickerView(client: client, endUserID: DemoFormatting.endUserID(endUserID)) { selected in
                     foods.append(selected); isShowingFoodPicker = false
-                }
-            }
-            .sheet(isPresented: historyFoodPickerBinding) {
-                FoodPickerView(client: client, endUserID: DemoFormatting.endUserID(endUserID)) { selected in
-                    if let index = historyFoodIndex, history.indices.contains(index) { history[index].food = selected }
-                    historyFoodIndex = nil
                 }
             }
         }
@@ -153,38 +144,6 @@ struct GlucoseView: View {
                             .foregroundStyle(DemoPalette.goldText)
                             .padding(.vertical, 12)
 
-                            Divider()
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Use my CGM & meal history")
-                                        .font(DemoTypography.bodyStrong)
-                                    Text("Personalizes the prediction")
-                                        .font(.system(size: 14))
-                                        .foregroundStyle(DemoPalette.muted)
-                                }
-                                Spacer(minLength: 8)
-                                Toggle("Use my CGM and meal history", isOn: $includesHistory)
-                                    .labelsHidden()
-                            }
-                            .padding(.vertical, 12)
-
-                            if includesHistory {
-                                Divider()
-                                Text("Add paired CGM readings and the foods eaten at those times. Personalization requires at least five complete days.")
-                                    .font(.footnote)
-                                    .foregroundStyle(DemoPalette.muted)
-                                ForEach(Array(history.indices), id: \.self) { index in
-                                    Divider()
-                                    HistoryEntryEditor(entry: $history[index]) {
-                                        historyFoodIndex = index
-                                    }
-                                }
-                                Button("Add history entry", systemImage: "plus") {
-                                    history.append(.init())
-                                }
-                                .font(.headline)
-                                .foregroundStyle(DemoPalette.green)
-                            }
                         }
                     }
 
@@ -202,7 +161,7 @@ struct GlucoseView: View {
                         }
                     }
                     .buttonStyle(DemoPrimaryButtonStyle())
-                    .disabled(foods.isEmpty || isLoading || !historyIsValid)
+                    .disabled(foods.isEmpty || isLoading)
                 }
             }
             .padding(.vertical, 16)
@@ -255,23 +214,10 @@ struct GlucoseView: View {
         .padding(.vertical, 12)
     }
 
-    private var historyFoodPickerBinding: Binding<Bool> {
-        Binding(get: { historyFoodIndex != nil }, set: { if !$0 { historyFoodIndex = nil } })
-    }
-
-    private var historyIsValid: Bool {
-        !includesHistory || (!history.isEmpty && history.allSatisfy { $0.food != nil && $0.glucose > 0 })
-    }
-
     @MainActor private func predict() async {
-        guard !foods.isEmpty, historyIsValid else { return }
+        guard !foods.isEmpty else { return }
         isLoading = true; error = nil
         do {
-            let readings: [CgmReading]? = includesHistory ? history.map { .init(timestamp: DemoFormatting.apiDate.string(from: $0.timestamp), value: $0.glucose) } : nil
-            let consumed: [ConsumedHistoricalFood]? = includesHistory ? history.compactMap { entry in
-                guard let food = entry.food else { return nil }
-                return .init(timestamp: DemoFormatting.apiDate.string(from: entry.timestamp), id: food.food.id, serving: .init(id: food.serving.id, quantity: food.quantity))
-            } : nil
             prediction = try await client.glucose.predict(.init(
                 userProfile: .init(
                     age: age,
@@ -283,8 +229,6 @@ struct GlucoseView: View {
                 ),
                 foods: foods.map(\.selection),
                 startTime: startTime,
-                cgmData: readings,
-                consumedFoods: consumed,
                 endUserID: DemoFormatting.endUserID(endUserID),
                 timezone: timezone
             ))
@@ -337,28 +281,6 @@ private struct ConditionSelectionView: View {
         .buttonStyle(.plain)
         .foregroundStyle(DemoPalette.ink)
         .accessibilityValue(selection.contains(value) ? "Selected" : "Not selected")
-    }
-}
-
-private struct DemoHistoryEntry: Identifiable {
-    let id = UUID()
-    var timestamp = Date.now
-    var glucose = 100.0
-    var food: DemoSelectedFood?
-}
-
-private struct HistoryEntryEditor: View {
-    @Binding var entry: DemoHistoryEntry
-    let chooseFood: () -> Void
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            DatePicker("Time", selection: $entry.timestamp)
-            LabeledContent("CGM") {
-                TextField("mg/dL", value: $entry.glucose, format: .number).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
-                Text("mg/dL").foregroundStyle(.secondary)
-            }
-            Button(entry.food?.food.name ?? "Choose consumed food", systemImage: "fork.knife", action: chooseFood)
-        }.padding(.vertical, 6)
     }
 }
 
