@@ -40,11 +40,32 @@ private actor ContractProbeTransport: ClientTransport {
         )
         var response = HTTPResponse(status: .ok)
         response.headerFields[.contentType] = "application/json"
-        let json = responses[operationID] ?? #"{"total_count":0,"items":[]}"#
+        let json = responses[operationID] ?? Self.defaultResponse(for: operationID)
         return (response, HTTPBody(json))
     }
 
     func requests() -> [ProbeRequest] { recorded }
+
+    private static func defaultResponse(for operationID: String) -> String {
+        switch operationID {
+        case "searchFoods", "lookupFoodByBarcode", "searchRestaurants", "searchRestaurantMenuItems":
+            #"{"total_count":0,"items":[]}"#
+        case "searchFoodsByNaturalLanguage", "scanFoodPhoto", "correctPhotoScan":
+            #"{"detections":[]}"#
+        case "suggestFoodAlternatives":
+            #"{"alternatives":[]}"#
+        case "createFoodLog", "updateFoodLog":
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z"}"#
+        case "listFoodLogs":
+            #"{"total_count":0,"items":[]}"#
+        case "deleteFoodLog":
+            #"{"status":"deleted"}"#
+        case "predictGlucose":
+            #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
+        default:
+            #"{}"#
+        }
+    }
 }
 
 private func probeClient(_ transport: any ClientTransport) throws -> JanuaryPartnerClient {
@@ -83,27 +104,20 @@ func naturalLanguageSearchRejectsInvalidQueryLengths(_ query: String) async thro
     let client = try probeClient(transport)
 
     await #expect(throws: JanuaryError.self) {
-        _ = try await client.foods.searchByNaturalLanguage(.init(query: query))
+        _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: query))
     }
     #expect(await transport.requests().isEmpty)
 }
 
 @Test
-func alternativesRequireExplicitNonemptyPreferenceArrays() async throws {
+func alternativesAcceptEmptyPreferenceArrays() async throws {
     let transport = ContractProbeTransport()
     let client = try probeClient(transport)
 
-    await #expect(throws: JanuaryError.self) {
-        _ = try await client.foods.suggestAlternatives(
-            .init(foodID: .init(rawValue: 1), dietRestrictions: [], dietPreferences: [.none])
-        )
-    }
-    await #expect(throws: JanuaryError.self) {
-        _ = try await client.foods.suggestAlternatives(
-            .init(foodID: .init(rawValue: 1), dietRestrictions: [.none], dietPreferences: [])
-        )
-    }
-    #expect(await transport.requests().isEmpty)
+    _ = try await client.foods.suggestAlternatives(
+        .init(foodID: .init(rawValue: 1), dietRestrictions: [], dietPreferences: [])
+    )
+    #expect(await transport.requests().count == 1)
 }
 
 @Test(arguments: [
@@ -139,9 +153,9 @@ func documentedEnumValuesRoundTripOnTheWire() throws {
 
     let restrictions = DietRestriction.allCases
     #expect(restrictions.map(\.rawValue) == [
-        "None", "Gluten", "Lactose", "Yeast", "Tree nuts", "Peanuts", "Dairy", "Eggs",
-        "Sulfites", "Soy", "Wheat", "Shellfish", "Fish", "Mushrooms", "Sesame",
-        "Monosodium glutamate (MSG)", "Caffeine", "FODMAPs",
+        "gluten", "lactose", "yeast", "tree_nuts", "peanuts", "dairy", "eggs",
+        "sulfites", "soy", "wheat", "shellfish", "fish", "mushrooms", "sesame",
+        "msg", "caffeine", "fodmaps",
     ])
     for value in restrictions {
         #expect(try decoder.decode(DietRestriction.self, from: encoder.encode(value)) == value)
@@ -149,8 +163,8 @@ func documentedEnumValuesRoundTripOnTheWire() throws {
 
     let preferences = DietPreference.allCases
     #expect(preferences.map(\.rawValue) == [
-        "None", "Vegetarian", "Vegan", "Keto", "Paleo", "Pescatarian",
-        "Low carbohydrate", "High protein", "Kosher", "Halal",
+        "vegetarian", "vegan", "keto", "paleo", "pescatarian",
+        "low_carbohydrate", "high_protein", "kosher", "halal",
     ])
     for value in preferences {
         #expect(try decoder.decode(DietPreference.self, from: encoder.encode(value)) == value)
@@ -159,18 +173,17 @@ func documentedEnumValuesRoundTripOnTheWire() throws {
     #expect(RestaurantResultType.restaurant.rawValue == "restaurant")
     #expect(RestaurantResultType.menuItem.rawValue == "menu_item")
     #expect(ConfidenceScore.allCases.map(\.rawValue) == ["high", "medium", "low"])
-    #expect(Gender.male.rawValue == "male")
-    #expect(Gender.female.rawValue == "female")
+    #expect(Sex.male.rawValue == "male")
+    #expect(Sex.female.rawValue == "female")
     #expect(ActivityLevel.sedentary.rawValue == "sedentary")
     #expect(ActivityLevel.lightlyActive.rawValue == "lightly_active")
     #expect(ActivityLevel.moderatelyActive.rawValue == "moderately_active")
     #expect(ActivityLevel.veryActive.rawValue == "very_active")
-    #expect(MedicalCondition.type2Diabetes.rawValue == "Type 2 diabetes")
-    #expect(MedicalCondition.prediabetes.rawValue == "Prediabetes")
-    #expect(MedicalCondition.noneOfTheAbove.rawValue == "None of the above")
-    #expect(GlucoseImpact.lowImpact.rawValue == "low_impact")
-    #expect(GlucoseImpact.mediumImpact.rawValue == "medium_impact")
-    #expect(GlucoseImpact.highImpact.rawValue == "high_impact")
+    #expect(MedicalCondition.type2Diabetes.rawValue == "type_2_diabetes")
+    #expect(MedicalCondition.prediabetes.rawValue == "prediabetes")
+    #expect(GlucoseImpact.lowImpact.rawValue == "low")
+    #expect(GlucoseImpact.mediumImpact.rawValue == "medium")
+    #expect(GlucoseImpact.highImpact.rawValue == "high")
 }
 
 @Test
@@ -294,7 +307,7 @@ func transportFailuresMapToStablePublicErrors() async throws {
     (500, ErrorCategory.server),
 ])
 func foodSearchMapsEveryDeclaredAndUndocumentedStatus(_ status: Int, _ category: ErrorCategory) async throws {
-    let json = #"{"code":"fixture_code","message":"fixture message"}"#
+    let json = #"{"code":"fixture_code","message":"fixture message","docs_url":"https://docs.january.ai/nutrition/apis/v1.2/"}"#
     let client = try probeClient(FailureTransport(.status(status, json)))
     do {
         _ = try await client.foods.search(.init(query: "banana"))
@@ -446,9 +459,9 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     )
     let serving = ServingSelection(id: .init(rawValue: 7), quantity: 1.5)
     let selection = FoodSelection(id: .init(rawValue: 42), serving: serving)
-    let naturalServing = NaturalLanguageServing(id: .init(rawValue: 7), unit: "cup", quantity: 1, selectedQuantity: 1.5)
-    let naturalFood = NaturalLanguageFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [naturalServing])
-    let naturalResponse = SearchFoodsByNaturalLanguageResponse(
+    let naturalServing = DetectedServing(id: .init(rawValue: 7), quantity: 1, unit: "cup")
+    let naturalFood = DetectedFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [naturalServing])
+    let naturalResponse = FoodScan(
         totalNutrients: complete, detections: [.init(food: naturalFood)]
     )
     let detectedServing = DetectedServing(id: .init(rawValue: 7), quantity: 1, unit: "cup")
@@ -464,7 +477,13 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     _ = FoodLog(id: UUID().uuidString, foods: [], timestampUTC: "2026-08-23T12:00:00Z", name: "Meal")
     _ = ListFoodLogsResponse(totalCount: 0, items: [])
     _ = DeleteFoodLogResponse(status: "deleted")
-    let profile = GlucosePredictionProfile(age: 35, gender: .male, height: 70, weight: 175, activityLevel: .moderatelyActive, healthConditions: [.noneOfTheAbove])
+    let profile = GlucosePredictionProfile(
+        age: 35, sex: .male,
+        height: .init(value: 70, unit: .inches),
+        weight: .init(value: 175, unit: .pounds),
+        activityLevel: .moderatelyActive,
+        healthConditions: []
+    )
     let reading = CgmReading(timestamp: "2026-08-23T12:00:00Z", value: 100)
     let historicalServing = ConsumedHistoricalServing(id: .init(rawValue: 7), quantity: 1)
     let historicalFood = ConsumedHistoricalFood(timestamp: reading.timestamp, id: .init(rawValue: 42), serving: historicalServing)
@@ -479,14 +498,14 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     let detection = FoodDetection(food: detectedFood, confidenceScore: .high)
     let point = GlucosePredictionPoint(minutes: 0, value: 100)
     let impact = PhotoScanGlucoseImpact(impactScore: "low", prediction: [point])
-    _ = PhotoScan(mealName: "Meal", totalNutrients: complete, detections: [detection], glucoseImpact: impact)
+    _ = FoodScan(mealName: "Meal", totalNutrients: complete, detections: [detection], glucoseImpact: impact)
     _ = CorrectPhotoScanRequest(mealName: "Meal", detections: [detection], userInput: "Correction", endUserID: user.endUserID)
 
     let encoder = JSONEncoder()
     let decoder = JSONDecoder()
     #expect(try decoder.decode(CompleteScanNutritionFacts.self, from: encoder.encode(complete)) == complete)
     #expect(try decoder.decode(NutritionFacts.self, from: encoder.encode(nutrition)) == nutrition)
-    #expect(try decoder.decode(SearchFoodsByNaturalLanguageResponse.self, from: encoder.encode(naturalResponse)) == naturalResponse)
+    #expect(try decoder.decode(FoodScan.self, from: encoder.encode(naturalResponse)) == naturalResponse)
     #expect(try decoder.decode(SuggestFoodAlternativesResponse.self, from: encoder.encode(alternatives)) == alternatives)
     #expect(try decoder.decode(GlucosePrediction.self, from: encoder.encode(prediction)) == prediction)
 
@@ -510,7 +529,7 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
         "listFoodLogs": #"{"total_count":0,"items":[]}"#,
         "updateFoodLog": logJSON,
         "deleteFoodLog": #"{"status":"deleted"}"#,
-        "predictGlucose": #"{"cgp":[[0,100]],"scoring":"low_impact","cgp_min":100,"cgp_max":100}"#,
+        "predictGlucose": #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#,
     ]
     let transport = ContractProbeTransport(responses: responses)
     let client = try probeClient(transport)
@@ -518,11 +537,16 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     let user = FoodLogUserContext(endUserID: userID, timezone: "America/New_York")
     let food = FoodSelection(id: .init(rawValue: 42), serving: .init(id: .init(rawValue: 7), quantity: 1.5))
     let detection = FoodDetection(
-        food: .init(id: .init(rawValue: 42), name: "Banana", nutrients: .init()),
+        food: .init(
+            id: .init(rawValue: 42),
+            name: "Banana",
+            nutrients: .init(),
+            servings: [.init(id: .init(rawValue: 7), quantity: 1, unit: "serving")]
+        ),
         confidenceScore: .high
     )
 
-    _ = try await client.foods.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
+    _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
     _ = try await client.foods.suggestAlternatives(
         .init(foodID: .init(rawValue: 42), dietRestrictions: [.gluten], dietPreferences: [.vegan], endUserID: userID)
     )
@@ -563,8 +587,8 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     let alternatives = try #require(requests.first { $0.operationID == "suggestFoodAlternatives" })
     #expect(alternatives.path == "/v1.2/foods/42/alternatives")
     let alternativesBody = try jsonObject(alternatives)
-    #expect(alternativesBody["diet_restrictions"] as? [String] == ["Gluten"])
-    #expect(alternativesBody["diet_preferences"] as? [String] == ["Vegan"])
+    #expect(alternativesBody["diet_restrictions"] as? [String] == ["gluten"])
+    #expect(alternativesBody["diet_preferences"] as? [String] == ["vegan"])
 
     let correction = try #require(requests.first { $0.operationID == "correctPhotoScan" })
     let correctionBody = try jsonObject(correction)
@@ -594,7 +618,10 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     #expect((glucoseBody["consumed_foods"] as? [[String: Any]])?.count == 1)
     let profile = try #require(glucoseBody["user_profile"] as? [String: Any])
     #expect(profile["activity_level"] as? String == "lightly_active")
-    #expect(profile["health_conditions"] as? [String] == ["Prediabetes"])
+    #expect(profile["sex"] as? String == "female")
+    #expect((profile["height"] as? [String: Any])?["unit"] as? String == "in")
+    #expect((profile["weight"] as? [String: Any])?["unit"] as? String == "lb")
+    #expect(profile["health_conditions"] as? [String] == ["prediabetes"])
 }
 
 private func expectEndpointError<Value: Sendable>(
@@ -602,7 +629,7 @@ private func expectEndpointError<Value: Sendable>(
     category: ErrorCategory,
     operation: (JanuaryPartnerClient) async throws -> Value
 ) async throws {
-    let body = #"{"code":"fixture_code","message":"fixture message"}"#
+    let body = #"{"code":"fixture_code","message":"fixture message","docs_url":"https://docs.january.ai/nutrition/apis/v1.2/"}"#
     let client = try probeClient(FailureTransport(.status(status, body)))
     do {
         _ = try await operation(client)
@@ -620,7 +647,7 @@ func everyFoodsResponseVariantMapsThroughThePublicResource() async throws {
     ]
     for (status, category) in common {
         try await expectEndpointError(status: status, category: category) {
-            try await $0.foods.searchByNaturalLanguage(.init(query: "banana"))
+            try await $0.photoScanning.searchByNaturalLanguage(.init(query: "banana"))
         }
     }
     for (status, category) in common + [(404, .notFound)] {
@@ -638,7 +665,7 @@ func everyFoodsResponseVariantMapsThroughThePublicResource() async throws {
         _ = try await client.foods.search(.init(query: "banana", category: category))
     }
 
-    let missingScaleJSON = #"{"total_count":1,"items":[{"id":42,"name":"Food","brand_name":null,"protein":2,"energy":160,"carbs":15,"fat":10,"fat_total_saturated":5,"net_carbs":13,"sodium":20,"sugars":13,"added_sugars":11,"gi":34.9,"gl":5.2,"fiber":2,"potassium":170,"cholesterol":2.5,"photo_url":null,"servings":[{"id":7,"quantity":1,"unit":"cup","weight_grams":60,"is_primary":true}]}]}"#
+    let missingScaleJSON = #"{"total_count":1,"items":[{"id":42,"name":"Food","nutrients":{"calories":{"value":160,"unit":"cal"},"protein":{"value":2,"unit":"g"},"carbohydrates":{"value":15,"unit":"g"},"total_fat":{"value":10,"unit":"g"}},"glycemic_index":34.9,"glycemic_load":5.2,"servings":[{"id":7,"quantity":1,"unit":"cup","weight_grams":60,"is_primary":true}]}]}"#
     let missingScale = try probeClient(ContractProbeTransport(responses: ["searchFoods": missingScaleJSON]))
     let result = try await missingScale.foods.search(.init(query: "food"))
     #expect(result.items[0].servings[0].scalingFactor == 1)
@@ -667,7 +694,13 @@ func everyRestaurantResponseVariantMapsThroughBothPublicOperations() async throw
 
 @Test
 func everyPhotoScanningResponseVariantMapsThroughBothPublicOperations() async throws {
-    let detection = FoodDetection(food: .init(name: "Food", nutrients: .init()))
+    let detection = FoodDetection(
+        food: .init(
+            name: "Food",
+            nutrients: .init(),
+            servings: [.init(id: .init(rawValue: 7), quantity: 1, unit: "serving")]
+        )
+    )
     for (status, category) in [
         (400, ErrorCategory.validation), (401, .authentication), (429, .rateLimited),
         (504, .timeout), (500, .server),
@@ -725,6 +758,15 @@ func everyGlucoseResponseVariantMapsThroughThePublicResource() async throws {
             try await $0.glucose.predict(request)
         }
     }
+
+    let liveResponse = #"{"prediction":[{"minutes":0,"value":101.5},{"minutes":15,"value":128.25}],"impact_score":"medium","chart":{"min":70,"max":140}}"#
+    let transport = ContractProbeTransport(responses: ["predictGlucose": liveResponse])
+    let result = try await probeClient(transport).glucose.predict(request)
+    #expect(result.curve == [[0, 101.5], [15, 128.25]])
+    #expect(result.scoring == .mediumImpact)
+    #expect(result.minimum == 70)
+    #expect(result.maximum == 140)
+    #expect(try #require(await transport.requests().first).path == "/v1.2/glucose/predictions")
 }
 
 private func jsonObject(_ request: ProbeRequest) throws -> [String: Any] {

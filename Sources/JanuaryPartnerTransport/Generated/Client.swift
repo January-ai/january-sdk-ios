@@ -10,9 +10,22 @@ package import struct Foundation.Data
 package import struct Foundation.Date
 #endif
 import HTTPTypes
-/// Build food and metabolic intelligence into your product with the January API — one API for understanding what people eat and how food may affect them.
+/// Build food and metabolic intelligence into your product — one API for understanding what people eat and how food may affect them.
 ///
-/// Use it to **search foods** by name, barcode, natural language, restaurant, or menu item; **scan meals from photos** and correct the results in plain English; **log food** and retrieve a user's history; **recommend healthier alternatives**; and **predict glucose response** to a meal — no sensor required.
+/// **Clinical-grade precision, consumer-grade experiences.** January builds the infrastructure underneath the product: turning messy health and nutrition data into reliable intelligence, so your team spends its time on the experience instead of the foundation.
+///
+/// **What you can build**
+/// - **Scan food** — detect foods and nutrition from a meal photo or a plain-English description, and correct results conversationally
+/// - **Search the food database** — by name or barcode — and get healthier alternatives for any food
+/// - **Log food** — a per-user diary with day-range queries
+/// - **Predict glucose response** to any meal — no sensor required
+///
+/// **Getting started**
+/// 1. Create an API key in the [Developer Dashboard](https://dashboard.january.ai) — the full key is shown once, at creation.
+/// 2. Send it as `Authorization: Bearer <your key>` — click **Authorize** here to make every example below a live request.
+/// 3. Identify your end user with the `x-end-user-id` header wherever a request acts on their data.
+///
+/// **Support** — [support@january.ai](mailto:support@january.ai) · [Discord community](https://discord.gg/cYQeh3UnC) · [docs.january.ai](https://docs.january.ai)
 package struct Client: APIProtocol {
     /// The underlying HTTP client.
     private let client: UniversalClient
@@ -44,15 +57,15 @@ package struct Client: APIProtocol {
     ///
     /// Full-text search over the January food database, returning up to 40 ranked matches. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{upc}` instead.
     ///
-    /// - Remark: HTTP `GET /v1.2/foods/search`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)`.
+    /// - Remark: HTTP `GET /v1.2/foods`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)`.
     package func searchFoods(_ input: Operations.SearchFoods.Input) async throws -> Operations.SearchFoods.Output {
         try await client.send(
             input: input,
             forOperation: Operations.SearchFoods.id,
             serializer: { input in
                 let path = try converter.renderedPath(
-                    template: "/v1.2/foods/search",
+                    template: "/v1.2/foods",
                     parameters: []
                 )
                 var request: HTTPTypes.HTTPRequest = .init(
@@ -161,6 +174,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.SearchFoods.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.SearchFoods.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -181,154 +199,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchFoods.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
                         statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
-                        )
-                    )
-                }
-            }
-        )
-    }
-    /// Parse a meal description into foods
-    ///
-    /// Natural-language food search: parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of meal-scan. For keyword search over the food database, use `GET /v1.2/foods/search`.
-    ///
-    /// - Remark: HTTP `GET /v1.2/foods/search/nlp`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)`.
-    package func searchFoodsByNaturalLanguage(_ input: Operations.SearchFoodsByNaturalLanguage.Input) async throws -> Operations.SearchFoodsByNaturalLanguage.Output {
-        try await client.send(
-            input: input,
-            forOperation: Operations.SearchFoodsByNaturalLanguage.id,
-            serializer: { input in
-                let path = try converter.renderedPath(
-                    template: "/v1.2/foods/search/nlp",
-                    parameters: []
-                )
-                var request: HTTPTypes.HTTPRequest = .init(
-                    soar_path: path,
-                    method: .get
-                )
-                suppressMutabilityWarning(&request)
-                try converter.setHeaderFieldAsURI(
-                    in: &request.headerFields,
-                    name: "x-end-user-id",
-                    value: input.headers.xEndUserId
-                )
-                try converter.setQueryItemAsURI(
-                    in: &request,
-                    style: .form,
-                    explode: true,
-                    name: "query",
-                    value: input.query.query
-                )
-                converter.setAcceptHeader(
-                    in: &request.headerFields,
-                    contentTypes: input.headers.accept
-                )
-                return (request, nil)
-            },
-            deserializer: { response, responseBody in
-                switch response.status.code {
-                case 200:
-                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
-                    let body: Operations.SearchFoodsByNaturalLanguage.Output.Ok.Body
-                    let chosenContentType = try converter.bestContentType(
-                        received: contentType,
-                        options: [
-                            "application/json"
-                        ]
-                    )
-                    switch chosenContentType {
-                    case "application/json":
-                        body = try await converter.getResponseBodyAsJSON(
-                            Components.Schemas.SearchFoodsByNaturalLanguageResponse.self,
-                            from: responseBody,
-                            transforming: { value in
-                                .json(value)
-                            }
-                        )
-                    default:
-                        preconditionFailure("bestContentType chose an invalid content type.")
-                    }
-                    return .ok(.init(body: body))
-                case 400:
-                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
-                    let body: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest.Body
-                    let chosenContentType = try converter.bestContentType(
-                        received: contentType,
-                        options: [
-                            "application/json"
-                        ]
-                    )
-                    switch chosenContentType {
-                    case "application/json":
-                        body = try await converter.getResponseBodyAsJSON(
-                            Components.Schemas.ErrorResponse.self,
-                            from: responseBody,
-                            transforming: { value in
-                                .json(value)
-                            }
-                        )
-                    default:
-                        preconditionFailure("bestContentType chose an invalid content type.")
-                    }
-                    return .badRequest(.init(body: body))
-                case 401:
-                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
-                    let body: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized.Body
-                    let chosenContentType = try converter.bestContentType(
-                        received: contentType,
-                        options: [
-                            "application/json"
-                        ]
-                    )
-                    switch chosenContentType {
-                    case "application/json":
-                        body = try await converter.getResponseBodyAsJSON(
-                            Components.Schemas.ErrorResponse.self,
-                            from: responseBody,
-                            transforming: { value in
-                                .json(value)
-                            }
-                        )
-                    default:
-                        preconditionFailure("bestContentType chose an invalid content type.")
-                    }
-                    return .unauthorized(.init(body: body))
-                case 429:
-                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
-                    let body: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Body
-                    let chosenContentType = try converter.bestContentType(
-                        received: contentType,
-                        options: [
-                            "application/json"
-                        ]
-                    )
-                    switch chosenContentType {
-                    case "application/json":
-                        body = try await converter.getResponseBodyAsJSON(
-                            Components.Schemas.ErrorResponse.self,
-                            from: responseBody,
-                            transforming: { value in
-                                .json(value)
-                            }
-                        )
-                    default:
-                        preconditionFailure("bestContentType chose an invalid content type.")
-                    }
-                    return .tooManyRequests(.init(body: body))
-                default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
-                        )
+                        .init(body: body)
                     )
                 }
             }
@@ -467,6 +365,11 @@ package struct Client: APIProtocol {
                     }
                     return .notFound(.init(body: body))
                 case 429:
+                    let headers: Operations.SuggestFoodAlternatives.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.SuggestFoodAlternatives.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -487,14 +390,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SuggestFoodAlternatives.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -502,7 +425,7 @@ package struct Client: APIProtocol {
     }
     /// Look up a food by barcode
     ///
-    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods/search` instead.
+    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// - Remark: HTTP `GET /v1.2/foods/barcode/{upc}`.
     /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)`.
@@ -624,6 +547,11 @@ package struct Client: APIProtocol {
                     }
                     return .notFound(.init(body: body))
                 case 429:
+                    let headers: Operations.LookupFoodByBarcode.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.LookupFoodByBarcode.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -644,14 +572,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.LookupFoodByBarcode.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -661,15 +609,15 @@ package struct Client: APIProtocol {
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. When the name matches no restaurant, results may be menu items (`type: "menu_item"`). `radius` and result distances are in meters.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)`.
     package func searchRestaurants(_ input: Operations.SearchRestaurants.Input) async throws -> Operations.SearchRestaurants.Output {
         try await client.send(
             input: input,
             forOperation: Operations.SearchRestaurants.id,
             serializer: { input in
                 let path = try converter.renderedPath(
-                    template: "/v1.2/restaurants/search",
+                    template: "/v1.2/restaurants",
                     parameters: []
                 )
                 var request: HTTPTypes.HTTPRequest = .init(
@@ -792,6 +740,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.SearchRestaurants.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.SearchRestaurants.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -812,14 +765,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchRestaurants.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -829,15 +802,15 @@ package struct Client: APIProtocol {
     ///
     /// Search dishes across restaurants near (`latitude`, `longitude`). Returns menu items with their nutrition values. `radius` and result distances are in meters, e.g. radius=5000 for 5 kilometers.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/menu/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants/menu-items`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)`.
     package func searchRestaurantMenuItems(_ input: Operations.SearchRestaurantMenuItems.Input) async throws -> Operations.SearchRestaurantMenuItems.Output {
         try await client.send(
             input: input,
             forOperation: Operations.SearchRestaurantMenuItems.id,
             serializer: { input in
                 let path = try converter.renderedPath(
-                    template: "/v1.2/restaurants/menu/search",
+                    template: "/v1.2/restaurants/menu-items",
                     parameters: []
                 )
                 var request: HTTPTypes.HTTPRequest = .init(
@@ -960,6 +933,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.SearchRestaurantMenuItems.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.SearchRestaurantMenuItems.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -980,32 +958,52 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchRestaurantMenuItems.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
         )
     }
-    /// Detect foods and nutrition in a meal photo
+    /// Scan a meal photo
     ///
     /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
     package func scanFoodPhoto(_ input: Operations.ScanFoodPhoto.Input) async throws -> Operations.ScanFoodPhoto.Output {
         try await client.send(
             input: input,
             forOperation: Operations.ScanFoodPhoto.id,
             serializer: { input in
                 let path = try converter.renderedPath(
-                    template: "/v1.2/meal-scan",
+                    template: "/v1.2/food-scans/photo",
                     parameters: []
                 )
                 var request: HTTPTypes.HTTPRequest = .init(
@@ -1047,7 +1045,7 @@ package struct Client: APIProtocol {
                     switch chosenContentType {
                     case "application/json":
                         body = try await converter.getResponseBodyAsJSON(
-                            Components.Schemas.PhotoScan.self,
+                            Components.Schemas.FoodScan.self,
                             from: responseBody,
                             transforming: { value in
                                 .json(value)
@@ -1124,6 +1122,11 @@ package struct Client: APIProtocol {
                     }
                     return .contentTooLarge(.init(body: body))
                 case 429:
+                    let headers: Operations.ScanFoodPhoto.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.ScanFoodPhoto.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -1144,7 +1147,10 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 case 504:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.ScanFoodPhoto.Output.GatewayTimeout.Body
@@ -1168,30 +1174,214 @@ package struct Client: APIProtocol {
                     }
                     return .gatewayTimeout(.init(body: body))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ScanFoodPhoto.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
         )
     }
-    /// Correct a scan with a plain-English instruction
+    /// Scan a meal description
     ///
-    /// Refines a meal-scan result. Send back `meal_name` and `detections` exactly as the scan returned them, plus `user_input` describing the correction; the response is a corrected scan result with recalculated totals.
+    /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-scans/photo`. Text scans carry no `meal_name` (the caller already has the words). For keyword search over the food database, use `GET /v1.2/foods`.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan/fix-ai`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/text`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)`.
+    package func searchFoodsByNaturalLanguage(_ input: Operations.SearchFoodsByNaturalLanguage.Input) async throws -> Operations.SearchFoodsByNaturalLanguage.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.SearchFoodsByNaturalLanguage.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1.2/food-scans/text",
+                    parameters: []
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .post
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "x-end-user-id",
+                    value: input.headers.xEndUserId
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                let body: OpenAPIRuntime.HTTPBody?
+                switch input.body {
+                case let .json(value):
+                    body = try converter.setRequiredRequestBodyAsJSON(
+                        value,
+                        headerFields: &request.headerFields,
+                        contentType: "application/json; charset=utf-8"
+                    )
+                }
+                return (request, body)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchFoodsByNaturalLanguage.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.FoodScan.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(body: body))
+                case 400:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(body: body))
+                case 401:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(body: body))
+                case 429:
+                    let headers: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                default:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.SearchFoodsByNaturalLanguage.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
+                    )
+                }
+            }
+        )
+    }
+    /// Correct a scan in plain English
+    ///
+    /// Revises a scan result. Send back `meal_name` and `detections` exactly as a photo or text scan returned them (any label works as `meal_name` for text scans), plus `user_input` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `user_input` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically; each detection must carry at least one serving.
+    ///
+    /// - Remark: HTTP `POST /v1.2/food-scans/corrections`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)`.
     package func correctPhotoScan(_ input: Operations.CorrectPhotoScan.Input) async throws -> Operations.CorrectPhotoScan.Output {
         try await client.send(
             input: input,
             forOperation: Operations.CorrectPhotoScan.id,
             serializer: { input in
                 let path = try converter.renderedPath(
-                    template: "/v1.2/meal-scan/fix-ai",
+                    template: "/v1.2/food-scans/corrections",
                     parameters: []
                 )
                 var request: HTTPTypes.HTTPRequest = .init(
@@ -1233,7 +1423,7 @@ package struct Client: APIProtocol {
                     switch chosenContentType {
                     case "application/json":
                         body = try await converter.getResponseBodyAsJSON(
-                            Components.Schemas.PhotoScan.self,
+                            Components.Schemas.FoodScan.self,
                             from: responseBody,
                             transforming: { value in
                                 .json(value)
@@ -1288,6 +1478,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.CorrectPhotoScan.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.CorrectPhotoScan.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -1308,7 +1503,10 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 case 504:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.CorrectPhotoScan.Output.GatewayTimeout.Body
@@ -1332,12 +1530,29 @@ package struct Client: APIProtocol {
                     }
                     return .gatewayTimeout(.init(body: body))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.CorrectPhotoScan.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -1462,6 +1677,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.ListFoodLogs.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.ListFoodLogs.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -1482,14 +1702,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ListFoodLogs.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -1497,7 +1737,7 @@ package struct Client: APIProtocol {
     }
     /// Log foods for a user
     ///
-    /// Creates a food log from food + serving ids (from search, scan, or NLP results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
+    /// Creates a food log from food + serving ids (from search, scan, or detection results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
     ///
     /// - Remark: HTTP `POST /v1.2/food-logs`.
     /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)`.
@@ -1609,6 +1849,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.CreateFoodLog.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.CreateFoodLog.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -1629,14 +1874,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.CreateFoodLog.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -1780,6 +2045,11 @@ package struct Client: APIProtocol {
                     }
                     return .notFound(.init(body: body))
                 case 429:
+                    let headers: Operations.UpdateFoodLog.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.UpdateFoodLog.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -1800,14 +2070,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.UpdateFoodLog.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -1920,6 +2210,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.DeleteFoodLog.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.DeleteFoodLog.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -1940,14 +2235,34 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.DeleteFoodLog.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }
@@ -1957,15 +2272,15 @@ package struct Client: APIProtocol {
     ///
     /// Predicts the glucose curve a meal will produce for the given profile. Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Without x-end-user-id, the partner itself is the acting user.
     ///
-    /// - Remark: HTTP `POST /v1.2/glucose-predict`.
-    /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)`.
+    /// - Remark: HTTP `POST /v1.2/glucose/predictions`.
+    /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)`.
     package func predictGlucose(_ input: Operations.PredictGlucose.Input) async throws -> Operations.PredictGlucose.Output {
         try await client.send(
             input: input,
             forOperation: Operations.PredictGlucose.id,
             serializer: { input in
                 let path = try converter.renderedPath(
-                    template: "/v1.2/glucose-predict",
+                    template: "/v1.2/glucose/predictions",
                     parameters: []
                 )
                 var request: HTTPTypes.HTTPRequest = .init(
@@ -2067,6 +2382,11 @@ package struct Client: APIProtocol {
                     }
                     return .unauthorized(.init(body: body))
                 case 429:
+                    let headers: Operations.PredictGlucose.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.PredictGlucose.Output.TooManyRequests.Body
                     let chosenContentType = try converter.bestContentType(
@@ -2087,7 +2407,10 @@ package struct Client: APIProtocol {
                     default:
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
-                    return .tooManyRequests(.init(body: body))
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
                 case 504:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.PredictGlucose.Output.GatewayTimeout.Body
@@ -2111,12 +2434,29 @@ package struct Client: APIProtocol {
                     }
                     return .gatewayTimeout(.init(body: body))
                 default:
-                    return .undocumented(
-                        statusCode: response.status.code,
-                        .init(
-                            headerFields: response.headerFields,
-                            body: responseBody
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.PredictGlucose.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
                         )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
                     )
                 }
             }

@@ -25,6 +25,23 @@ public struct JanuaryPartnerClient: Sendable {
         )
     }
 
+    /// Creates a production-shaped client that obtains short-lived credentials
+    /// from the integrating app's authenticated backend.
+    ///
+    /// Tokens are cached in memory, refreshed shortly before expiration, and
+    /// never persisted by the SDK. The provider must not return a partner API key.
+    public init(
+        serverURL: URL = URL(string: "https://partners.january.ai")!,
+        clientTokenProvider: @escaping JanuaryClientTokenProvider
+    ) throws {
+        try self.init(
+            serverURL: serverURL,
+            transport: URLSessionTransport(),
+            clientTokenProvider: clientTokenProvider,
+            userAgent: SDKUserAgent.current
+        )
+    }
+
     internal init(
         developmentAPIKey: String,
         serverURL: URL,
@@ -38,12 +55,48 @@ public struct JanuaryPartnerClient: Sendable {
             )
         }
 
+        self.init(
+            serverURL: serverURL,
+            transport: transport,
+            authenticationSource: .developmentAPIKey(developmentAPIKey),
+            userAgent: userAgent
+        )
+    }
+
+    internal init(
+        serverURL: URL,
+        transport: any ClientTransport,
+        clientTokenProvider: @escaping JanuaryClientTokenProvider,
+        userAgent: String = SDKUserAgent.current,
+        refreshLeeway: TimeInterval = 60,
+        now: @escaping @Sendable () -> Date = Date.init
+    ) throws {
+        self.init(
+            serverURL: serverURL,
+            transport: transport,
+            authenticationSource: .clientToken(
+                ClientTokenManager(
+                    provider: clientTokenProvider,
+                    refreshLeeway: refreshLeeway,
+                    now: now
+                )
+            ),
+            userAgent: userAgent
+        )
+    }
+
+    private init(
+        serverURL: URL,
+        transport: any ClientTransport,
+        authenticationSource: AuthenticationSource,
+        userAgent: String
+    ) {
         let transportClient = Client(
             serverURL: serverURL,
             transport: transport,
             middlewares: [
-                DevelopmentAuthenticationMiddleware(
-                    apiKey: developmentAPIKey,
+                AuthenticationMiddleware(
+                    source: authenticationSource,
                     userAgent: userAgent
                 ),
             ]

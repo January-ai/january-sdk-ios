@@ -53,6 +53,10 @@ let package = Package(
             name: "JanuaryPartnerFullSmoke",
             dependencies: ["JanuaryPartnerSDK"]
         ),
+        .executableTarget(
+            name: "JanuaryPartnerTokenSmoke",
+            dependencies: ["JanuaryPartnerSDK"]
+        ),
         .testTarget(
             name: "JanuaryPartnerSDKTests",
             dependencies: [

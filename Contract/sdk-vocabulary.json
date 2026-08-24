@@ -12,11 +12,11 @@
     },
     {
       "operationId": "searchFoodsByNaturalLanguage",
-      "resource": "foods",
-      "resourceType": "FoodsResource",
+      "resource": "photoScanning",
+      "resourceType": "PhotoScanningResource",
       "publicMethod": "searchByNaturalLanguage",
       "publicInput": "SearchFoodsByNaturalLanguageRequest",
-      "publicResult": "SearchFoodsByNaturalLanguageResponse"
+      "publicResult": "FoodScan"
     },
     {
       "operationId": "lookupFoodByBarcode",
@@ -48,7 +48,7 @@
       "resourceType": "PhotoScanningResource",
       "publicMethod": "scan",
       "publicInput": "ScanFoodPhotoRequest",
-      "publicResult": "PhotoScan"
+      "publicResult": "FoodScan"
     },
     {
       "operationId": "correctPhotoScan",
@@ -56,7 +56,7 @@
       "resourceType": "PhotoScanningResource",
       "publicMethod": "correct",
       "publicInput": "CorrectPhotoScanRequest",
-      "publicResult": "PhotoScan"
+      "publicResult": "FoodScan"
     },
     {
       "operationId": "suggestFoodAlternatives",
@@ -185,7 +185,7 @@
     },
     {
       "symbol": "operations.searchFoodsByNaturalLanguage.method",
-      "scope": "methods.foods",
+      "scope": "methods.photoScanning",
       "swift": "searchByNaturalLanguage"
     },
     {
@@ -196,7 +196,7 @@
     {
       "symbol": "operations.searchFoodsByNaturalLanguage.publicResult",
       "scope": "types",
-      "swift": "SearchFoodsByNaturalLanguageResponse"
+      "swift": "FoodScan"
     },
     {
       "symbol": "operations.lookupFoodByBarcode",
@@ -276,7 +276,7 @@
     {
       "symbol": "operations.scanFoodPhoto.publicResult",
       "scope": "types",
-      "swift": "PhotoScan"
+      "swift": "FoodScan"
     },
     {
       "symbol": "operations.correctPhotoScan",
@@ -296,7 +296,7 @@
     {
       "symbol": "operations.correctPhotoScan.publicResult",
       "scope": "types",
-      "swift": "PhotoScan"
+      "swift": "FoodScan"
     },
     {
       "symbol": "operations.suggestFoodAlternatives",
@@ -439,9 +439,9 @@
       "swift": "DetectedFood"
     },
     {
-      "symbol": "schemas.NaturalLanguageFood",
+      "symbol": "schemas.AlternativeFood",
       "scope": "types",
-      "swift": "NaturalLanguageFood"
+      "swift": "AlternativeFood"
     },
     {
       "symbol": "schemas.FoodAlternative",
@@ -469,11 +469,6 @@
       "swift": "GlucosePrediction"
     },
     {
-      "symbol": "schemas.GlucosePoint",
-      "scope": "types",
-      "swift": "GlucosePoint"
-    },
-    {
       "symbol": "schemas.NutrientAmount",
       "scope": "types",
       "swift": "NutrientAmount"
@@ -484,9 +479,9 @@
       "swift": "NutritionFacts"
     },
     {
-      "symbol": "schemas.PhotoScan",
+      "symbol": "schemas.FoodScan",
       "scope": "types",
-      "swift": "PhotoScan"
+      "swift": "FoodScan"
     },
     {
       "symbol": "schemas.Restaurant",
@@ -514,19 +509,29 @@
       "swift": "DetectedServing"
     },
     {
-      "symbol": "schemas.NaturalLanguageServing",
+      "symbol": "schemas.AlternativeServing",
       "scope": "types",
-      "swift": "NaturalLanguageServing"
+      "swift": "AlternativeServing"
     },
     {
-      "symbol": "schemas.ConsumedServing",
+      "symbol": "schemas.Height",
       "scope": "types",
-      "swift": "ConsumedServing"
+      "swift": "Height"
     },
     {
-      "symbol": "schemas.ConsumedHistoricalServing",
+      "symbol": "schemas.Weight",
       "scope": "types",
-      "swift": "ConsumedHistoricalServing"
+      "swift": "Weight"
+    },
+    {
+      "symbol": "schemas.GlucosePredictionPoint",
+      "scope": "types",
+      "swift": "GlucosePredictionPoint"
+    },
+    {
+      "symbol": "schemas.GlucoseChart",
+      "scope": "types",
+      "swift": "GlucoseChart"
     },
     {
       "symbol": "schemas.ServingDetails",

@@ -105,7 +105,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     let query = Dictionary(
         uniqueKeysWithValues: (components.queryItems ?? []).map { ($0.name, $0.value) }
     )
-    #expect(components.path == "/v1.2/foods/search")
+    #expect(components.path == "/v1.2/foods")
     #expect(query["query"] == "banana")
     #expect(query["category"] == "branded")
     #expect(query["limit"] == "10.0")
@@ -160,4 +160,5 @@ func publicConcurrencyTypesAreSendable() {
     requireSendable(FoodsResource.self)
     requireSendable(FoodSearchResults.self)
     requireSendable(JanuaryError.self)
+    requireSendable(JanuaryClientToken.self)
 }

@@ -90,7 +90,7 @@ import fs from "node:fs";
 const path = process.argv[2];
 let source = fs.readFileSync(path, "utf8");
 const schemaStart = source.indexOf("    CompleteScanNutritionFacts:\n");
-const schemaEnd = source.indexOf("\n    NaturalLanguageServing:\n", schemaStart);
+const schemaEnd = source.indexOf("\n    AlternativeServing:\n", schemaStart);
 if (schemaStart < 0 || schemaEnd < 0) {
     throw new Error("CompleteScanNutritionFacts schema was not found.");
 }

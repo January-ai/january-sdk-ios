@@ -40,7 +40,7 @@ private actor SurfaceTransport: ClientTransport {
         case "deleteFoodLog":
             #"{"status":"deleted"}"#
         case "predictGlucose":
-            #"{"cgp":[[0,100]],"scoring":"low_impact","cgp_min":100,"cgp_max":100}"#
+            #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
         default:
             #"{}"#
         }
@@ -62,12 +62,17 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
         serving: ServingSelection(id: ServingID(rawValue: 2), quantity: 1)
     )
     let detection = FoodDetection(
-        food: DetectedFood(id: FoodID(rawValue: 1), name: "Banana", nutrients: .init())
+        food: DetectedFood(
+            id: FoodID(rawValue: 1),
+            name: "Banana",
+            nutrients: .init(),
+            servings: [.init(id: ServingID(rawValue: 2), quantity: 1, unit: "serving")]
+        )
     )
 
     _ = try await client.foods.search(.init(query: "banana", endUserID: userID))
     _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346", endUserID: userID))
-    _ = try await client.foods.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
+    _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
     _ = try await client.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1), endUserID: userID))
     _ = try await client.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74, endUserID: userID))
     _ = try await client.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74, endUserID: userID))

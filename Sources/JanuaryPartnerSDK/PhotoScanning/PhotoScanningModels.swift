@@ -32,23 +32,26 @@ public struct PhotoScanGlucoseImpact: Codable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey { case prediction; case impactScore = "impact_score" }
 }
 
-public struct PhotoScan: Codable, Hashable, Sendable {
+public struct FoodScan: Codable, Hashable, Sendable {
     public var mealName: String?
     public var totalNutrients: CompleteScanNutritionFacts?
-    public var detections: [FoodDetection]?
+    public var detections: [FoodDetection]
     public var glucoseImpact: PhotoScanGlucoseImpact?
-    public init(mealName: String? = nil, totalNutrients: CompleteScanNutritionFacts? = nil, detections: [FoodDetection]? = nil, glucoseImpact: PhotoScanGlucoseImpact? = nil) {
+    public init(mealName: String? = nil, totalNutrients: CompleteScanNutritionFacts? = nil, detections: [FoodDetection] = [], glucoseImpact: PhotoScanGlucoseImpact? = nil) {
         self.mealName = mealName; self.totalNutrients = totalNutrients; self.detections = detections; self.glucoseImpact = glucoseImpact
     }
     enum CodingKeys: String, CodingKey { case detections; case mealName = "meal_name"; case totalNutrients = "total_nutrients"; case glucoseImpact = "glucose_impact" }
 }
 
+@available(*, deprecated, renamed: "FoodScan")
+public typealias PhotoScan = FoodScan
+
 public struct CorrectPhotoScanRequest: Hashable, Sendable {
-    public var mealName: String
+    public var mealName: String?
     public var detections: [FoodDetection]
     public var userInput: String
     public var endUserID: PartnerUserID?
-    public init(mealName: String, detections: [FoodDetection], userInput: String, endUserID: PartnerUserID? = nil) {
+    public init(mealName: String? = nil, detections: [FoodDetection], userInput: String, endUserID: PartnerUserID? = nil) {
         self.mealName = mealName; self.detections = detections; self.userInput = userInput; self.endUserID = endUserID
     }
 }

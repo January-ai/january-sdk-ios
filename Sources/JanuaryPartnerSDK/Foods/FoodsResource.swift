@@ -61,7 +61,7 @@ public struct FoodsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -69,7 +69,7 @@ public struct FoodsResource: Sendable {
     /// Parses a natural-language meal description into foods and servings.
     public func searchByNaturalLanguage(
         _ request: SearchFoodsByNaturalLanguageRequest
-    ) async throws -> SearchFoodsByNaturalLanguageResponse {
+    ) async throws -> FoodScan {
         guard !request.query.isEmpty, request.query.count <= 512 else {
             throw JanuaryError(
                 category: .validation,
@@ -80,8 +80,8 @@ public struct FoodsResource: Sendable {
         return try await performTransportRequest {
             let output = try await client.searchFoodsByNaturalLanguage(
                 .init(
-                    query: .init(query: request.query),
-                    headers: .init(xEndUserId: request.endUserID?.rawValue)
+                    headers: .init(xEndUserId: request.endUserID?.rawValue),
+                    body: .json(.init(text: request.query))
                 )
             )
             switch output {
@@ -89,7 +89,7 @@ public struct FoodsResource: Sendable {
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -98,13 +98,6 @@ public struct FoodsResource: Sendable {
     public func suggestAlternatives(
         _ request: SuggestFoodAlternativesRequest
     ) async throws -> SuggestFoodAlternativesResponse {
-        guard !request.dietRestrictions.isEmpty, !request.dietPreferences.isEmpty else {
-            throw JanuaryError(
-                category: .validation,
-                message: "Diet restrictions and preferences must each contain at least one value; use .none when none apply."
-            )
-        }
-
         return try await performTransportRequest {
             let transportBody: Components.Schemas.SuggestFoodAlternativesBody = try ModelBridge.convert(
                 SuggestBody(
@@ -125,7 +118,7 @@ public struct FoodsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -140,8 +133,8 @@ public struct FoodsResource: Sendable {
             throw apiError(.authentication, status: 401, response: try response.body.json)
         case .tooManyRequests(let response):
             throw apiError(.rateLimited, status: 429, response: try response.body.json)
-        case .undocumented(let statusCode, _):
-            throw apiError(errorCategory(for: statusCode), status: statusCode)
+        case .default(let status, _):
+            throw apiError(errorCategory(for: status), status: status)
         }
     }
 
@@ -153,21 +146,21 @@ public struct FoodsResource: Sendable {
                     id: FoodID(rawValue: item.id),
                     name: item.name,
                     brandName: item.brandName,
-                    calories: item.energy,
-                    protein: item.protein,
-                    carbohydrates: item.carbs,
-                    netCarbohydrates: item.netCarbs,
-                    totalFat: item.fat,
-                    saturatedFat: item.fatTotalSaturated,
-                    fiber: item.fiber,
-                    totalSugars: item.sugars,
-                    addedSugars: item.addedSugars,
-                    sodium: item.sodium,
-                    potassium: item.potassium,
-                    cholesterol: item.cholesterol,
-                    glycemicIndex: item.gi,
-                    glycemicLoad: item.gl,
-                    photoURL: item.photoUrl,
+                    calories: item.nutrients.calories?.value,
+                    protein: item.nutrients.protein?.value,
+                    carbohydrates: item.nutrients.carbohydrates?.value,
+                    netCarbohydrates: item.nutrients.netCarbohydrates?.value,
+                    totalFat: item.nutrients.totalFat?.value,
+                    saturatedFat: item.nutrients.saturatedFat?.value,
+                    fiber: item.nutrients.fiber?.value,
+                    totalSugars: item.nutrients.totalSugars?.value,
+                    addedSugars: item.nutrients.addedSugars?.value,
+                    sodium: item.nutrients.sodium?.value,
+                    potassium: item.nutrients.potassium?.value,
+                    cholesterol: item.nutrients.cholesterol?.value,
+                    glycemicIndex: item.glycemicIndex,
+                    glycemicLoad: item.glycemicLoad,
+                    photoURL: item.imageUrl,
                     servings: item.servings.map { serving in
                         ServingOption(
                             id: ServingID(rawValue: serving.id),

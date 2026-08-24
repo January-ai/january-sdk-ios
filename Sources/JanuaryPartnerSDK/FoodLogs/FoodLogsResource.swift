@@ -1,3 +1,4 @@
+import Foundation
 import JanuaryPartnerTransport
 
 public struct FoodLogsResource: Sendable {
@@ -6,8 +7,10 @@ public struct FoodLogsResource: Sendable {
 
     public func create(_ request: CreateFoodLogRequest) async throws -> FoodLog {
         try await performTransportRequest {
-            let body: Components.Schemas.CreateFoodLogBody = try ModelBridge.convert(
-                CreateBody(foods: request.foods, timestampUTC: request.timestampUTC, name: request.name)
+            let body = Components.Schemas.CreateFoodLogBody(
+                foods: try ModelBridge.convert(request.foods),
+                timestampUtc: try parseTimestamp(request.timestampUTC),
+                name: request.name
             )
             let output = try await client.createFoodLog(
                 .init(
@@ -16,11 +19,11 @@ public struct FoodLogsResource: Sendable {
                 )
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response): return try mapFoodLog(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -37,30 +40,39 @@ public struct FoodLogsResource: Sendable {
                 )
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response):
+                let value = try response.body.json
+                return ListFoodLogsResponse(
+                    totalCount: Int(value.totalCount),
+                    items: try value.items.map(mapFoodLog)
+                )
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
 
     public func update(_ request: UpdateFoodLogRequest) async throws -> FoodLog {
         try await performTransportRequest {
-            let body: Components.Schemas.UpdateFoodLogBody = try ModelBridge.convert(
-                UpdateBody(foods: request.foods, timestampUTC: request.timestampUTC, name: request.name)
+            let body = Components.Schemas.UpdateFoodLogBody(
+                foods: try request.foods.map {
+                    try ModelBridge.convert($0, to: [Components.Schemas.FoodLogInputFood].self)
+                },
+                timestampUtc: request.timestampUTC,
+                name: request.name
             )
             let output = try await client.updateFoodLog(
                 .init(path: .init(logId: request.id), headers: updateHeaders(request.user), body: .json(body))
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response): return try mapFoodLog(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -81,7 +93,7 @@ public struct FoodLogsResource: Sendable {
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -93,15 +105,28 @@ public struct FoodLogsResource: Sendable {
     private func updateHeaders(_ user: FoodLogUserContext) -> Operations.UpdateFoodLog.Input.Headers {
         .init(xEndUserId: user.endUserID.rawValue, xEndUserTimezone: user.timezone)
     }
-}
 
-private struct CreateBody: Codable {
-    let foods: [FoodSelection]; let timestampUTC: String?; let name: String?
-    enum CodingKeys: String, CodingKey { case foods, name; case timestampUTC = "timestamp_utc" }
-}
+    private func mapFoodLog(_ value: Components.Schemas.FoodLog) throws -> FoodLog {
+        FoodLog(
+            id: value.id,
+            foods: try ModelBridge.convert(value.foods),
+            timestampUTC: value.timestampUtc,
+            name: value.name
+        )
+    }
 
-private struct UpdateBody: Codable {
-    let foods: [FoodSelection]?; let timestampUTC: String?; let name: String?
-    enum CodingKeys: String, CodingKey { case foods, name; case timestampUTC = "timestamp_utc" }
-}
+    private func parseTimestamp(_ value: String?) throws -> Date? {
+        guard let value else { return nil }
+        let standard = ISO8601DateFormatter()
+        if let date = standard.date(from: value) { return date }
 
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: value) { return date }
+
+        throw JanuaryError(
+            category: .validation,
+            message: "timestampUTC must be an ISO-8601 date-time."
+        )
+    }
+}

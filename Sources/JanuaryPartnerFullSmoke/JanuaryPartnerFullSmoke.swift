@@ -31,8 +31,8 @@ struct JanuaryPartnerFullSmoke {
             return value
         }
 
-        _ = await report.attempt("foods.searchByNaturalLanguage") {
-            try await client.foods.searchByNaturalLanguage(
+        _ = await report.attempt("photoScanning.searchByNaturalLanguage") {
+            try await client.photoScanning.searchByNaturalLanguage(
                 .init(query: "one banana and a bowl of oatmeal", endUserID: userID)
             )
         }
@@ -63,7 +63,7 @@ struct JanuaryPartnerFullSmoke {
 
         let scan = await report.attempt("photoScanning.scan URL") {
             let value = try await client.photoScanning.scan(.init(image: burgerImageURL, endUserID: userID))
-            guard value.mealName?.isEmpty == false, value.detections?.isEmpty == false else {
+            guard value.mealName?.isEmpty == false, !value.detections.isEmpty else {
                 throw SmokeError("returned no correctable detections")
             }
             return value
@@ -76,7 +76,7 @@ struct JanuaryPartnerFullSmoke {
             let value = try await client.photoScanning.scan(
                 .init(image: "data:image/png;base64,\(fixture.base64EncodedString())", endUserID: userID)
             )
-            guard value.mealName?.isEmpty == false, value.detections?.isEmpty == false else {
+            guard value.mealName?.isEmpty == false, !value.detections.isEmpty else {
                 throw SmokeError("returned no detections for the base64 fixture")
             }
             return value
@@ -146,8 +146,12 @@ struct JanuaryPartnerFullSmoke {
             let prediction = try await client.glucose.predict(
                 .init(
                     userProfile: .init(
-                        age: 35, gender: .male, height: 70, weight: 175,
-                        activityLevel: .moderatelyActive, healthConditions: [.noneOfTheAbove]
+                        age: 35,
+                        sex: .male,
+                        height: .init(value: 70, unit: .inches),
+                        weight: .init(value: 175, unit: .pounds),
+                        activityLevel: .moderatelyActive,
+                        healthConditions: []
                     ),
                     foods: [selectedFood], startTime: Date(), endUserID: userID, timezone: timezone
                 )

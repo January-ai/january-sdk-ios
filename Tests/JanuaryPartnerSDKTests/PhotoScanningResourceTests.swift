@@ -16,7 +16,7 @@ private actor PhotoFixtureTransport: ClientTransport {
         operationID: String
     ) async throws -> (HTTPResponse, HTTPBody?) {
         #expect(operationID == "scanFoodPhoto")
-        #expect(request.path == "/v1.2/meal-scan")
+        #expect(request.path == "/v1.2/food-scans/photo")
         let requestBody = try #require(body)
         let data = try await Data(collecting: requestBody, upTo: 3_000_000)
         let payload = try JSONDecoder().decode(ScanPayload.self, from: data)

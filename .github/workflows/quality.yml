@@ -44,3 +44,13 @@ jobs:
           -onlyUsePackageVersionsFromResolvedFile
           CODE_SIGNING_ALLOWED=NO
           build
+
+      - name: Build the example app
+        run: >-
+          xcodebuild
+          -project Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj
+          -scheme JanuaryPartnerDemo
+          -destination 'generic/platform=iOS Simulator'
+          -configuration Release
+          CODE_SIGNING_ALLOWED=NO
+          build

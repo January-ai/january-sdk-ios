@@ -13,7 +13,7 @@ public struct RestaurantsResource: Sendable {
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -35,11 +35,11 @@ public struct RestaurantsResource: Sendable {
             )
             let output = try await client.searchRestaurantMenuItems(value)
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response): return map(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
@@ -81,5 +81,44 @@ public struct RestaurantsResource: Sendable {
         guard (1...17_000).contains(radius), (1...100).contains(limit) else {
             throw JanuaryError(category: .validation, message: "Restaurant radius or limit is outside the valid range.")
         }
+    }
+
+    private func map(
+        _ value: Components.Schemas.SearchRestaurantMenuItemsResponse
+    ) -> SearchRestaurantMenuItemsResponse {
+        SearchRestaurantMenuItemsResponse(
+            totalCount: Int(value.totalCount),
+            items: value.items.map { item in
+                RestaurantMenuItem(
+                    type: item._type,
+                    id: item.id,
+                    name: item.name,
+                    restaurantName: item.restaurantName,
+                    isChain: item.isChain,
+                    calories: item.nutrients?.calories?.value,
+                    protein: item.nutrients?.protein?.value,
+                    carbohydrates: item.nutrients?.carbohydrates?.value,
+                    netCarbohydrates: item.nutrients?.netCarbohydrates?.value,
+                    totalFat: item.nutrients?.totalFat?.value,
+                    fiber: item.nutrients?.fiber?.value,
+                    totalSugars: item.nutrients?.totalSugars?.value,
+                    addedSugars: item.nutrients?.addedSugars?.value,
+                    glycemicIndex: item.glycemicIndex,
+                    glycemicLoad: item.glycemicLoad,
+                    photoURL: item.imageUrl,
+                    distance: item.distance,
+                    servings: item.servings.map { serving in
+                        ServingOption(
+                            id: .init(rawValue: serving.id),
+                            quantity: serving.quantity,
+                            unit: serving.unit,
+                            scalingFactor: serving.scalingFactor ?? 1,
+                            weightGrams: serving.weightGrams,
+                            isPrimary: serving.isPrimary
+                        )
+                    }
+                )
+            }
+        )
     }
 }

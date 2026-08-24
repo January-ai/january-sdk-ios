@@ -7,14 +7,20 @@ public struct GlucoseResource: Sendable {
 
     public func predict(_ request: PredictGlucoseRequest) async throws -> GlucosePrediction {
         try await performTransportRequest {
-            let body: Components.Schemas.PredictGlucoseBody = try ModelBridge.convert(
-                PredictBody(
-                    userProfile: request.userProfile,
-                    foods: request.foods,
-                    startTime: request.startTime,
-                    cgmData: request.cgmData,
-                    consumedFoods: request.consumedFoods
-                )
+            let body = Components.Schemas.PredictGlucoseBody(
+                userProfile: try ModelBridge.convert(request.userProfile),
+                foods: try ModelBridge.convert(request.foods),
+                startTime: request.startTime,
+                cgmData: try request.cgmData?.map {
+                    .init(timestamp: try parseTimestamp($0.timestamp), value: $0.value)
+                },
+                consumedFoods: try request.consumedFoods?.map {
+                    .init(
+                        timestamp: try parseTimestamp($0.timestamp),
+                        id: $0.id.rawValue,
+                        serving: .init(id: $0.serving.id.rawValue, quantity: $0.serving.quantity)
+                    )
+                }
             )
             let output = try await client.predictGlucose(
                 .init(
@@ -31,20 +37,22 @@ public struct GlucoseResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, response: try response.body.json)
-            case .undocumented(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
     }
-}
 
-private struct PredictBody: Codable {
-    let userProfile: GlucosePredictionProfile
-    let foods: [FoodSelection]
-    let startTime: Date
-    let cgmData: [CgmReading]?
-    let consumedFoods: [ConsumedHistoricalFood]?
-    enum CodingKeys: String, CodingKey {
-        case foods; case userProfile = "user_profile"; case startTime = "start_time"
-        case cgmData = "cgm_data"; case consumedFoods = "consumed_foods"
+    private func parseTimestamp(_ value: String) throws -> Date {
+        let standard = ISO8601DateFormatter()
+        if let date = standard.date(from: value) { return date }
+
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: value) { return date }
+
+        throw JanuaryError(
+            category: .validation,
+            message: "CGM and consumed-food timestamps must be ISO-8601 date-times."
+        )
     }
 }

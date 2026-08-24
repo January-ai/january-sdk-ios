@@ -15,16 +15,9 @@ package protocol APIProtocol: Sendable {
     ///
     /// Full-text search over the January food database, returning up to 40 ranked matches. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{upc}` instead.
     ///
-    /// - Remark: HTTP `GET /v1.2/foods/search`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)`.
+    /// - Remark: HTTP `GET /v1.2/foods`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)`.
     func searchFoods(_ input: Operations.SearchFoods.Input) async throws -> Operations.SearchFoods.Output
-    /// Parse a meal description into foods
-    ///
-    /// Natural-language food search: parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of meal-scan. For keyword search over the food database, use `GET /v1.2/foods/search`.
-    ///
-    /// - Remark: HTTP `GET /v1.2/foods/search/nlp`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)`.
-    func searchFoodsByNaturalLanguage(_ input: Operations.SearchFoodsByNaturalLanguage.Input) async throws -> Operations.SearchFoodsByNaturalLanguage.Output
     /// Suggest healthier alternatives for a food
     ///
     /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Send `["None"]` (not an empty array) to opt out of either. An empty `alternatives` result is valid — no suitable alternatives were found.
@@ -34,7 +27,7 @@ package protocol APIProtocol: Sendable {
     func suggestFoodAlternatives(_ input: Operations.SuggestFoodAlternatives.Input) async throws -> Operations.SuggestFoodAlternatives.Output
     /// Look up a food by barcode
     ///
-    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods/search` instead.
+    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// - Remark: HTTP `GET /v1.2/foods/barcode/{upc}`.
     /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)`.
@@ -43,29 +36,36 @@ package protocol APIProtocol: Sendable {
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. When the name matches no restaurant, results may be menu items (`type: "menu_item"`). `radius` and result distances are in meters.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)`.
     func searchRestaurants(_ input: Operations.SearchRestaurants.Input) async throws -> Operations.SearchRestaurants.Output
     /// Search menu items near a location
     ///
     /// Search dishes across restaurants near (`latitude`, `longitude`). Returns menu items with their nutrition values. `radius` and result distances are in meters, e.g. radius=5000 for 5 kilometers.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/menu/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants/menu-items`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)`.
     func searchRestaurantMenuItems(_ input: Operations.SearchRestaurantMenuItems.Input) async throws -> Operations.SearchRestaurantMenuItems.Output
-    /// Detect foods and nutrition in a meal photo
+    /// Scan a meal photo
     ///
     /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
     func scanFoodPhoto(_ input: Operations.ScanFoodPhoto.Input) async throws -> Operations.ScanFoodPhoto.Output
-    /// Correct a scan with a plain-English instruction
+    /// Scan a meal description
     ///
-    /// Refines a meal-scan result. Send back `meal_name` and `detections` exactly as the scan returned them, plus `user_input` describing the correction; the response is a corrected scan result with recalculated totals.
+    /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-scans/photo`. Text scans carry no `meal_name` (the caller already has the words). For keyword search over the food database, use `GET /v1.2/foods`.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan/fix-ai`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/text`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)`.
+    func searchFoodsByNaturalLanguage(_ input: Operations.SearchFoodsByNaturalLanguage.Input) async throws -> Operations.SearchFoodsByNaturalLanguage.Output
+    /// Correct a scan in plain English
+    ///
+    /// Revises a scan result. Send back `meal_name` and `detections` exactly as a photo or text scan returned them (any label works as `meal_name` for text scans), plus `user_input` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `user_input` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically; each detection must carry at least one serving.
+    ///
+    /// - Remark: HTTP `POST /v1.2/food-scans/corrections`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)`.
     func correctPhotoScan(_ input: Operations.CorrectPhotoScan.Input) async throws -> Operations.CorrectPhotoScan.Output
     /// List a user's food logs in a date range
     ///
@@ -76,7 +76,7 @@ package protocol APIProtocol: Sendable {
     func listFoodLogs(_ input: Operations.ListFoodLogs.Input) async throws -> Operations.ListFoodLogs.Output
     /// Log foods for a user
     ///
-    /// Creates a food log from food + serving ids (from search, scan, or NLP results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
+    /// Creates a food log from food + serving ids (from search, scan, or detection results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
     ///
     /// - Remark: HTTP `POST /v1.2/food-logs`.
     /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)`.
@@ -99,8 +99,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// Predicts the glucose curve a meal will produce for the given profile. Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Without x-end-user-id, the partner itself is the acting user.
     ///
-    /// - Remark: HTTP `POST /v1.2/glucose-predict`.
-    /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)`.
+    /// - Remark: HTTP `POST /v1.2/glucose/predictions`.
+    /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)`.
     func predictGlucose(_ input: Operations.PredictGlucose.Input) async throws -> Operations.PredictGlucose.Output
 }
 
@@ -110,28 +110,13 @@ extension APIProtocol {
     ///
     /// Full-text search over the January food database, returning up to 40 ranked matches. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{upc}` instead.
     ///
-    /// - Remark: HTTP `GET /v1.2/foods/search`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)`.
+    /// - Remark: HTTP `GET /v1.2/foods`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)`.
     package func searchFoods(
         query: Operations.SearchFoods.Input.Query,
         headers: Operations.SearchFoods.Input.Headers = .init()
     ) async throws -> Operations.SearchFoods.Output {
         try await searchFoods(Operations.SearchFoods.Input(
-            query: query,
-            headers: headers
-        ))
-    }
-    /// Parse a meal description into foods
-    ///
-    /// Natural-language food search: parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of meal-scan. For keyword search over the food database, use `GET /v1.2/foods/search`.
-    ///
-    /// - Remark: HTTP `GET /v1.2/foods/search/nlp`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)`.
-    package func searchFoodsByNaturalLanguage(
-        query: Operations.SearchFoodsByNaturalLanguage.Input.Query,
-        headers: Operations.SearchFoodsByNaturalLanguage.Input.Headers = .init()
-    ) async throws -> Operations.SearchFoodsByNaturalLanguage.Output {
-        try await searchFoodsByNaturalLanguage(Operations.SearchFoodsByNaturalLanguage.Input(
             query: query,
             headers: headers
         ))
@@ -155,7 +140,7 @@ extension APIProtocol {
     }
     /// Look up a food by barcode
     ///
-    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods/search` instead.
+    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// - Remark: HTTP `GET /v1.2/foods/barcode/{upc}`.
     /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)`.
@@ -172,8 +157,8 @@ extension APIProtocol {
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. When the name matches no restaurant, results may be menu items (`type: "menu_item"`). `radius` and result distances are in meters.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)`.
     package func searchRestaurants(
         query: Operations.SearchRestaurants.Input.Query,
         headers: Operations.SearchRestaurants.Input.Headers = .init()
@@ -187,8 +172,8 @@ extension APIProtocol {
     ///
     /// Search dishes across restaurants near (`latitude`, `longitude`). Returns menu items with their nutrition values. `radius` and result distances are in meters, e.g. radius=5000 for 5 kilometers.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/menu/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants/menu-items`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)`.
     package func searchRestaurantMenuItems(
         query: Operations.SearchRestaurantMenuItems.Input.Query,
         headers: Operations.SearchRestaurantMenuItems.Input.Headers = .init()
@@ -198,12 +183,12 @@ extension APIProtocol {
             headers: headers
         ))
     }
-    /// Detect foods and nutrition in a meal photo
+    /// Scan a meal photo
     ///
     /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
     package func scanFoodPhoto(
         headers: Operations.ScanFoodPhoto.Input.Headers = .init(),
         body: Operations.ScanFoodPhoto.Input.Body
@@ -213,12 +198,27 @@ extension APIProtocol {
             body: body
         ))
     }
-    /// Correct a scan with a plain-English instruction
+    /// Scan a meal description
     ///
-    /// Refines a meal-scan result. Send back `meal_name` and `detections` exactly as the scan returned them, plus `user_input` describing the correction; the response is a corrected scan result with recalculated totals.
+    /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-scans/photo`. Text scans carry no `meal_name` (the caller already has the words). For keyword search over the food database, use `GET /v1.2/foods`.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan/fix-ai`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/text`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)`.
+    package func searchFoodsByNaturalLanguage(
+        headers: Operations.SearchFoodsByNaturalLanguage.Input.Headers = .init(),
+        body: Operations.SearchFoodsByNaturalLanguage.Input.Body
+    ) async throws -> Operations.SearchFoodsByNaturalLanguage.Output {
+        try await searchFoodsByNaturalLanguage(Operations.SearchFoodsByNaturalLanguage.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Correct a scan in plain English
+    ///
+    /// Revises a scan result. Send back `meal_name` and `detections` exactly as a photo or text scan returned them (any label works as `meal_name` for text scans), plus `user_input` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `user_input` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically; each detection must carry at least one serving.
+    ///
+    /// - Remark: HTTP `POST /v1.2/food-scans/corrections`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)`.
     package func correctPhotoScan(
         headers: Operations.CorrectPhotoScan.Input.Headers = .init(),
         body: Operations.CorrectPhotoScan.Input.Body
@@ -245,7 +245,7 @@ extension APIProtocol {
     }
     /// Log foods for a user
     ///
-    /// Creates a food log from food + serving ids (from search, scan, or NLP results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
+    /// Creates a food log from food + serving ids (from search, scan, or detection results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
     ///
     /// - Remark: HTTP `POST /v1.2/food-logs`.
     /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)`.
@@ -294,8 +294,8 @@ extension APIProtocol {
     ///
     /// Predicts the glucose curve a meal will produce for the given profile. Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Without x-end-user-id, the partner itself is the acting user.
     ///
-    /// - Remark: HTTP `POST /v1.2/glucose-predict`.
-    /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)`.
+    /// - Remark: HTTP `POST /v1.2/glucose/predictions`.
+    /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)`.
     package func predictGlucose(
         headers: Operations.PredictGlucose.Input.Headers = .init(),
         body: Operations.PredictGlucose.Input.Body
@@ -361,21 +361,159 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ErrorResponse/code`.
             package var code: Swift.String
+            /// Link to the developer documentation for this API version.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ErrorResponse/docs_url`.
+            package var docsUrl: Swift.String
             /// Creates a new `ErrorResponse`.
             ///
             /// - Parameters:
             ///   - message: A developer-facing explanation of what went wrong and how to fix it.
             ///   - code: A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited and the four 5xx codes are safe to retry (with backoff). New codes may be added over time; treat an unknown code according to its HTTP status class.
+            ///   - docsUrl: Link to the developer documentation for this API version.
             package init(
                 message: Swift.String,
-                code: Swift.String
+                code: Swift.String,
+                docsUrl: Swift.String
             ) {
                 self.message = message
                 self.code = code
+                self.docsUrl = docsUrl
             }
             package enum CodingKeys: String, CodingKey {
                 case message
                 case code
+                case docsUrl = "docs_url"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/NutrientAmount`.
+        package struct NutrientAmount: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/NutrientAmount/value`.
+            package var value: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/NutrientAmount/unit`.
+            package var unit: Swift.String
+            /// Creates a new `NutrientAmount`.
+            ///
+            /// - Parameters:
+            ///   - value:
+            ///   - unit:
+            package init(
+                value: Swift.Double,
+                unit: Swift.String
+            ) {
+                self.value = value
+                self.unit = unit
+            }
+            package enum CodingKeys: String, CodingKey {
+                case value
+                case unit
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/NutritionFacts`.
+        package struct NutritionFacts: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/calories`.
+            package var calories: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/protein`.
+            package var protein: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/carbohydrates`.
+            package var carbohydrates: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/net_carbohydrates`.
+            package var netCarbohydrates: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/total_fat`.
+            package var totalFat: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/trans_fat`.
+            package var transFat: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/saturated_fat`.
+            package var saturatedFat: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/fiber`.
+            package var fiber: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/total_sugars`.
+            package var totalSugars: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/added_sugars`.
+            package var addedSugars: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/cholesterol`.
+            package var cholesterol: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/calcium`.
+            package var calcium: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/iron`.
+            package var iron: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/potassium`.
+            package var potassium: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/sodium`.
+            package var sodium: Components.Schemas.NutrientAmount?
+            /// - Remark: Generated from `#/components/schemas/NutritionFacts/vitamin_d`.
+            package var vitaminD: Components.Schemas.NutrientAmount?
+            /// Creates a new `NutritionFacts`.
+            ///
+            /// - Parameters:
+            ///   - calories:
+            ///   - protein:
+            ///   - carbohydrates:
+            ///   - netCarbohydrates:
+            ///   - totalFat:
+            ///   - transFat:
+            ///   - saturatedFat:
+            ///   - fiber:
+            ///   - totalSugars:
+            ///   - addedSugars:
+            ///   - cholesterol:
+            ///   - calcium:
+            ///   - iron:
+            ///   - potassium:
+            ///   - sodium:
+            ///   - vitaminD:
+            package init(
+                calories: Components.Schemas.NutrientAmount? = nil,
+                protein: Components.Schemas.NutrientAmount? = nil,
+                carbohydrates: Components.Schemas.NutrientAmount? = nil,
+                netCarbohydrates: Components.Schemas.NutrientAmount? = nil,
+                totalFat: Components.Schemas.NutrientAmount? = nil,
+                transFat: Components.Schemas.NutrientAmount? = nil,
+                saturatedFat: Components.Schemas.NutrientAmount? = nil,
+                fiber: Components.Schemas.NutrientAmount? = nil,
+                totalSugars: Components.Schemas.NutrientAmount? = nil,
+                addedSugars: Components.Schemas.NutrientAmount? = nil,
+                cholesterol: Components.Schemas.NutrientAmount? = nil,
+                calcium: Components.Schemas.NutrientAmount? = nil,
+                iron: Components.Schemas.NutrientAmount? = nil,
+                potassium: Components.Schemas.NutrientAmount? = nil,
+                sodium: Components.Schemas.NutrientAmount? = nil,
+                vitaminD: Components.Schemas.NutrientAmount? = nil
+            ) {
+                self.calories = calories
+                self.protein = protein
+                self.carbohydrates = carbohydrates
+                self.netCarbohydrates = netCarbohydrates
+                self.totalFat = totalFat
+                self.transFat = transFat
+                self.saturatedFat = saturatedFat
+                self.fiber = fiber
+                self.totalSugars = totalSugars
+                self.addedSugars = addedSugars
+                self.cholesterol = cholesterol
+                self.calcium = calcium
+                self.iron = iron
+                self.potassium = potassium
+                self.sodium = sodium
+                self.vitaminD = vitaminD
+            }
+            package enum CodingKeys: String, CodingKey {
+                case calories
+                case protein
+                case carbohydrates
+                case netCarbohydrates = "net_carbohydrates"
+                case totalFat = "total_fat"
+                case transFat = "trans_fat"
+                case saturatedFat = "saturated_fat"
+                case fiber
+                case totalSugars = "total_sugars"
+                case addedSugars = "added_sugars"
+                case cholesterol
+                case calcium
+                case iron
+                case potassium
+                case sodium
+                case vitaminD = "vitamin_d"
             }
         }
         /// - Remark: Generated from `#/components/schemas/ServingOption`.
@@ -435,42 +573,24 @@ package enum Components {
             package var id: Components.Schemas.FoodId
             /// - Remark: Generated from `#/components/schemas/FoodSearchItem/name`.
             package var name: Swift.String
+            /// Absent for generic (non-branded) foods.
+            ///
             /// - Remark: Generated from `#/components/schemas/FoodSearchItem/brand_name`.
             package var brandName: Swift.String?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/energy`.
-            package var energy: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/protein`.
-            package var protein: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/carbs`.
-            package var carbs: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/net_carbs`.
-            package var netCarbs: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/fat`.
-            package var fat: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/fat_total_saturated`.
-            package var fatTotalSaturated: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/fiber`.
-            package var fiber: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/sugars`.
-            package var sugars: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/added_sugars`.
-            package var addedSugars: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/sodium`.
-            package var sodium: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/potassium`.
-            package var potassium: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/cholesterol`.
-            package var cholesterol: Swift.Double?
+            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts
             /// Glycemic index.
             ///
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/gi`.
-            package var gi: Swift.Double?
+            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/glycemic_index`.
+            package var glycemicIndex: Swift.Double?
             /// Glycemic load.
             ///
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/gl`.
-            package var gl: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/photo_url`.
-            package var photoUrl: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/glycemic_load`.
+            package var glycemicLoad: Swift.Double?
+            /// URL of a picture of the food, when the database has one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/image_url`.
+            package var imageUrl: Swift.String?
             /// - Remark: Generated from `#/components/schemas/FoodSearchItem/servings`.
             package var servings: [Components.Schemas.ServingOption]
             /// Creates a new `FoodSearchItem`.
@@ -478,83 +598,39 @@ package enum Components {
             /// - Parameters:
             ///   - id:
             ///   - name:
-            ///   - brandName:
-            ///   - energy:
-            ///   - protein:
-            ///   - carbs:
-            ///   - netCarbs:
-            ///   - fat:
-            ///   - fatTotalSaturated:
-            ///   - fiber:
-            ///   - sugars:
-            ///   - addedSugars:
-            ///   - sodium:
-            ///   - potassium:
-            ///   - cholesterol:
-            ///   - gi: Glycemic index.
-            ///   - gl: Glycemic load.
-            ///   - photoUrl:
+            ///   - brandName: Absent for generic (non-branded) foods.
+            ///   - nutrients:
+            ///   - glycemicIndex: Glycemic index.
+            ///   - glycemicLoad: Glycemic load.
+            ///   - imageUrl: URL of a picture of the food, when the database has one.
             ///   - servings:
             package init(
                 id: Components.Schemas.FoodId,
                 name: Swift.String,
                 brandName: Swift.String? = nil,
-                energy: Swift.Double? = nil,
-                protein: Swift.Double? = nil,
-                carbs: Swift.Double? = nil,
-                netCarbs: Swift.Double? = nil,
-                fat: Swift.Double? = nil,
-                fatTotalSaturated: Swift.Double? = nil,
-                fiber: Swift.Double? = nil,
-                sugars: Swift.Double? = nil,
-                addedSugars: Swift.Double? = nil,
-                sodium: Swift.Double? = nil,
-                potassium: Swift.Double? = nil,
-                cholesterol: Swift.Double? = nil,
-                gi: Swift.Double? = nil,
-                gl: Swift.Double? = nil,
-                photoUrl: Swift.String? = nil,
+                nutrients: Components.Schemas.NutritionFacts,
+                glycemicIndex: Swift.Double? = nil,
+                glycemicLoad: Swift.Double? = nil,
+                imageUrl: Swift.String? = nil,
                 servings: [Components.Schemas.ServingOption]
             ) {
                 self.id = id
                 self.name = name
                 self.brandName = brandName
-                self.energy = energy
-                self.protein = protein
-                self.carbs = carbs
-                self.netCarbs = netCarbs
-                self.fat = fat
-                self.fatTotalSaturated = fatTotalSaturated
-                self.fiber = fiber
-                self.sugars = sugars
-                self.addedSugars = addedSugars
-                self.sodium = sodium
-                self.potassium = potassium
-                self.cholesterol = cholesterol
-                self.gi = gi
-                self.gl = gl
-                self.photoUrl = photoUrl
+                self.nutrients = nutrients
+                self.glycemicIndex = glycemicIndex
+                self.glycemicLoad = glycemicLoad
+                self.imageUrl = imageUrl
                 self.servings = servings
             }
             package enum CodingKeys: String, CodingKey {
                 case id
                 case name
                 case brandName = "brand_name"
-                case energy
-                case protein
-                case carbs
-                case netCarbs = "net_carbs"
-                case fat
-                case fatTotalSaturated = "fat_total_saturated"
-                case fiber
-                case sugars
-                case addedSugars = "added_sugars"
-                case sodium
-                case potassium
-                case cholesterol
-                case gi
-                case gl
-                case photoUrl = "photo_url"
+                case nutrients
+                case glycemicIndex = "glycemic_index"
+                case glycemicLoad = "glycemic_load"
+                case imageUrl = "image_url"
                 case servings
             }
         }
@@ -583,27 +659,31 @@ package enum Components {
                 case items
             }
         }
-        /// - Remark: Generated from `#/components/schemas/NutrientAmount`.
-        package struct NutrientAmount: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/NutrientAmount/value`.
-            package var value: Swift.Double
-            /// - Remark: Generated from `#/components/schemas/NutrientAmount/unit`.
-            package var unit: Swift.String
-            /// Creates a new `NutrientAmount`.
+        /// - Remark: Generated from `#/components/schemas/SuggestFoodAlternativesBody`.
+        package struct SuggestFoodAlternativesBody: Codable, Hashable, Sendable {
+            /// Allergens/ingredients to avoid. Omit it (or send []) if none apply.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SuggestFoodAlternativesBody/diet_restrictions`.
+            package var dietRestrictions: [Components.Schemas.DietRestriction]?
+            /// Dietary patterns to match. Omit it (or send []) if none apply.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SuggestFoodAlternativesBody/diet_preferences`.
+            package var dietPreferences: [Components.Schemas.DietPreference]?
+            /// Creates a new `SuggestFoodAlternativesBody`.
             ///
             /// - Parameters:
-            ///   - value:
-            ///   - unit:
+            ///   - dietRestrictions: Allergens/ingredients to avoid. Omit it (or send []) if none apply.
+            ///   - dietPreferences: Dietary patterns to match. Omit it (or send []) if none apply.
             package init(
-                value: Swift.Double,
-                unit: Swift.String
+                dietRestrictions: [Components.Schemas.DietRestriction]? = nil,
+                dietPreferences: [Components.Schemas.DietPreference]? = nil
             ) {
-                self.value = value
-                self.unit = unit
+                self.dietRestrictions = dietRestrictions
+                self.dietPreferences = dietPreferences
             }
             package enum CodingKeys: String, CodingKey {
-                case value
-                case unit
+                case dietRestrictions = "diet_restrictions"
+                case dietPreferences = "diet_preferences"
             }
         }
         /// - Remark: Generated from `#/components/schemas/CompleteScanNutritionFacts`.
@@ -677,160 +757,15 @@ package enum Components {
                 case sodium
             }
         }
-        /// - Remark: Generated from `#/components/schemas/NaturalLanguageServing`.
-        package struct NaturalLanguageServing: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageServing/id`.
+        /// - Remark: Generated from `#/components/schemas/AlternativeServing`.
+        package struct AlternativeServing: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/AlternativeServing/id`.
             package var id: Components.Schemas.ServingId
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageServing/quantity`.
+            /// - Remark: Generated from `#/components/schemas/AlternativeServing/quantity`.
             package var quantity: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageServing/unit`.
+            /// - Remark: Generated from `#/components/schemas/AlternativeServing/unit`.
             package var unit: Swift.String
-            /// Quantity the parser selected from the text; omitted when the serving has no gram weight.
-            ///
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageServing/selected_quantity`.
-            package var selectedQuantity: Swift.Double?
-            /// Creates a new `NaturalLanguageServing`.
-            ///
-            /// - Parameters:
-            ///   - id:
-            ///   - quantity:
-            ///   - unit:
-            ///   - selectedQuantity: Quantity the parser selected from the text; omitted when the serving has no gram weight.
-            package init(
-                id: Components.Schemas.ServingId,
-                quantity: Swift.Double? = nil,
-                unit: Swift.String,
-                selectedQuantity: Swift.Double? = nil
-            ) {
-                self.id = id
-                self.quantity = quantity
-                self.unit = unit
-                self.selectedQuantity = selectedQuantity
-            }
-            package enum CodingKeys: String, CodingKey {
-                case id
-                case quantity
-                case unit
-                case selectedQuantity = "selected_quantity"
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/NaturalLanguageFood`.
-        package struct NaturalLanguageFood: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageFood/id`.
-            package var id: Components.Schemas.FoodId?
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageFood/name`.
-            package var name: Swift.String
-            /// Empty for generic (non-branded) foods.
-            ///
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageFood/brand_name`.
-            package var brandName: Swift.String?
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageFood/nutrients`.
-            package var nutrients: Components.Schemas.CompleteScanNutritionFacts
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageFood/servings`.
-            package var servings: [Components.Schemas.NaturalLanguageServing]?
-            /// Creates a new `NaturalLanguageFood`.
-            ///
-            /// - Parameters:
-            ///   - id:
-            ///   - name:
-            ///   - brandName: Empty for generic (non-branded) foods.
-            ///   - nutrients:
-            ///   - servings:
-            package init(
-                id: Components.Schemas.FoodId? = nil,
-                name: Swift.String,
-                brandName: Swift.String? = nil,
-                nutrients: Components.Schemas.CompleteScanNutritionFacts,
-                servings: [Components.Schemas.NaturalLanguageServing]? = nil
-            ) {
-                self.id = id
-                self.name = name
-                self.brandName = brandName
-                self.nutrients = nutrients
-                self.servings = servings
-            }
-            package enum CodingKeys: String, CodingKey {
-                case id
-                case name
-                case brandName = "brand_name"
-                case nutrients
-                case servings
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/NaturalLanguageFoodDetection`.
-        package struct NaturalLanguageFoodDetection: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/NaturalLanguageFoodDetection/food`.
-            package var food: Components.Schemas.NaturalLanguageFood
-            /// Creates a new `NaturalLanguageFoodDetection`.
-            ///
-            /// - Parameters:
-            ///   - food:
-            package init(food: Components.Schemas.NaturalLanguageFood) {
-                self.food = food
-            }
-            package enum CodingKeys: String, CodingKey {
-                case food
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/SearchFoodsByNaturalLanguageResponse`.
-        package struct SearchFoodsByNaturalLanguageResponse: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/SearchFoodsByNaturalLanguageResponse/total_nutrients`.
-            package var totalNutrients: Components.Schemas.CompleteScanNutritionFacts?
-            /// - Remark: Generated from `#/components/schemas/SearchFoodsByNaturalLanguageResponse/detections`.
-            package var detections: [Components.Schemas.NaturalLanguageFoodDetection]
-            /// Creates a new `SearchFoodsByNaturalLanguageResponse`.
-            ///
-            /// - Parameters:
-            ///   - totalNutrients:
-            ///   - detections:
-            package init(
-                totalNutrients: Components.Schemas.CompleteScanNutritionFacts? = nil,
-                detections: [Components.Schemas.NaturalLanguageFoodDetection]
-            ) {
-                self.totalNutrients = totalNutrients
-                self.detections = detections
-            }
-            package enum CodingKeys: String, CodingKey {
-                case totalNutrients = "total_nutrients"
-                case detections
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/SuggestFoodAlternativesBody`.
-        package struct SuggestFoodAlternativesBody: Codable, Hashable, Sendable {
-            /// Allergens/ingredients to avoid; send ["None"] if none apply. Case-sensitive.
-            ///
-            /// - Remark: Generated from `#/components/schemas/SuggestFoodAlternativesBody/diet_restrictions`.
-            package var dietRestrictions: [Components.Schemas.DietRestriction]
-            /// Dietary patterns to match; send ["None"] if none apply. Case-sensitive.
-            ///
-            /// - Remark: Generated from `#/components/schemas/SuggestFoodAlternativesBody/diet_preferences`.
-            package var dietPreferences: [Components.Schemas.DietPreference]
-            /// Creates a new `SuggestFoodAlternativesBody`.
-            ///
-            /// - Parameters:
-            ///   - dietRestrictions: Allergens/ingredients to avoid; send ["None"] if none apply. Case-sensitive.
-            ///   - dietPreferences: Dietary patterns to match; send ["None"] if none apply. Case-sensitive.
-            package init(
-                dietRestrictions: [Components.Schemas.DietRestriction],
-                dietPreferences: [Components.Schemas.DietPreference]
-            ) {
-                self.dietRestrictions = dietRestrictions
-                self.dietPreferences = dietPreferences
-            }
-            package enum CodingKeys: String, CodingKey {
-                case dietRestrictions = "diet_restrictions"
-                case dietPreferences = "diet_preferences"
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/DetectedServing`.
-        package struct DetectedServing: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/id`.
-            package var id: Components.Schemas.ServingId
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/quantity`.
-            package var quantity: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/unit`.
-            package var unit: Swift.String
-            /// Creates a new `DetectedServing`.
+            /// Creates a new `AlternativeServing`.
             ///
             /// - Parameters:
             ///   - id:
@@ -851,21 +786,21 @@ package enum Components {
                 case unit
             }
         }
-        /// - Remark: Generated from `#/components/schemas/DetectedFood`.
-        package struct DetectedFood: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/id`.
+        /// - Remark: Generated from `#/components/schemas/AlternativeFood`.
+        package struct AlternativeFood: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/AlternativeFood/id`.
             package var id: Components.Schemas.FoodId?
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/name`.
+            /// - Remark: Generated from `#/components/schemas/AlternativeFood/name`.
             package var name: Swift.String
             /// Empty for generic (non-branded) foods.
             ///
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/brand_name`.
+            /// - Remark: Generated from `#/components/schemas/AlternativeFood/brand_name`.
             package var brandName: Swift.String?
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/nutrients`.
+            /// - Remark: Generated from `#/components/schemas/AlternativeFood/nutrients`.
             package var nutrients: Components.Schemas.CompleteScanNutritionFacts
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/servings`.
-            package var servings: [Components.Schemas.DetectedServing]?
-            /// Creates a new `DetectedFood`.
+            /// - Remark: Generated from `#/components/schemas/AlternativeFood/servings`.
+            package var servings: [Components.Schemas.AlternativeServing]?
+            /// Creates a new `AlternativeFood`.
             ///
             /// - Parameters:
             ///   - id:
@@ -878,7 +813,7 @@ package enum Components {
                 name: Swift.String,
                 brandName: Swift.String? = nil,
                 nutrients: Components.Schemas.CompleteScanNutritionFacts,
-                servings: [Components.Schemas.DetectedServing]? = nil
+                servings: [Components.Schemas.AlternativeServing]? = nil
             ) {
                 self.id = id
                 self.name = name
@@ -897,12 +832,12 @@ package enum Components {
         /// - Remark: Generated from `#/components/schemas/FoodAlternative`.
         package struct FoodAlternative: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/FoodAlternative/food`.
-            package var food: Components.Schemas.DetectedFood
+            package var food: Components.Schemas.AlternativeFood
             /// Creates a new `FoodAlternative`.
             ///
             /// - Parameters:
             ///   - food:
-            package init(food: Components.Schemas.DetectedFood) {
+            package init(food: Components.Schemas.AlternativeFood) {
                 self.food = food
             }
             package enum CodingKeys: String, CodingKey {
@@ -1033,34 +968,20 @@ package enum Components {
             package var restaurantName: Swift.String
             /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/is_chain`.
             package var isChain: Swift.Bool?
-            /// Calories (kcal).
-            ///
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/energy`.
-            package var energy: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/protein`.
-            package var protein: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/carbs`.
-            package var carbs: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/net_carbs`.
-            package var netCarbs: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/fat`.
-            package var fat: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/fiber`.
-            package var fiber: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/sugars`.
-            package var sugars: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/added_sugars`.
-            package var addedSugars: Swift.Double?
+            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts?
             /// Glycemic index.
             ///
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/gi`.
-            package var gi: Swift.Double?
+            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/glycemic_index`.
+            package var glycemicIndex: Swift.Double?
             /// Glycemic load.
             ///
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/gl`.
-            package var gl: Swift.Double?
-            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/photo_url`.
-            package var photoUrl: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/glycemic_load`.
+            package var glycemicLoad: Swift.Double?
+            /// URL of a picture of the dish, when the source has one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/image_url`.
+            package var imageUrl: Swift.String?
             /// Distance from (latitude, longitude) in meters.
             ///
             /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/distance`.
@@ -1075,17 +996,10 @@ package enum Components {
             ///   - name:
             ///   - restaurantName:
             ///   - isChain:
-            ///   - energy: Calories (kcal).
-            ///   - protein:
-            ///   - carbs:
-            ///   - netCarbs:
-            ///   - fat:
-            ///   - fiber:
-            ///   - sugars:
-            ///   - addedSugars:
-            ///   - gi: Glycemic index.
-            ///   - gl: Glycemic load.
-            ///   - photoUrl:
+            ///   - nutrients:
+            ///   - glycemicIndex: Glycemic index.
+            ///   - glycemicLoad: Glycemic load.
+            ///   - imageUrl: URL of a picture of the dish, when the source has one.
             ///   - distance: Distance from (latitude, longitude) in meters.
             ///   - servings:
             package init(
@@ -1094,17 +1008,10 @@ package enum Components {
                 name: Swift.String,
                 restaurantName: Swift.String,
                 isChain: Swift.Bool? = nil,
-                energy: Swift.Double? = nil,
-                protein: Swift.Double? = nil,
-                carbs: Swift.Double? = nil,
-                netCarbs: Swift.Double? = nil,
-                fat: Swift.Double? = nil,
-                fiber: Swift.Double? = nil,
-                sugars: Swift.Double? = nil,
-                addedSugars: Swift.Double? = nil,
-                gi: Swift.Double? = nil,
-                gl: Swift.Double? = nil,
-                photoUrl: Swift.String? = nil,
+                nutrients: Components.Schemas.NutritionFacts? = nil,
+                glycemicIndex: Swift.Double? = nil,
+                glycemicLoad: Swift.Double? = nil,
+                imageUrl: Swift.String? = nil,
                 distance: Swift.Double? = nil,
                 servings: [Components.Schemas.ServingOption]
             ) {
@@ -1113,17 +1020,10 @@ package enum Components {
                 self.name = name
                 self.restaurantName = restaurantName
                 self.isChain = isChain
-                self.energy = energy
-                self.protein = protein
-                self.carbs = carbs
-                self.netCarbs = netCarbs
-                self.fat = fat
-                self.fiber = fiber
-                self.sugars = sugars
-                self.addedSugars = addedSugars
-                self.gi = gi
-                self.gl = gl
-                self.photoUrl = photoUrl
+                self.nutrients = nutrients
+                self.glycemicIndex = glycemicIndex
+                self.glycemicLoad = glycemicLoad
+                self.imageUrl = imageUrl
                 self.distance = distance
                 self.servings = servings
             }
@@ -1133,17 +1033,10 @@ package enum Components {
                 case name
                 case restaurantName = "restaurant_name"
                 case isChain = "is_chain"
-                case energy
-                case protein
-                case carbs
-                case netCarbs = "net_carbs"
-                case fat
-                case fiber
-                case sugars
-                case addedSugars = "added_sugars"
-                case gi
-                case gl
-                case photoUrl = "photo_url"
+                case nutrients
+                case glycemicIndex = "glycemic_index"
+                case glycemicLoad = "glycemic_load"
+                case imageUrl = "image_url"
                 case distance
                 case servings
             }
@@ -1175,19 +1068,101 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/ScanFoodPhotoBody`.
         package struct ScanFoodPhotoBody: Codable, Hashable, Sendable {
-            /// The meal photo, as an http(s) URL or a base64 data URI (data:image/jpeg;base64,…). Formats: JPG, PNG, WEBP, and non-animated GIF. A URL must be publicly fetchable server-side: hosts that block hotlinking or require a login cannot be read. Prefer the URL when the image is already hosted — base64 inflates the payload by ~33%, and request bodies over 5 MB are rejected, so keep raw images under ~3.5 MB when encoding.
+            /// The meal photo, as an http(s) URL or a base64 data URI (data:image/jpeg;base64,…). Any image of the meal works — a camera photo, a screenshot, or a hosted picture. Formats: JPG, PNG, WEBP, and non-animated GIF. A URL must be publicly fetchable server-side: hosts that block hotlinking or require a login cannot be read. Prefer the URL when the image is already hosted — base64 inflates the payload by ~33%, and request bodies over 5 MB are rejected, so keep raw images under ~3.5 MB when encoding.
             ///
             /// - Remark: Generated from `#/components/schemas/ScanFoodPhotoBody/image`.
             package var image: Swift.String
             /// Creates a new `ScanFoodPhotoBody`.
             ///
             /// - Parameters:
-            ///   - image: The meal photo, as an http(s) URL or a base64 data URI (data:image/jpeg;base64,…). Formats: JPG, PNG, WEBP, and non-animated GIF. A URL must be publicly fetchable server-side: hosts that block hotlinking or require a login cannot be read. Prefer the URL when the image is already hosted — base64 inflates the payload by ~33%, and request bodies over 5 MB are rejected, so keep raw images under ~3.5 MB when encoding.
+            ///   - image: The meal photo, as an http(s) URL or a base64 data URI (data:image/jpeg;base64,…). Any image of the meal works — a camera photo, a screenshot, or a hosted picture. Formats: JPG, PNG, WEBP, and non-animated GIF. A URL must be publicly fetchable server-side: hosts that block hotlinking or require a login cannot be read. Prefer the URL when the image is already hosted — base64 inflates the payload by ~33%, and request bodies over 5 MB are rejected, so keep raw images under ~3.5 MB when encoding.
             package init(image: Swift.String) {
                 self.image = image
             }
             package enum CodingKeys: String, CodingKey {
                 case image
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/DetectedServing`.
+        package struct DetectedServing: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/DetectedServing/id`.
+            package var id: Components.Schemas.ServingId
+            /// - Remark: Generated from `#/components/schemas/DetectedServing/quantity`.
+            package var quantity: Swift.Double?
+            /// - Remark: Generated from `#/components/schemas/DetectedServing/unit`.
+            package var unit: Swift.String
+            /// Quantity the parser selected from the text ('2 cups' → 2); text scans only. Advisory — corrections reads the serving's own quantity.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DetectedServing/selected_quantity`.
+            package var selectedQuantity: Swift.Double?
+            /// Creates a new `DetectedServing`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - quantity:
+            ///   - unit:
+            ///   - selectedQuantity: Quantity the parser selected from the text ('2 cups' → 2); text scans only. Advisory — corrections reads the serving's own quantity.
+            package init(
+                id: Components.Schemas.ServingId,
+                quantity: Swift.Double? = nil,
+                unit: Swift.String,
+                selectedQuantity: Swift.Double? = nil
+            ) {
+                self.id = id
+                self.quantity = quantity
+                self.unit = unit
+                self.selectedQuantity = selectedQuantity
+            }
+            package enum CodingKeys: String, CodingKey {
+                case id
+                case quantity
+                case unit
+                case selectedQuantity = "selected_quantity"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/DetectedFood`.
+        package struct DetectedFood: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/id`.
+            package var id: Components.Schemas.FoodId?
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/name`.
+            package var name: Swift.String
+            /// Empty for generic (non-branded) foods.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/brand_name`.
+            package var brandName: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/nutrients`.
+            package var nutrients: Components.Schemas.CompleteScanNutritionFacts
+            /// Never empty: every detection producer guarantees at least one serving.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/servings`.
+            package var servings: [Components.Schemas.DetectedServing]
+            /// Creates a new `DetectedFood`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - name:
+            ///   - brandName: Empty for generic (non-branded) foods.
+            ///   - nutrients:
+            ///   - servings: Never empty: every detection producer guarantees at least one serving.
+            package init(
+                id: Components.Schemas.FoodId? = nil,
+                name: Swift.String,
+                brandName: Swift.String? = nil,
+                nutrients: Components.Schemas.CompleteScanNutritionFacts,
+                servings: [Components.Schemas.DetectedServing]
+            ) {
+                self.id = id
+                self.name = name
+                self.brandName = brandName
+                self.nutrients = nutrients
+                self.servings = servings
+            }
+            package enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case brandName = "brand_name"
+                case nutrients
+                case servings
             }
         }
         /// - Remark: Generated from `#/components/schemas/FoodDetection`.
@@ -1213,96 +1188,61 @@ package enum Components {
                 case food
             }
         }
-        /// - Remark: Generated from `#/components/schemas/GlucosePredictionPoint`.
-        package struct GlucosePredictionPoint: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/GlucosePredictionPoint/minutes`.
-            package var minutes: Swift.Double
-            /// - Remark: Generated from `#/components/schemas/GlucosePredictionPoint/value`.
-            package var value: Swift.Double
-            /// Creates a new `GlucosePredictionPoint`.
-            ///
-            /// - Parameters:
-            ///   - minutes:
-            ///   - value:
-            package init(
-                minutes: Swift.Double,
-                value: Swift.Double
-            ) {
-                self.minutes = minutes
-                self.value = value
-            }
-            package enum CodingKeys: String, CodingKey {
-                case minutes
-                case value
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/PhotoScanGlucoseImpact`.
-        package struct PhotoScanGlucoseImpact: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/PhotoScanGlucoseImpact/impact_score`.
-            package var impactScore: Swift.String
-            /// - Remark: Generated from `#/components/schemas/PhotoScanGlucoseImpact/prediction`.
-            package var prediction: [Components.Schemas.GlucosePredictionPoint]
-            /// Creates a new `PhotoScanGlucoseImpact`.
-            ///
-            /// - Parameters:
-            ///   - impactScore:
-            ///   - prediction:
-            package init(
-                impactScore: Swift.String,
-                prediction: [Components.Schemas.GlucosePredictionPoint]
-            ) {
-                self.impactScore = impactScore
-                self.prediction = prediction
-            }
-            package enum CodingKeys: String, CodingKey {
-                case impactScore = "impact_score"
-                case prediction
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/PhotoScan`.
-        package struct PhotoScan: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/PhotoScan/meal_name`.
+        /// - Remark: Generated from `#/components/schemas/FoodScan`.
+        package struct FoodScan: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/FoodScan/meal_name`.
             package var mealName: Swift.String?
-            /// - Remark: Generated from `#/components/schemas/PhotoScan/total_nutrients`.
+            /// - Remark: Generated from `#/components/schemas/FoodScan/total_nutrients`.
             package var totalNutrients: Components.Schemas.CompleteScanNutritionFacts?
-            /// Detected foods.
+            /// Detected foods. Always present — an empty array means nothing was recognized.
             ///
-            /// - Remark: Generated from `#/components/schemas/PhotoScan/detections`.
-            package var detections: [Components.Schemas.FoodDetection]?
-            /// - Remark: Generated from `#/components/schemas/PhotoScan/glucose_impact`.
-            package var glucoseImpact: Components.Schemas.PhotoScanGlucoseImpact?
-            /// Creates a new `PhotoScan`.
+            /// - Remark: Generated from `#/components/schemas/FoodScan/detections`.
+            package var detections: [Components.Schemas.FoodDetection]
+            /// Creates a new `FoodScan`.
             ///
             /// - Parameters:
             ///   - mealName:
             ///   - totalNutrients:
-            ///   - detections: Detected foods.
-            ///   - glucoseImpact:
+            ///   - detections: Detected foods. Always present — an empty array means nothing was recognized.
             package init(
                 mealName: Swift.String? = nil,
                 totalNutrients: Components.Schemas.CompleteScanNutritionFacts? = nil,
-                detections: [Components.Schemas.FoodDetection]? = nil,
-                glucoseImpact: Components.Schemas.PhotoScanGlucoseImpact? = nil
+                detections: [Components.Schemas.FoodDetection]
             ) {
                 self.mealName = mealName
                 self.totalNutrients = totalNutrients
                 self.detections = detections
-                self.glucoseImpact = glucoseImpact
             }
             package enum CodingKeys: String, CodingKey {
                 case mealName = "meal_name"
                 case totalNutrients = "total_nutrients"
                 case detections
-                case glucoseImpact = "glucose_impact"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/SearchFoodsByNaturalLanguageBody`.
+        package struct SearchFoodsByNaturalLanguageBody: Codable, Hashable, Sendable {
+            /// Natural-language description of what was eaten; parsed into detected foods with quantities.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SearchFoodsByNaturalLanguageBody/text`.
+            package var text: Swift.String
+            /// Creates a new `SearchFoodsByNaturalLanguageBody`.
+            ///
+            /// - Parameters:
+            ///   - text: Natural-language description of what was eaten; parsed into detected foods with quantities.
+            package init(text: Swift.String) {
+                self.text = text
+            }
+            package enum CodingKeys: String, CodingKey {
+                case text
             }
         }
         /// - Remark: Generated from `#/components/schemas/CorrectPhotoScanBody`.
         package struct CorrectPhotoScanBody: Codable, Hashable, Sendable {
-            /// The meal name from the meal-scan response.
+            /// The meal name from the scan, when it returned one (photo scans do; text scans don't). Defaults to 'Meal'.
             ///
             /// - Remark: Generated from `#/components/schemas/CorrectPhotoScanBody/meal_name`.
-            package var mealName: Swift.String
-            /// The detections array from the meal-scan response, exactly as returned (all ten nutrient keys, non-empty servings).
+            package var mealName: Swift.String?
+            /// The detections array from a photo or text food scan, exactly as returned. Omitted zero-value nutrient keys are filled in automatically; each detection needs at least one serving.
             ///
             /// - Remark: Generated from `#/components/schemas/CorrectPhotoScanBody/detections`.
             package var detections: [Components.Schemas.FoodDetection]
@@ -1313,11 +1253,11 @@ package enum Components {
             /// Creates a new `CorrectPhotoScanBody`.
             ///
             /// - Parameters:
-            ///   - mealName: The meal name from the meal-scan response.
-            ///   - detections: The detections array from the meal-scan response, exactly as returned (all ten nutrient keys, non-empty servings).
+            ///   - mealName: The meal name from the scan, when it returned one (photo scans do; text scans don't). Defaults to 'Meal'.
+            ///   - detections: The detections array from a photo or text food scan, exactly as returned. Omitted zero-value nutrient keys are filled in automatically; each detection needs at least one serving.
             ///   - userInput: Plain-English description of what to correct.
             package init(
-                mealName: Swift.String,
+                mealName: Swift.String? = nil,
                 detections: [Components.Schemas.FoodDetection],
                 userInput: Swift.String
             ) {
@@ -1383,21 +1323,21 @@ package enum Components {
         package struct CreateFoodLogBody: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/CreateFoodLogBody/foods`.
             package var foods: [Components.Schemas.FoodLogInputFood]
-            /// UTC consumption time, ending in Z. Omitted = now.
+            /// When the meal was eaten — any ISO-8601 offset; stored and returned in UTC. Omitted = now.
             ///
             /// - Remark: Generated from `#/components/schemas/CreateFoodLogBody/timestamp_utc`.
-            package var timestampUtc: Swift.String?
+            package var timestampUtc: Foundation.Date?
             /// - Remark: Generated from `#/components/schemas/CreateFoodLogBody/name`.
             package var name: Swift.String?
             /// Creates a new `CreateFoodLogBody`.
             ///
             /// - Parameters:
             ///   - foods:
-            ///   - timestampUtc: UTC consumption time, ending in Z. Omitted = now.
+            ///   - timestampUtc: When the meal was eaten — any ISO-8601 offset; stored and returned in UTC. Omitted = now.
             ///   - name:
             package init(
                 foods: [Components.Schemas.FoodLogInputFood],
-                timestampUtc: Swift.String? = nil,
+                timestampUtc: Foundation.Date? = nil,
                 name: Swift.String? = nil
             ) {
                 self.foods = foods
@@ -1408,136 +1348,6 @@ package enum Components {
                 case foods
                 case timestampUtc = "timestamp_utc"
                 case name
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/NutritionFacts`.
-        package struct NutritionFacts: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/calories`.
-            package var calories: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/protein`.
-            package var protein: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/carbohydrates`.
-            package var carbohydrates: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/net_carbohydrates`.
-            package var netCarbohydrates: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/total_fat`.
-            package var totalFat: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/trans_fat`.
-            package var transFat: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/saturated_fat`.
-            package var saturatedFat: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/fiber`.
-            package var fiber: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/total_sugars`.
-            package var totalSugars: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/added_sugars`.
-            package var addedSugars: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/cholesterol`.
-            package var cholesterol: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/calcium`.
-            package var calcium: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/iron`.
-            package var iron: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/potassium`.
-            package var potassium: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/sodium`.
-            package var sodium: Components.Schemas.NutrientAmount?
-            /// - Remark: Generated from `#/components/schemas/NutritionFacts/vitamin_d`.
-            package var vitaminD: Components.Schemas.NutrientAmount?
-            /// Creates a new `NutritionFacts`.
-            ///
-            /// - Parameters:
-            ///   - calories:
-            ///   - protein:
-            ///   - carbohydrates:
-            ///   - netCarbohydrates:
-            ///   - totalFat:
-            ///   - transFat:
-            ///   - saturatedFat:
-            ///   - fiber:
-            ///   - totalSugars:
-            ///   - addedSugars:
-            ///   - cholesterol:
-            ///   - calcium:
-            ///   - iron:
-            ///   - potassium:
-            ///   - sodium:
-            ///   - vitaminD:
-            package init(
-                calories: Components.Schemas.NutrientAmount? = nil,
-                protein: Components.Schemas.NutrientAmount? = nil,
-                carbohydrates: Components.Schemas.NutrientAmount? = nil,
-                netCarbohydrates: Components.Schemas.NutrientAmount? = nil,
-                totalFat: Components.Schemas.NutrientAmount? = nil,
-                transFat: Components.Schemas.NutrientAmount? = nil,
-                saturatedFat: Components.Schemas.NutrientAmount? = nil,
-                fiber: Components.Schemas.NutrientAmount? = nil,
-                totalSugars: Components.Schemas.NutrientAmount? = nil,
-                addedSugars: Components.Schemas.NutrientAmount? = nil,
-                cholesterol: Components.Schemas.NutrientAmount? = nil,
-                calcium: Components.Schemas.NutrientAmount? = nil,
-                iron: Components.Schemas.NutrientAmount? = nil,
-                potassium: Components.Schemas.NutrientAmount? = nil,
-                sodium: Components.Schemas.NutrientAmount? = nil,
-                vitaminD: Components.Schemas.NutrientAmount? = nil
-            ) {
-                self.calories = calories
-                self.protein = protein
-                self.carbohydrates = carbohydrates
-                self.netCarbohydrates = netCarbohydrates
-                self.totalFat = totalFat
-                self.transFat = transFat
-                self.saturatedFat = saturatedFat
-                self.fiber = fiber
-                self.totalSugars = totalSugars
-                self.addedSugars = addedSugars
-                self.cholesterol = cholesterol
-                self.calcium = calcium
-                self.iron = iron
-                self.potassium = potassium
-                self.sodium = sodium
-                self.vitaminD = vitaminD
-            }
-            package enum CodingKeys: String, CodingKey {
-                case calories
-                case protein
-                case carbohydrates
-                case netCarbohydrates = "net_carbohydrates"
-                case totalFat = "total_fat"
-                case transFat = "trans_fat"
-                case saturatedFat = "saturated_fat"
-                case fiber
-                case totalSugars = "total_sugars"
-                case addedSugars = "added_sugars"
-                case cholesterol
-                case calcium
-                case iron
-                case potassium
-                case sodium
-                case vitaminD = "vitamin_d"
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/ConsumedServing`.
-        package struct ConsumedServing: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/ConsumedServing/id`.
-            package var id: Components.Schemas.ServingId
-            /// - Remark: Generated from `#/components/schemas/ConsumedServing/quantity`.
-            package var quantity: Swift.Double
-            /// Creates a new `ConsumedServing`.
-            ///
-            /// - Parameters:
-            ///   - id:
-            ///   - quantity:
-            package init(
-                id: Components.Schemas.ServingId,
-                quantity: Swift.Double
-            ) {
-                self.id = id
-                self.quantity = quantity
-            }
-            package enum CodingKeys: String, CodingKey {
-                case id
-                case quantity
             }
         }
         /// - Remark: Generated from `#/components/schemas/ServingDetails`.
@@ -1592,7 +1402,7 @@ package enum Components {
             /// - Remark: Generated from `#/components/schemas/LoggedFood/nutrients`.
             package var nutrients: Components.Schemas.NutritionFacts
             /// - Remark: Generated from `#/components/schemas/LoggedFood/consumed_serving`.
-            package var consumedServing: Components.Schemas.ConsumedServing
+            package var consumedServing: Components.Schemas.FoodLogInputServing
             /// - Remark: Generated from `#/components/schemas/LoggedFood/serving_details`.
             package var servingDetails: Components.Schemas.ServingDetails
             /// Creates a new `LoggedFood`.
@@ -1615,7 +1425,7 @@ package enum Components {
                 glycemicIndex: Swift.Double? = nil,
                 glycemicLoad: Swift.Double? = nil,
                 nutrients: Components.Schemas.NutritionFacts,
-                consumedServing: Components.Schemas.ConsumedServing,
+                consumedServing: Components.Schemas.FoodLogInputServing,
                 servingDetails: Components.Schemas.ServingDetails
             ) {
                 self.id = id
@@ -1646,6 +1456,8 @@ package enum Components {
             package var id: Components.Schemas.FoodLogId
             /// - Remark: Generated from `#/components/schemas/FoodLog/foods`.
             package var foods: [Components.Schemas.LoggedFood]
+            /// Returned UTC timestamp. Treat as an opaque string because deployed responses are not consistently RFC 3339 formatted.
+            ///
             /// - Remark: Generated from `#/components/schemas/FoodLog/timestamp_utc`.
             package var timestampUtc: Swift.String
             /// - Remark: Generated from `#/components/schemas/FoodLog/name`.
@@ -1655,7 +1467,7 @@ package enum Components {
             /// - Parameters:
             ///   - id:
             ///   - foods:
-            ///   - timestampUtc:
+            ///   - timestampUtc: Returned UTC timestamp. Treat as an opaque string because deployed responses are not consistently RFC 3339 formatted.
             ///   - name:
             package init(
                 id: Components.Schemas.FoodLogId,
@@ -1748,23 +1560,65 @@ package enum Components {
                 case status
             }
         }
+        /// - Remark: Generated from `#/components/schemas/Height`.
+        package struct Height: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Height/value`.
+            package var value: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/Height/unit`.
+            package var unit: Components.Schemas.HeightUnit
+            /// Creates a new `Height`.
+            ///
+            /// - Parameters:
+            ///   - value:
+            ///   - unit:
+            package init(
+                value: Swift.Double,
+                unit: Components.Schemas.HeightUnit
+            ) {
+                self.value = value
+                self.unit = unit
+            }
+            package enum CodingKeys: String, CodingKey {
+                case value
+                case unit
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/Weight`.
+        package struct Weight: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Weight/value`.
+            package var value: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/Weight/unit`.
+            package var unit: Components.Schemas.WeightUnit
+            /// Creates a new `Weight`.
+            ///
+            /// - Parameters:
+            ///   - value:
+            ///   - unit:
+            package init(
+                value: Swift.Double,
+                unit: Components.Schemas.WeightUnit
+            ) {
+                self.value = value
+                self.unit = unit
+            }
+            package enum CodingKeys: String, CodingKey {
+                case value
+                case unit
+            }
+        }
         /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile`.
         package struct GlucosePredictionProfile: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/age`.
             package var age: Swift.Double
-            /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/gender`.
-            package var gender: Components.Schemas.Gender
-            /// Inches.
-            ///
+            /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/sex`.
+            package var sex: Components.Schemas.Sex
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/height`.
-            package var height: Swift.Double
-            /// Pounds.
-            ///
+            package var height: Components.Schemas.Height
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/weight`.
-            package var weight: Swift.Double
+            package var weight: Components.Schemas.Weight
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/activity_level`.
             package var activityLevel: Components.Schemas.ActivityLevel?
-            /// Case-sensitive. Type 1 diabetes is not supported by the prediction model.
+            /// Omit it (or send []) if none apply. Type 1 diabetes is not supported by the prediction model.
             ///
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/health_conditions`.
             package var healthConditions: [Components.Schemas.MedicalCondition]?
@@ -1772,21 +1626,21 @@ package enum Components {
             ///
             /// - Parameters:
             ///   - age:
-            ///   - gender:
-            ///   - height: Inches.
-            ///   - weight: Pounds.
+            ///   - sex:
+            ///   - height:
+            ///   - weight:
             ///   - activityLevel:
-            ///   - healthConditions: Case-sensitive. Type 1 diabetes is not supported by the prediction model.
+            ///   - healthConditions: Omit it (or send []) if none apply. Type 1 diabetes is not supported by the prediction model.
             package init(
                 age: Swift.Double,
-                gender: Components.Schemas.Gender,
-                height: Swift.Double,
-                weight: Swift.Double,
+                sex: Components.Schemas.Sex,
+                height: Components.Schemas.Height,
+                weight: Components.Schemas.Weight,
                 activityLevel: Components.Schemas.ActivityLevel? = nil,
                 healthConditions: [Components.Schemas.MedicalCondition]? = nil
             ) {
                 self.age = age
-                self.gender = gender
+                self.sex = sex
                 self.height = height
                 self.weight = weight
                 self.activityLevel = activityLevel
@@ -1794,7 +1648,7 @@ package enum Components {
             }
             package enum CodingKeys: String, CodingKey {
                 case age
-                case gender
+                case sex
                 case height
                 case weight
                 case activityLevel = "activity_level"
@@ -1804,7 +1658,7 @@ package enum Components {
         /// - Remark: Generated from `#/components/schemas/CgmReading`.
         package struct CgmReading: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/CgmReading/timestamp`.
-            package var timestamp: Swift.String
+            package var timestamp: Foundation.Date
             /// mg/dL. At most one reading per 15-minute window.
             ///
             /// - Remark: Generated from `#/components/schemas/CgmReading/value`.
@@ -1815,7 +1669,7 @@ package enum Components {
             ///   - timestamp:
             ///   - value: mg/dL. At most one reading per 15-minute window.
             package init(
-                timestamp: Swift.String,
+                timestamp: Foundation.Date,
                 value: Swift.Double
             ) {
                 self.timestamp = timestamp
@@ -1826,37 +1680,14 @@ package enum Components {
                 case value
             }
         }
-        /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalServing`.
-        package struct ConsumedHistoricalServing: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalServing/id`.
-            package var id: Components.Schemas.ServingId
-            /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalServing/quantity`.
-            package var quantity: Swift.Double
-            /// Creates a new `ConsumedHistoricalServing`.
-            ///
-            /// - Parameters:
-            ///   - id:
-            ///   - quantity:
-            package init(
-                id: Components.Schemas.ServingId,
-                quantity: Swift.Double
-            ) {
-                self.id = id
-                self.quantity = quantity
-            }
-            package enum CodingKeys: String, CodingKey {
-                case id
-                case quantity
-            }
-        }
         /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalFood`.
         package struct ConsumedHistoricalFood: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalFood/timestamp`.
-            package var timestamp: Swift.String
+            package var timestamp: Foundation.Date
             /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalFood/id`.
             package var id: Components.Schemas.FoodId
             /// - Remark: Generated from `#/components/schemas/ConsumedHistoricalFood/serving`.
-            package var serving: Components.Schemas.ConsumedHistoricalServing
+            package var serving: Components.Schemas.FoodLogInputServing
             /// Creates a new `ConsumedHistoricalFood`.
             ///
             /// - Parameters:
@@ -1864,9 +1695,9 @@ package enum Components {
             ///   - id:
             ///   - serving:
             package init(
-                timestamp: Swift.String,
+                timestamp: Foundation.Date,
                 id: Components.Schemas.FoodId,
-                serving: Components.Schemas.ConsumedHistoricalServing
+                serving: Components.Schemas.FoodLogInputServing
             ) {
                 self.timestamp = timestamp
                 self.id = id
@@ -1927,45 +1758,89 @@ package enum Components {
                 case consumedFoods = "consumed_foods"
             }
         }
+        /// - Remark: Generated from `#/components/schemas/GlucosePredictionPoint`.
+        package struct GlucosePredictionPoint: Codable, Hashable, Sendable {
+            /// Minutes after start_time.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GlucosePredictionPoint/minutes`.
+            package var minutes: Swift.Double
+            /// Predicted glucose, mg/dL.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GlucosePredictionPoint/value`.
+            package var value: Swift.Double
+            /// Creates a new `GlucosePredictionPoint`.
+            ///
+            /// - Parameters:
+            ///   - minutes: Minutes after start_time.
+            ///   - value: Predicted glucose, mg/dL.
+            package init(
+                minutes: Swift.Double,
+                value: Swift.Double
+            ) {
+                self.minutes = minutes
+                self.value = value
+            }
+            package enum CodingKeys: String, CodingKey {
+                case minutes
+                case value
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/GlucoseChart`.
+        package struct GlucoseChart: Codable, Hashable, Sendable {
+            /// Suggested Y-axis lower bound (mg/dL). A fixed target-range bound, not the minimum of the curve.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GlucoseChart/min`.
+            package var min: Swift.Double
+            /// Suggested Y-axis upper bound (mg/dL): 180 with Type 2 diabetes in health_conditions, otherwise 140. Not the maximum of the curve.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GlucoseChart/max`.
+            package var max: Swift.Double
+            /// Creates a new `GlucoseChart`.
+            ///
+            /// - Parameters:
+            ///   - min: Suggested Y-axis lower bound (mg/dL). A fixed target-range bound, not the minimum of the curve.
+            ///   - max: Suggested Y-axis upper bound (mg/dL): 180 with Type 2 diabetes in health_conditions, otherwise 140. Not the maximum of the curve.
+            package init(
+                min: Swift.Double,
+                max: Swift.Double
+            ) {
+                self.min = min
+                self.max = max
+            }
+            package enum CodingKeys: String, CodingKey {
+                case min
+                case max
+            }
+        }
         /// - Remark: Generated from `#/components/schemas/GlucosePrediction`.
         package struct GlucosePrediction: Codable, Hashable, Sendable {
-            /// The predicted glucose curve as [minutes after start_time, mg/dL] points at 15-minute intervals.
+            /// The predicted glucose curve at 15-minute intervals, starting at start_time.
             ///
-            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/cgp`.
-            package var cgp: [Components.Schemas.GlucosePoint]
-            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/scoring`.
-            package var scoring: Components.Schemas.GlucoseImpact
-            /// The chart's suggested Y-axis lower bound (mg/dL) — a fixed target-range bound, NOT the minimum of the predicted curve.
-            ///
-            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/cgp_min`.
-            package var cgpMin: Swift.Double
-            /// The chart's suggested Y-axis upper bound (mg/dL): 180 with Type 2 diabetes in health_conditions, otherwise 140. NOT the maximum of the predicted curve.
-            ///
-            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/cgp_max`.
-            package var cgpMax: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/prediction`.
+            package var prediction: [Components.Schemas.GlucosePredictionPoint]
+            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/impact_score`.
+            package var impactScore: Components.Schemas.GlucoseImpact
+            /// - Remark: Generated from `#/components/schemas/GlucosePrediction/chart`.
+            package var chart: Components.Schemas.GlucoseChart
             /// Creates a new `GlucosePrediction`.
             ///
             /// - Parameters:
-            ///   - cgp: The predicted glucose curve as [minutes after start_time, mg/dL] points at 15-minute intervals.
-            ///   - scoring:
-            ///   - cgpMin: The chart's suggested Y-axis lower bound (mg/dL) — a fixed target-range bound, NOT the minimum of the predicted curve.
-            ///   - cgpMax: The chart's suggested Y-axis upper bound (mg/dL): 180 with Type 2 diabetes in health_conditions, otherwise 140. NOT the maximum of the predicted curve.
+            ///   - prediction: The predicted glucose curve at 15-minute intervals, starting at start_time.
+            ///   - impactScore:
+            ///   - chart:
             package init(
-                cgp: [Components.Schemas.GlucosePoint],
-                scoring: Components.Schemas.GlucoseImpact,
-                cgpMin: Swift.Double,
-                cgpMax: Swift.Double
+                prediction: [Components.Schemas.GlucosePredictionPoint],
+                impactScore: Components.Schemas.GlucoseImpact,
+                chart: Components.Schemas.GlucoseChart
             ) {
-                self.cgp = cgp
-                self.scoring = scoring
-                self.cgpMin = cgpMin
-                self.cgpMax = cgpMax
+                self.prediction = prediction
+                self.impactScore = impactScore
+                self.chart = chart
             }
             package enum CodingKeys: String, CodingKey {
-                case cgp
-                case scoring
-                case cgpMin = "cgp_min"
-                case cgpMax = "cgp_max"
+                case prediction
+                case impactScore = "impact_score"
+                case chart
             }
         }
         /// Stable food identifier, provisionally narrowed to JavaScript's safe integer range.
@@ -2000,42 +1875,44 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/DietRestriction`.
         @frozen package enum DietRestriction: String, Codable, Hashable, Sendable, CaseIterable {
-            case none = "None"
-            case gluten = "Gluten"
-            case lactose = "Lactose"
-            case yeast = "Yeast"
-            case treeNuts = "Tree nuts"
-            case peanuts = "Peanuts"
-            case dairy = "Dairy"
-            case eggs = "Eggs"
-            case sulfites = "Sulfites"
-            case soy = "Soy"
-            case wheat = "Wheat"
-            case shellfish = "Shellfish"
-            case fish = "Fish"
-            case mushrooms = "Mushrooms"
-            case sesame = "Sesame"
-            case monosodiumGlutamate_lpar_MSG_rpar_ = "Monosodium glutamate (MSG)"
-            case caffeine = "Caffeine"
-            case fodmaPs = "FODMAPs"
+            case gluten = "gluten"
+            case lactose = "lactose"
+            case yeast = "yeast"
+            case treeNuts = "tree_nuts"
+            case peanuts = "peanuts"
+            case dairy = "dairy"
+            case eggs = "eggs"
+            case sulfites = "sulfites"
+            case soy = "soy"
+            case wheat = "wheat"
+            case shellfish = "shellfish"
+            case fish = "fish"
+            case mushrooms = "mushrooms"
+            case sesame = "sesame"
+            case msg = "msg"
+            case caffeine = "caffeine"
+            case fodmaps = "fodmaps"
         }
         /// - Remark: Generated from `#/components/schemas/DietPreference`.
         @frozen package enum DietPreference: String, Codable, Hashable, Sendable, CaseIterable {
-            case none = "None"
-            case vegetarian = "Vegetarian"
-            case vegan = "Vegan"
-            case keto = "Keto"
-            case paleo = "Paleo"
-            case pescatarian = "Pescatarian"
-            case lowCarbohydrate = "Low carbohydrate"
-            case highProtein = "High protein"
-            case kosher = "Kosher"
-            case halal = "Halal"
+            case vegetarian = "vegetarian"
+            case vegan = "vegan"
+            case keto = "keto"
+            case paleo = "paleo"
+            case pescatarian = "pescatarian"
+            case lowCarbohydrate = "low_carbohydrate"
+            case highProtein = "high_protein"
+            case kosher = "kosher"
+            case halal = "halal"
         }
+        /// Photo scans only; absent on text scans.
+        ///
         /// - Remark: Generated from `#/components/schemas/ConfidenceScore`.
         package typealias ConfidenceScore = Swift.String
-        /// - Remark: Generated from `#/components/schemas/Gender`.
-        @frozen package enum Gender: String, Codable, Hashable, Sendable, CaseIterable {
+        /// Biological sex, as consumed by the prediction model.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Sex`.
+        @frozen package enum Sex: String, Codable, Hashable, Sendable, CaseIterable {
             case male = "male"
             case female = "female"
         }
@@ -2048,16 +1925,23 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/MedicalCondition`.
         @frozen package enum MedicalCondition: String, Codable, Hashable, Sendable, CaseIterable {
-            case type2Diabetes = "Type 2 diabetes"
-            case prediabetes = "Prediabetes"
-            case noneOfTheAbove = "None of the above"
+            case type2Diabetes = "type_2_diabetes"
+            case prediabetes = "prediabetes"
         }
+        /// The meal's overall glucose impact.
+        ///
         /// - Remark: Generated from `#/components/schemas/GlucoseImpact`.
         package typealias GlucoseImpact = Swift.String
-        /// A predicted glucose point represented as [minutes after start_time, mg/dL].
-        ///
-        /// - Remark: Generated from `#/components/schemas/GlucosePoint`.
-        package typealias GlucosePoint = [Swift.Double]
+        /// - Remark: Generated from `#/components/schemas/HeightUnit`.
+        @frozen package enum HeightUnit: String, Codable, Hashable, Sendable, CaseIterable {
+            case _in = "in"
+            case cm = "cm"
+        }
+        /// - Remark: Generated from `#/components/schemas/WeightUnit`.
+        @frozen package enum WeightUnit: String, Codable, Hashable, Sendable, CaseIterable {
+            case lb = "lb"
+            case kg = "kg"
+        }
     }
     /// Types generated from the `#/components/parameters` section of the OpenAPI document.
     package enum Parameters {}
@@ -2075,24 +1959,24 @@ package enum Operations {
     ///
     /// Full-text search over the January food database, returning up to 40 ranked matches. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{upc}` instead.
     ///
-    /// - Remark: HTTP `GET /v1.2/foods/search`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)`.
+    /// - Remark: HTTP `GET /v1.2/foods`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)`.
     package enum SearchFoods {
         package static let id: Swift.String = "searchFoods"
         package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/query`.
+            /// - Remark: Generated from `#/paths/v1.2/foods/GET/query`.
             package struct Query: Sendable, Hashable {
                 /// The food name to search for.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/query/query`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/query/query`.
                 package var query: Swift.String
                 /// Narrows results to one food category.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/query/category`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/query/category`.
                 package var category: Components.Schemas.FoodCategory?
                 /// Maximum number of results to return.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/query/limit`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/query/limit`.
                 package var limit: Swift.Double?
                 /// Creates a new `Query`.
                 ///
@@ -2111,11 +1995,11 @@ package enum Operations {
                 }
             }
             package var query: Operations.SearchFoods.Input.Query
-            /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/header`.
+            /// - Remark: Generated from `#/paths/v1.2/foods/GET/header`.
             package struct Headers: Sendable, Hashable {
                 /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/header/x-end-user-id`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/header/x-end-user-id`.
                 package var xEndUserId: Components.Schemas.PartnerUserId?
                 package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchFoods.AcceptableContentType>]
                 /// Creates a new `Headers`.
@@ -2147,9 +2031,9 @@ package enum Operations {
         }
         @frozen package enum Output: Sendable, Hashable {
             package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/200/content`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/200/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/200/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/200/content/application\/json`.
                     case json(Components.Schemas.FoodSearchResults)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -2176,7 +2060,7 @@ package enum Operations {
             }
             ///
             ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)/responses/200`.
+            /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/200`.
             ///
             /// HTTP response code: `200 ok`.
             case ok(Operations.SearchFoods.Output.Ok)
@@ -2198,9 +2082,9 @@ package enum Operations {
                 }
             }
             package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/400/content`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/400/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/400/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -2227,7 +2111,7 @@ package enum Operations {
             }
             /// A parameter is missing or invalid; the message names the parameter and the accepted values.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/400`.
             ///
             /// HTTP response code: `400 badRequest`.
             case badRequest(Operations.SearchFoods.Output.BadRequest)
@@ -2249,9 +2133,9 @@ package enum Operations {
                 }
             }
             package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/401/content`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/401/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/401/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/401/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -2278,7 +2162,7 @@ package enum Operations {
             }
             /// The Authorization header is missing or the API key is invalid.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)/responses/401`.
+            /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/401`.
             ///
             /// HTTP response code: `401 unauthorized`.
             case unauthorized(Operations.SearchFoods.Output.Unauthorized)
@@ -2300,9 +2184,25 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/429/content`.
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.SearchFoods.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/GET/responses/429/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -2322,14 +2222,19 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.SearchFoods.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.SearchFoods.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.SearchFoods.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/get(searchFoods)/responses/429`.
+            /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/429`.
             ///
             /// HTTP response code: `429 tooManyRequests`.
             case tooManyRequests(Operations.SearchFoods.Output.TooManyRequests)
@@ -2350,151 +2255,10 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
-            ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
-        }
-        @frozen package enum AcceptableContentType: AcceptableProtocol {
-            case json
-            case other(Swift.String)
-            package init?(rawValue: Swift.String) {
-                switch rawValue.lowercased() {
-                case "application/json":
-                    self = .json
-                default:
-                    self = .other(rawValue)
-                }
-            }
-            package var rawValue: Swift.String {
-                switch self {
-                case let .other(string):
-                    return string
-                case .json:
-                    return "application/json"
-                }
-            }
-            package static var allCases: [Self] {
-                [
-                    .json
-                ]
-            }
-        }
-    }
-    /// Parse a meal description into foods
-    ///
-    /// Natural-language food search: parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of meal-scan. For keyword search over the food database, use `GET /v1.2/foods/search`.
-    ///
-    /// - Remark: HTTP `GET /v1.2/foods/search/nlp`.
-    /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)`.
-    package enum SearchFoodsByNaturalLanguage {
-        package static let id: Swift.String = "searchFoodsByNaturalLanguage"
-        package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/query`.
-            package struct Query: Sendable, Hashable {
-                /// Natural-language description of what was eaten; parsed into foods with quantities.
-                ///
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/query/query`.
-                package var query: Swift.String
-                /// Creates a new `Query`.
-                ///
-                /// - Parameters:
-                ///   - query: Natural-language description of what was eaten; parsed into foods with quantities.
-                package init(query: Swift.String) {
-                    self.query = query
-                }
-            }
-            package var query: Operations.SearchFoodsByNaturalLanguage.Input.Query
-            /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/header`.
-            package struct Headers: Sendable, Hashable {
-                /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
-                ///
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/header/x-end-user-id`.
-                package var xEndUserId: Components.Schemas.PartnerUserId?
-                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchFoodsByNaturalLanguage.AcceptableContentType>]
-                /// Creates a new `Headers`.
-                ///
-                /// - Parameters:
-                ///   - xEndUserId: Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
-                ///   - accept:
-                package init(
-                    xEndUserId: Components.Schemas.PartnerUserId? = nil,
-                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchFoodsByNaturalLanguage.AcceptableContentType>] = .defaultValues()
-                ) {
-                    self.xEndUserId = xEndUserId
-                    self.accept = accept
-                }
-            }
-            package var headers: Operations.SearchFoodsByNaturalLanguage.Input.Headers
-            /// Creates a new `Input`.
-            ///
-            /// - Parameters:
-            ///   - query:
-            ///   - headers:
-            package init(
-                query: Operations.SearchFoodsByNaturalLanguage.Input.Query,
-                headers: Operations.SearchFoodsByNaturalLanguage.Input.Headers = .init()
-            ) {
-                self.query = query
-                self.headers = headers
-            }
-        }
-        @frozen package enum Output: Sendable, Hashable {
-            package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/200/content`.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/default/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/200/content/application\/json`.
-                    case json(Components.Schemas.SearchFoodsByNaturalLanguageResponse)
-                    /// The associated value of the enum case if `self` is `.json`.
-                    ///
-                    /// - Throws: An error if `self` is not `.json`.
-                    /// - SeeAlso: `.json`.
-                    package var json: Components.Schemas.SearchFoodsByNaturalLanguageResponse {
-                        get throws {
-                            switch self {
-                            case let .json(body):
-                                return body
-                            }
-                        }
-                    }
-                }
-                /// Received HTTP response body
-                package var body: Operations.SearchFoodsByNaturalLanguage.Output.Ok.Body
-                /// Creates a new `Ok`.
-                ///
-                /// - Parameters:
-                ///   - body: Received HTTP response body
-                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.Ok.Body) {
-                    self.body = body
-                }
-            }
-            ///
-            ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)/responses/200`.
-            ///
-            /// HTTP response code: `200 ok`.
-            case ok(Operations.SearchFoodsByNaturalLanguage.Output.Ok)
-            /// The associated value of the enum case if `self` is `.ok`.
-            ///
-            /// - Throws: An error if `self` is not `.ok`.
-            /// - SeeAlso: `.ok`.
-            package var ok: Operations.SearchFoodsByNaturalLanguage.Output.Ok {
-                get throws {
-                    switch self {
-                    case let .ok(response):
-                        return response
-                    default:
-                        try throwUnexpectedResponseStatus(
-                            expectedStatus: "ok",
-                            response: self
-                        )
-                    }
-                }
-            }
-            package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/400/content`.
-                @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/default/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -2510,144 +2274,38 @@ package enum Operations {
                     }
                 }
                 /// Received HTTP response body
-                package var body: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest.Body
-                /// Creates a new `BadRequest`.
+                package var body: Operations.SearchFoods.Output.Default.Body
+                /// Creates a new `Default`.
                 ///
                 /// - Parameters:
                 ///   - body: Received HTTP response body
-                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest.Body) {
+                package init(body: Operations.SearchFoods.Output.Default.Body) {
                     self.body = body
                 }
             }
-            /// The query is missing or too long.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/default`.
             ///
-            /// HTTP response code: `400 badRequest`.
-            case badRequest(Operations.SearchFoodsByNaturalLanguage.Output.BadRequest)
-            /// The associated value of the enum case if `self` is `.badRequest`.
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.SearchFoods.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
             ///
-            /// - Throws: An error if `self` is not `.badRequest`.
-            /// - SeeAlso: `.badRequest`.
-            package var badRequest: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest {
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.SearchFoods.Output.Default {
                 get throws {
                     switch self {
-                    case let .badRequest(response):
+                    case let .`default`(_, response):
                         return response
                     default:
                         try throwUnexpectedResponseStatus(
-                            expectedStatus: "badRequest",
+                            expectedStatus: "default",
                             response: self
                         )
                     }
                 }
             }
-            package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/401/content`.
-                @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/401/content/application\/json`.
-                    case json(Components.Schemas.ErrorResponse)
-                    /// The associated value of the enum case if `self` is `.json`.
-                    ///
-                    /// - Throws: An error if `self` is not `.json`.
-                    /// - SeeAlso: `.json`.
-                    package var json: Components.Schemas.ErrorResponse {
-                        get throws {
-                            switch self {
-                            case let .json(body):
-                                return body
-                            }
-                        }
-                    }
-                }
-                /// Received HTTP response body
-                package var body: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized.Body
-                /// Creates a new `Unauthorized`.
-                ///
-                /// - Parameters:
-                ///   - body: Received HTTP response body
-                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized.Body) {
-                    self.body = body
-                }
-            }
-            /// The Authorization header is missing or the API key is invalid.
-            ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)/responses/401`.
-            ///
-            /// HTTP response code: `401 unauthorized`.
-            case unauthorized(Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized)
-            /// The associated value of the enum case if `self` is `.unauthorized`.
-            ///
-            /// - Throws: An error if `self` is not `.unauthorized`.
-            /// - SeeAlso: `.unauthorized`.
-            package var unauthorized: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized {
-                get throws {
-                    switch self {
-                    case let .unauthorized(response):
-                        return response
-                    default:
-                        try throwUnexpectedResponseStatus(
-                            expectedStatus: "unauthorized",
-                            response: self
-                        )
-                    }
-                }
-            }
-            package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/429/content`.
-                @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/foods/search/nlp/GET/responses/429/content/application\/json`.
-                    case json(Components.Schemas.ErrorResponse)
-                    /// The associated value of the enum case if `self` is `.json`.
-                    ///
-                    /// - Throws: An error if `self` is not `.json`.
-                    /// - SeeAlso: `.json`.
-                    package var json: Components.Schemas.ErrorResponse {
-                        get throws {
-                            switch self {
-                            case let .json(body):
-                                return body
-                            }
-                        }
-                    }
-                }
-                /// Received HTTP response body
-                package var body: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Body
-                /// Creates a new `TooManyRequests`.
-                ///
-                /// - Parameters:
-                ///   - body: Received HTTP response body
-                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Body) {
-                    self.body = body
-                }
-            }
-            /// A rate limit was exceeded; retry after a short delay.
-            ///
-            /// - Remark: Generated from `#/paths//v1.2/foods/search/nlp/get(searchFoodsByNaturalLanguage)/responses/429`.
-            ///
-            /// HTTP response code: `429 tooManyRequests`.
-            case tooManyRequests(Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests)
-            /// The associated value of the enum case if `self` is `.tooManyRequests`.
-            ///
-            /// - Throws: An error if `self` is not `.tooManyRequests`.
-            /// - SeeAlso: `.tooManyRequests`.
-            package var tooManyRequests: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests {
-                get throws {
-                    switch self {
-                    case let .tooManyRequests(response):
-                        return response
-                    default:
-                        try throwUnexpectedResponseStatus(
-                            expectedStatus: "tooManyRequests",
-                            response: self
-                        )
-                    }
-                }
-            }
-            /// Undocumented response.
-            ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -2686,14 +2344,14 @@ package enum Operations {
         package struct Input: Sendable, Hashable {
             /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/path`.
             package struct Path: Sendable, Hashable {
-                /// Numeric food id from a search, scan, or NLP result. The example is brown rice.
+                /// Numeric food id from a search, scan, or detection result. The example is brown rice.
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/path/food_id`.
                 package var foodId: Components.Schemas.FoodId
                 /// Creates a new `Path`.
                 ///
                 /// - Parameters:
-                ///   - foodId: Numeric food id from a search, scan, or NLP result. The example is brown rice.
+                ///   - foodId: Numeric food id from a search, scan, or detection result. The example is brown rice.
                 package init(foodId: Components.Schemas.FoodId) {
                     self.foodId = foodId
                 }
@@ -2948,6 +2606,22 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.SuggestFoodAlternatives.Output.TooManyRequests.Headers
                 /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/content/application\/json`.
@@ -2970,12 +2644,17 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.SuggestFoodAlternatives.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.SuggestFoodAlternatives.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.SuggestFoodAlternatives.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)/responses/429`.
             ///
@@ -2998,10 +2677,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SuggestFoodAlternatives.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SuggestFoodAlternatives.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.SuggestFoodAlternatives.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.SuggestFoodAlternatives.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -3031,7 +2757,7 @@ package enum Operations {
     }
     /// Look up a food by barcode
     ///
-    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods/search` instead.
+    /// Exact lookup of a food by its barcode. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// - Remark: HTTP `GET /v1.2/foods/barcode/{upc}`.
     /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)`.
@@ -3293,6 +3019,22 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{upc}/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{upc}/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.LookupFoodByBarcode.Output.TooManyRequests.Headers
                 /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{upc}/GET/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{upc}/GET/responses/429/content/application\/json`.
@@ -3315,12 +3057,17 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.LookupFoodByBarcode.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.LookupFoodByBarcode.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.LookupFoodByBarcode.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)/responses/429`.
             ///
@@ -3343,10 +3090,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{upc}/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{upc}/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.LookupFoodByBarcode.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.LookupFoodByBarcode.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.LookupFoodByBarcode.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.LookupFoodByBarcode.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -3378,32 +3172,32 @@ package enum Operations {
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. When the name matches no restaurant, results may be menu items (`type: "menu_item"`). `radius` and result distances are in meters.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)`.
     package enum SearchRestaurants {
         package static let id: Swift.String = "searchRestaurants"
         package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/query`.
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/query`.
             package struct Query: Sendable, Hashable {
                 /// Search radius in meters around (latitude, longitude), e.g. 5000 = 5 kilometers. Default 8000 meters (about 5 miles); maximum 17000 (about 10.5 miles).
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/query/radius`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/query/radius`.
                 package var radius: Swift.Double?
                 /// Maximum number of results to return.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/query/limit`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/query/limit`.
                 package var limit: Swift.Double?
                 /// Restaurant name to search for.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/query/query`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/query/query`.
                 package var query: Swift.String
                 /// Latitude of the search location, e.g. 37.7749 (San Francisco).
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/query/latitude`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/query/latitude`.
                 package var latitude: Swift.Double
                 /// Longitude of the search location, e.g. -122.4194 (San Francisco).
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/query/longitude`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/query/longitude`.
                 package var longitude: Swift.Double
                 /// Creates a new `Query`.
                 ///
@@ -3428,11 +3222,11 @@ package enum Operations {
                 }
             }
             package var query: Operations.SearchRestaurants.Input.Query
-            /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/header`.
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/header`.
             package struct Headers: Sendable, Hashable {
                 /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/header/x-end-user-id`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/header/x-end-user-id`.
                 package var xEndUserId: Components.Schemas.PartnerUserId?
                 package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchRestaurants.AcceptableContentType>]
                 /// Creates a new `Headers`.
@@ -3464,9 +3258,9 @@ package enum Operations {
         }
         @frozen package enum Output: Sendable, Hashable {
             package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/200/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/200/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/200/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/200/content/application\/json`.
                     case json(Components.Schemas.SearchRestaurantsResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3493,7 +3287,7 @@ package enum Operations {
             }
             ///
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)/responses/200`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/200`.
             ///
             /// HTTP response code: `200 ok`.
             case ok(Operations.SearchRestaurants.Output.Ok)
@@ -3515,9 +3309,9 @@ package enum Operations {
                 }
             }
             package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/400/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/400/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/400/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3544,7 +3338,7 @@ package enum Operations {
             }
             /// A parameter is missing or invalid; the message names the parameter and the accepted values.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/400`.
             ///
             /// HTTP response code: `400 badRequest`.
             case badRequest(Operations.SearchRestaurants.Output.BadRequest)
@@ -3566,9 +3360,9 @@ package enum Operations {
                 }
             }
             package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/401/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/401/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/401/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/401/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3595,7 +3389,7 @@ package enum Operations {
             }
             /// The Authorization header is missing or the API key is invalid.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)/responses/401`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/401`.
             ///
             /// HTTP response code: `401 unauthorized`.
             case unauthorized(Operations.SearchRestaurants.Output.Unauthorized)
@@ -3617,9 +3411,25 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/429/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.SearchRestaurants.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/search/GET/responses/429/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3639,14 +3449,19 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.SearchRestaurants.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.SearchRestaurants.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.SearchRestaurants.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/search/get(searchRestaurants)/responses/429`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/429`.
             ///
             /// HTTP response code: `429 tooManyRequests`.
             case tooManyRequests(Operations.SearchRestaurants.Output.TooManyRequests)
@@ -3667,10 +3482,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchRestaurants.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SearchRestaurants.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.SearchRestaurants.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.SearchRestaurants.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -3702,32 +3564,32 @@ package enum Operations {
     ///
     /// Search dishes across restaurants near (`latitude`, `longitude`). Returns menu items with their nutrition values. `radius` and result distances are in meters, e.g. radius=5000 for 5 kilometers.
     ///
-    /// - Remark: HTTP `GET /v1.2/restaurants/menu/search`.
-    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)`.
+    /// - Remark: HTTP `GET /v1.2/restaurants/menu-items`.
+    /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)`.
     package enum SearchRestaurantMenuItems {
         package static let id: Swift.String = "searchRestaurantMenuItems"
         package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/query`.
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/query`.
             package struct Query: Sendable, Hashable {
                 /// Search radius in meters around (latitude, longitude), e.g. 5000 = 5 kilometers. Default 8000 meters (about 5 miles); maximum 17000 (about 10.5 miles).
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/query/radius`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/query/radius`.
                 package var radius: Swift.Double?
                 /// Maximum number of results to return.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/query/limit`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/query/limit`.
                 package var limit: Swift.Double?
                 /// Dish or restaurant name to search for.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/query/query`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/query/query`.
                 package var query: Swift.String
                 /// Latitude of the search location, e.g. 37.7749 (San Francisco).
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/query/latitude`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/query/latitude`.
                 package var latitude: Swift.Double
                 /// Longitude of the search location, e.g. -122.4194 (San Francisco).
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/query/longitude`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/query/longitude`.
                 package var longitude: Swift.Double
                 /// Creates a new `Query`.
                 ///
@@ -3752,11 +3614,11 @@ package enum Operations {
                 }
             }
             package var query: Operations.SearchRestaurantMenuItems.Input.Query
-            /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/header`.
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/header`.
             package struct Headers: Sendable, Hashable {
                 /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/header/x-end-user-id`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/header/x-end-user-id`.
                 package var xEndUserId: Components.Schemas.PartnerUserId?
                 package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchRestaurantMenuItems.AcceptableContentType>]
                 /// Creates a new `Headers`.
@@ -3788,9 +3650,9 @@ package enum Operations {
         }
         @frozen package enum Output: Sendable, Hashable {
             package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/200/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/200/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/200/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/200/content/application\/json`.
                     case json(Components.Schemas.SearchRestaurantMenuItemsResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3817,7 +3679,7 @@ package enum Operations {
             }
             ///
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)/responses/200`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)/responses/200`.
             ///
             /// HTTP response code: `200 ok`.
             case ok(Operations.SearchRestaurantMenuItems.Output.Ok)
@@ -3839,9 +3701,9 @@ package enum Operations {
                 }
             }
             package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/400/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/400/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/400/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3868,7 +3730,7 @@ package enum Operations {
             }
             /// A parameter is missing or invalid; the message names the parameter and the accepted values.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)/responses/400`.
             ///
             /// HTTP response code: `400 badRequest`.
             case badRequest(Operations.SearchRestaurantMenuItems.Output.BadRequest)
@@ -3890,9 +3752,9 @@ package enum Operations {
                 }
             }
             package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/401/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/401/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/401/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/401/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3919,7 +3781,7 @@ package enum Operations {
             }
             /// The Authorization header is missing or the API key is invalid.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)/responses/401`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)/responses/401`.
             ///
             /// HTTP response code: `401 unauthorized`.
             case unauthorized(Operations.SearchRestaurantMenuItems.Output.Unauthorized)
@@ -3941,9 +3803,25 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/429/content`.
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.SearchRestaurantMenuItems.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu/search/GET/responses/429/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/429/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -3963,14 +3841,19 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.SearchRestaurantMenuItems.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.SearchRestaurantMenuItems.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.SearchRestaurantMenuItems.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu/search/get(searchRestaurantMenuItems)/responses/429`.
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)/responses/429`.
             ///
             /// HTTP response code: `429 tooManyRequests`.
             case tooManyRequests(Operations.SearchRestaurantMenuItems.Output.TooManyRequests)
@@ -3991,10 +3874,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/menu-items/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchRestaurantMenuItems.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SearchRestaurantMenuItems.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.SearchRestaurantMenuItems.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.SearchRestaurantMenuItems.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -4022,20 +3952,20 @@ package enum Operations {
             }
         }
     }
-    /// Detect foods and nutrition in a meal photo
+    /// Scan a meal photo
     ///
     /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)`.
+    /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
     package enum ScanFoodPhoto {
         package static let id: Swift.String = "scanFoodPhoto"
         package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/header`.
+            /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/header`.
             package struct Headers: Sendable, Hashable {
                 /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/header/x-end-user-id`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/header/x-end-user-id`.
                 package var xEndUserId: Components.Schemas.PartnerUserId?
                 package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ScanFoodPhoto.AcceptableContentType>]
                 /// Creates a new `Headers`.
@@ -4052,9 +3982,9 @@ package enum Operations {
                 }
             }
             package var headers: Operations.ScanFoodPhoto.Input.Headers
-            /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/requestBody`.
+            /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/requestBody`.
             @frozen package enum Body: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/requestBody/content/application\/json`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/requestBody/content/application\/json`.
                 case json(Components.Schemas.ScanFoodPhotoBody)
             }
             package var body: Operations.ScanFoodPhoto.Input.Body
@@ -4073,15 +4003,15 @@ package enum Operations {
         }
         @frozen package enum Output: Sendable, Hashable {
             package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/200/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/200/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/200/content/application\/json`.
-                    case json(Components.Schemas.PhotoScan)
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.FoodScan)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
                     /// - Throws: An error if `self` is not `.json`.
                     /// - SeeAlso: `.json`.
-                    package var json: Components.Schemas.PhotoScan {
+                    package var json: Components.Schemas.FoodScan {
                         get throws {
                             switch self {
                             case let .json(body):
@@ -4102,7 +4032,7 @@ package enum Operations {
             }
             ///
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)/responses/200`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/200`.
             ///
             /// HTTP response code: `200 ok`.
             case ok(Operations.ScanFoodPhoto.Output.Ok)
@@ -4124,9 +4054,9 @@ package enum Operations {
                 }
             }
             package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/400/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/400/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/400/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4153,7 +4083,7 @@ package enum Operations {
             }
             /// The image is missing or not an http(s) URL / data URI.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/400`.
             ///
             /// HTTP response code: `400 badRequest`.
             case badRequest(Operations.ScanFoodPhoto.Output.BadRequest)
@@ -4175,9 +4105,9 @@ package enum Operations {
                 }
             }
             package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/401/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/401/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/401/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/401/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4204,7 +4134,7 @@ package enum Operations {
             }
             /// The Authorization header is missing or the API key is invalid.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)/responses/401`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/401`.
             ///
             /// HTTP response code: `401 unauthorized`.
             case unauthorized(Operations.ScanFoodPhoto.Output.Unauthorized)
@@ -4226,9 +4156,9 @@ package enum Operations {
                 }
             }
             package struct ContentTooLarge: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/413/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/413/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/413/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/413/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4255,7 +4185,7 @@ package enum Operations {
             }
             /// The request body exceeds 5 MB. Keep raw images under ~3.5 MB before base64-encoding.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)/responses/413`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/413`.
             ///
             /// HTTP response code: `413 contentTooLarge`.
             case contentTooLarge(Operations.ScanFoodPhoto.Output.ContentTooLarge)
@@ -4277,9 +4207,25 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/429/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.ScanFoodPhoto.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/429/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/429/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4299,14 +4245,19 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.ScanFoodPhoto.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.ScanFoodPhoto.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.ScanFoodPhoto.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)/responses/429`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/429`.
             ///
             /// HTTP response code: `429 tooManyRequests`.
             case tooManyRequests(Operations.ScanFoodPhoto.Output.TooManyRequests)
@@ -4328,9 +4279,9 @@ package enum Operations {
                 }
             }
             package struct GatewayTimeout: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/504/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/504/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/POST/responses/504/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/504/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4357,7 +4308,7 @@ package enum Operations {
             }
             /// The vision model took too long; retry, ideally with a smaller image.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/post(scanFoodPhoto)/responses/504`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/504`.
             ///
             /// HTTP response code: `504 gatewayTimeout`.
             case gatewayTimeout(Operations.ScanFoodPhoto.Output.GatewayTimeout)
@@ -4378,10 +4329,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/photo/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ScanFoodPhoto.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ScanFoodPhoto.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.ScanFoodPhoto.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.ScanFoodPhoto.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -4409,20 +4407,373 @@ package enum Operations {
             }
         }
     }
-    /// Correct a scan with a plain-English instruction
+    /// Scan a meal description
     ///
-    /// Refines a meal-scan result. Send back `meal_name` and `detections` exactly as the scan returned them, plus `user_input` describing the correction; the response is a corrected scan result with recalculated totals.
+    /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-scans/photo`. Text scans carry no `meal_name` (the caller already has the words). For keyword search over the food database, use `GET /v1.2/foods`.
     ///
-    /// - Remark: HTTP `POST /v1.2/meal-scan/fix-ai`.
-    /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)`.
-    package enum CorrectPhotoScan {
-        package static let id: Swift.String = "correctPhotoScan"
+    /// - Remark: HTTP `POST /v1.2/food-scans/text`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)`.
+    package enum SearchFoodsByNaturalLanguage {
+        package static let id: Swift.String = "searchFoodsByNaturalLanguage"
         package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/header`.
+            /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/header`.
             package struct Headers: Sendable, Hashable {
                 /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/header/x-end-user-id`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/header/x-end-user-id`.
+                package var xEndUserId: Components.Schemas.PartnerUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchFoodsByNaturalLanguage.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - xEndUserId: Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///   - accept:
+                package init(
+                    xEndUserId: Components.Schemas.PartnerUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.SearchFoodsByNaturalLanguage.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.xEndUserId = xEndUserId
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.SearchFoodsByNaturalLanguage.Input.Headers
+            /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/requestBody`.
+            @frozen package enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.SearchFoodsByNaturalLanguageBody)
+            }
+            package var body: Operations.SearchFoodsByNaturalLanguage.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            ///   - body:
+            package init(
+                headers: Operations.SearchFoodsByNaturalLanguage.Input.Headers = .init(),
+                body: Operations.SearchFoodsByNaturalLanguage.Input.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.FoodScan)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.FoodScan {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchFoodsByNaturalLanguage.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.SearchFoodsByNaturalLanguage.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.SearchFoodsByNaturalLanguage.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The text is missing or too long.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.SearchFoodsByNaturalLanguage.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.SearchFoodsByNaturalLanguage.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// The Authorization header is missing or the API key is invalid.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.SearchFoodsByNaturalLanguage.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.SearchFoodsByNaturalLanguage.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/text/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.SearchFoodsByNaturalLanguage.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.SearchFoodsByNaturalLanguage.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.SearchFoodsByNaturalLanguage.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.SearchFoodsByNaturalLanguage.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// Correct a scan in plain English
+    ///
+    /// Revises a scan result. Send back `meal_name` and `detections` exactly as a photo or text scan returned them (any label works as `meal_name` for text scans), plus `user_input` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `user_input` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically; each detection must carry at least one serving.
+    ///
+    /// - Remark: HTTP `POST /v1.2/food-scans/corrections`.
+    /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)`.
+    package enum CorrectPhotoScan {
+        package static let id: Swift.String = "correctPhotoScan"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/header/x-end-user-id`.
                 package var xEndUserId: Components.Schemas.PartnerUserId?
                 package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CorrectPhotoScan.AcceptableContentType>]
                 /// Creates a new `Headers`.
@@ -4439,9 +4790,9 @@ package enum Operations {
                 }
             }
             package var headers: Operations.CorrectPhotoScan.Input.Headers
-            /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/requestBody`.
+            /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/requestBody`.
             @frozen package enum Body: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/requestBody/content/application\/json`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/requestBody/content/application\/json`.
                 case json(Components.Schemas.CorrectPhotoScanBody)
             }
             package var body: Operations.CorrectPhotoScan.Input.Body
@@ -4460,15 +4811,15 @@ package enum Operations {
         }
         @frozen package enum Output: Sendable, Hashable {
             package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/200/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/200/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/200/content/application\/json`.
-                    case json(Components.Schemas.PhotoScan)
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.FoodScan)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
                     /// - Throws: An error if `self` is not `.json`.
                     /// - SeeAlso: `.json`.
-                    package var json: Components.Schemas.PhotoScan {
+                    package var json: Components.Schemas.FoodScan {
                         get throws {
                             switch self {
                             case let .json(body):
@@ -4489,7 +4840,7 @@ package enum Operations {
             }
             ///
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)/responses/200`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/200`.
             ///
             /// HTTP response code: `200 ok`.
             case ok(Operations.CorrectPhotoScan.Output.Ok)
@@ -4511,9 +4862,9 @@ package enum Operations {
                 }
             }
             package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/400/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/400/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/400/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4538,9 +4889,9 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// A field is missing or a detection is incomplete; the message names the exact detection index and missing keys.
+            /// A field is missing or a detection is incomplete; the message names the exact detection index and problem.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/400`.
             ///
             /// HTTP response code: `400 badRequest`.
             case badRequest(Operations.CorrectPhotoScan.Output.BadRequest)
@@ -4562,9 +4913,9 @@ package enum Operations {
                 }
             }
             package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/401/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/401/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/401/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/401/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4591,7 +4942,7 @@ package enum Operations {
             }
             /// The Authorization header is missing or the API key is invalid.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)/responses/401`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/401`.
             ///
             /// HTTP response code: `401 unauthorized`.
             case unauthorized(Operations.CorrectPhotoScan.Output.Unauthorized)
@@ -4613,9 +4964,25 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/429/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.CorrectPhotoScan.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/429/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/429/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4635,14 +5002,19 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.CorrectPhotoScan.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.CorrectPhotoScan.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.CorrectPhotoScan.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)/responses/429`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/429`.
             ///
             /// HTTP response code: `429 tooManyRequests`.
             case tooManyRequests(Operations.CorrectPhotoScan.Output.TooManyRequests)
@@ -4664,9 +5036,9 @@ package enum Operations {
                 }
             }
             package struct GatewayTimeout: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/504/content`.
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/504/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/meal-scan/fix-ai/POST/responses/504/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/504/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -4693,7 +5065,7 @@ package enum Operations {
             }
             /// The vision model took too long; retry.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/meal-scan/fix-ai/post(correctPhotoScan)/responses/504`.
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/504`.
             ///
             /// HTTP response code: `504 gatewayTimeout`.
             case gatewayTimeout(Operations.CorrectPhotoScan.Output.GatewayTimeout)
@@ -4714,10 +5086,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-scans/corrections/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CorrectPhotoScan.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CorrectPhotoScan.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.CorrectPhotoScan.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.CorrectPhotoScan.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -4760,7 +5179,7 @@ package enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/query/start`.
                 package var start: Swift.String
-                /// Last UTC day of the range (inclusive, through 23:59:59 UTC). Must be after start.
+                /// Last UTC day of the range (inclusive, through 23:59:59 UTC). May equal start for a single day.
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/query/end`.
                 package var end: Swift.String
@@ -4768,7 +5187,7 @@ package enum Operations {
                 ///
                 /// - Parameters:
                 ///   - start: First UTC day of the range (inclusive, from 00:00:00 UTC).
-                ///   - end: Last UTC day of the range (inclusive, through 23:59:59 UTC). Must be after start.
+                ///   - end: Last UTC day of the range (inclusive, through 23:59:59 UTC). May equal start for a single day.
                 package init(
                     start: Swift.String,
                     end: Swift.String
@@ -4974,6 +5393,22 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.ListFoodLogs.Output.TooManyRequests.Headers
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/content/application\/json`.
@@ -4996,12 +5431,17 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.ListFoodLogs.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.ListFoodLogs.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.ListFoodLogs.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/get(listFoodLogs)/responses/429`.
             ///
@@ -5024,10 +5464,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListFoodLogs.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListFoodLogs.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/get(listFoodLogs)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.ListFoodLogs.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.ListFoodLogs.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -5057,7 +5544,7 @@ package enum Operations {
     }
     /// Log foods for a user
     ///
-    /// Creates a food log from food + serving ids (from search, scan, or NLP results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
+    /// Creates a food log from food + serving ids (from search, scan, or detection results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create.
     ///
     /// - Remark: HTTP `POST /v1.2/food-logs`.
     /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)`.
@@ -5266,6 +5753,22 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.CreateFoodLog.Output.TooManyRequests.Headers
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/content/application\/json`.
@@ -5288,12 +5791,17 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.CreateFoodLog.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.CreateFoodLog.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.CreateFoodLog.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)/responses/429`.
             ///
@@ -5316,10 +5824,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateFoodLog.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateFoodLog.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.CreateFoodLog.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.CreateFoodLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -5627,6 +6182,22 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.UpdateFoodLog.Output.TooManyRequests.Headers
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/content/application\/json`.
@@ -5649,12 +6220,17 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.UpdateFoodLog.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.UpdateFoodLog.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.UpdateFoodLog.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/patch(updateFoodLog)/responses/429`.
             ///
@@ -5677,10 +6253,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.UpdateFoodLog.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.UpdateFoodLog.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/patch(updateFoodLog)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.UpdateFoodLog.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.UpdateFoodLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -5928,6 +6551,22 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.DeleteFoodLog.Output.TooManyRequests.Headers
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/content/application\/json`.
@@ -5950,12 +6589,17 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.DeleteFoodLog.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.DeleteFoodLog.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.DeleteFoodLog.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/delete(deleteFoodLog)/responses/429`.
             ///
@@ -5978,10 +6622,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.DeleteFoodLog.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.DeleteFoodLog.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/delete(deleteFoodLog)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.DeleteFoodLog.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.DeleteFoodLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json
@@ -6013,20 +6704,20 @@ package enum Operations {
     ///
     /// Predicts the glucose curve a meal will produce for the given profile. Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Without x-end-user-id, the partner itself is the acting user.
     ///
-    /// - Remark: HTTP `POST /v1.2/glucose-predict`.
-    /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)`.
+    /// - Remark: HTTP `POST /v1.2/glucose/predictions`.
+    /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)`.
     package enum PredictGlucose {
         package static let id: Swift.String = "predictGlucose"
         package struct Input: Sendable, Hashable {
-            /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/header`.
+            /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/header`.
             package struct Headers: Sendable, Hashable {
                 /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/header/x-end-user-id`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/header/x-end-user-id`.
                 package var xEndUserId: Components.Schemas.PartnerUserId?
                 /// The end user's IANA timezone, e.g. America/New_York. Defaults to UTC when omitted; must be sent when using cgm_data — the history is bucketed into their local days.
                 ///
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/header/x-end-user-timezone`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/header/x-end-user-timezone`.
                 package var xEndUserTimezone: Swift.String?
                 package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.PredictGlucose.AcceptableContentType>]
                 /// Creates a new `Headers`.
@@ -6046,9 +6737,9 @@ package enum Operations {
                 }
             }
             package var headers: Operations.PredictGlucose.Input.Headers
-            /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/requestBody`.
+            /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/requestBody`.
             @frozen package enum Body: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/requestBody/content/application\/json`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/requestBody/content/application\/json`.
                 case json(Components.Schemas.PredictGlucoseBody)
             }
             package var body: Operations.PredictGlucose.Input.Body
@@ -6067,9 +6758,9 @@ package enum Operations {
         }
         @frozen package enum Output: Sendable, Hashable {
             package struct Ok: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/200/content`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/200/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/200/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/200/content/application\/json`.
                     case json(Components.Schemas.GlucosePrediction)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -6096,7 +6787,7 @@ package enum Operations {
             }
             ///
             ///
-            /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)/responses/200`.
+            /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/200`.
             ///
             /// HTTP response code: `200 ok`.
             case ok(Operations.PredictGlucose.Output.Ok)
@@ -6118,9 +6809,9 @@ package enum Operations {
                 }
             }
             package struct BadRequest: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/400/content`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/400/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/400/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/400/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -6147,7 +6838,7 @@ package enum Operations {
             }
             /// A field is missing or invalid; the message names it and the accepted values.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)/responses/400`.
+            /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/400`.
             ///
             /// HTTP response code: `400 badRequest`.
             case badRequest(Operations.PredictGlucose.Output.BadRequest)
@@ -6169,9 +6860,9 @@ package enum Operations {
                 }
             }
             package struct Unauthorized: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/401/content`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/401/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/401/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/401/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -6198,7 +6889,7 @@ package enum Operations {
             }
             /// The Authorization header is missing or the API key is invalid.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)/responses/401`.
+            /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/401`.
             ///
             /// HTTP response code: `401 unauthorized`.
             case unauthorized(Operations.PredictGlucose.Output.Unauthorized)
@@ -6220,9 +6911,25 @@ package enum Operations {
                 }
             }
             package struct TooManyRequests: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/429/content`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.PredictGlucose.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/429/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -6242,14 +6949,19 @@ package enum Operations {
                 /// Creates a new `TooManyRequests`.
                 ///
                 /// - Parameters:
+                ///   - headers: Received HTTP response headers
                 ///   - body: Received HTTP response body
-                package init(body: Operations.PredictGlucose.Output.TooManyRequests.Body) {
+                package init(
+                    headers: Operations.PredictGlucose.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.PredictGlucose.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
                     self.body = body
                 }
             }
-            /// A rate limit was exceeded; retry after a short delay.
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)/responses/429`.
+            /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/429`.
             ///
             /// HTTP response code: `429 tooManyRequests`.
             case tooManyRequests(Operations.PredictGlucose.Output.TooManyRequests)
@@ -6271,9 +6983,9 @@ package enum Operations {
                 }
             }
             package struct GatewayTimeout: Sendable, Hashable {
-                /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/504/content`.
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/504/content`.
                 @frozen package enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1.2/glucose-predict/POST/responses/504/content/application\/json`.
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/504/content/application\/json`.
                     case json(Components.Schemas.ErrorResponse)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
@@ -6300,7 +7012,7 @@ package enum Operations {
             }
             /// The prediction took too long; retry.
             ///
-            /// - Remark: Generated from `#/paths//v1.2/glucose-predict/post(predictGlucose)/responses/504`.
+            /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/504`.
             ///
             /// HTTP response code: `504 gatewayTimeout`.
             case gatewayTimeout(Operations.PredictGlucose.Output.GatewayTimeout)
@@ -6321,10 +7033,57 @@ package enum Operations {
                     }
                 }
             }
-            /// Undocumented response.
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.PredictGlucose.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.PredictGlucose.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
             ///
-            /// A response with a code that is not documented in the OpenAPI document.
-            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+            /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.PredictGlucose.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.PredictGlucose.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
         }
         @frozen package enum AcceptableContentType: AcceptableProtocol {
             case json

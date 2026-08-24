@@ -1,0 +1,4 @@
+interface:
+  display_name: "Refresh SDK Docs"
+  short_description: "Audit SDK changes and refresh GitBook docs"
+  default_prompt: "Use $refresh-sdk-docs to audit the Swift SDK and refresh any stale GitBook documentation."

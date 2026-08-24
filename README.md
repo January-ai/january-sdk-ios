@@ -88,6 +88,25 @@ do {
 Keep API credentials out of source control and application logs. Do not embed a
 long-lived API key in a distributed application.
 
+For production-shaped integration, supply a token provider that calls the
+integrating app's authenticated backend:
+
+```swift
+let january = try JanuaryPartnerClient(clientTokenProvider: {
+    let token = try await partnerBackend.createJanuaryToken()
+    return JanuaryClientToken(value: token.accessToken, expiresAt: token.expiresAt)
+})
+```
+
+The existing `developmentAPIKey:` initializer remains supported during the
+server rollout.
+
 ## Documentation
 
 See the [January Partner API documentation](https://docs.january.ai/nutrition/apis/v1.2/).
+
+## Example app
+
+The repository includes an iOS 26 SwiftUI example app that demonstrates local
+API-key setup and the starting navigation for each SDK resource. Open
+`Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj` in Xcode to run it.
