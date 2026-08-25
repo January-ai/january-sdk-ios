@@ -18,9 +18,16 @@ package protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1.2/foods`.
     /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)`.
     func searchFoods(_ input: Operations.SearchFoods.Input) async throws -> Operations.SearchFoods.Output
+    /// Autocomplete food names
+    ///
+    /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
+    ///
+    /// - Remark: HTTP `GET /v1.2/foods/autocomplete`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)`.
+    func autocompleteFoods(_ input: Operations.AutocompleteFoods.Input) async throws -> Operations.AutocompleteFoods.Output
     /// Suggest healthier alternatives for a food
     ///
-    /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Send `["None"]` (not an empty array) to opt out of either. An empty `alternatives` result is valid — no suitable alternatives were found.
+    /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
     /// - Remark: HTTP `POST /v1.2/foods/{food_id}/alternatives`.
     /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)`.
@@ -32,6 +39,13 @@ package protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1.2/foods/barcode/{upc}`.
     /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)`.
     func lookupFoodByBarcode(_ input: Operations.LookupFoodByBarcode.Input) async throws -> Operations.LookupFoodByBarcode.Output
+    /// Get a food
+    ///
+    /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and scan results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
+    ///
+    /// - Remark: HTTP `GET /v1.2/foods/{food_id}`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)`.
+    func getFood(_ input: Operations.GetFood.Input) async throws -> Operations.GetFood.Output
     /// Search restaurants near a location
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. When the name matches no restaurant, results may be menu items (`type: "menu_item"`). `radius` and result distances are in meters.
@@ -46,9 +60,9 @@ package protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1.2/restaurants/menu-items`.
     /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)`.
     func searchRestaurantMenuItems(_ input: Operations.SearchRestaurantMenuItems.Input) async throws -> Operations.SearchRestaurantMenuItems.Output
-    /// Scan a meal photo
+    /// Scan a food or label photo
     ///
-    /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. Reading packaged-food labels (Nutrition Facts panels) is coming soon; until then, look packaged foods up by barcode (`GET /v1.2/foods/barcode/{upc}`). `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
     /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
     /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
@@ -121,9 +135,24 @@ extension APIProtocol {
             headers: headers
         ))
     }
+    /// Autocomplete food names
+    ///
+    /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
+    ///
+    /// - Remark: HTTP `GET /v1.2/foods/autocomplete`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)`.
+    package func autocompleteFoods(
+        query: Operations.AutocompleteFoods.Input.Query,
+        headers: Operations.AutocompleteFoods.Input.Headers = .init()
+    ) async throws -> Operations.AutocompleteFoods.Output {
+        try await autocompleteFoods(Operations.AutocompleteFoods.Input(
+            query: query,
+            headers: headers
+        ))
+    }
     /// Suggest healthier alternatives for a food
     ///
-    /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Send `["None"]` (not an empty array) to opt out of either. An empty `alternatives` result is valid — no suitable alternatives were found.
+    /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
     /// - Remark: HTTP `POST /v1.2/foods/{food_id}/alternatives`.
     /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)`.
@@ -149,6 +178,21 @@ extension APIProtocol {
         headers: Operations.LookupFoodByBarcode.Input.Headers = .init()
     ) async throws -> Operations.LookupFoodByBarcode.Output {
         try await lookupFoodByBarcode(Operations.LookupFoodByBarcode.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Get a food
+    ///
+    /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and scan results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
+    ///
+    /// - Remark: HTTP `GET /v1.2/foods/{food_id}`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)`.
+    package func getFood(
+        path: Operations.GetFood.Input.Path,
+        headers: Operations.GetFood.Input.Headers = .init()
+    ) async throws -> Operations.GetFood.Output {
+        try await getFood(Operations.GetFood.Input(
             path: path,
             headers: headers
         ))
@@ -183,9 +227,9 @@ extension APIProtocol {
             headers: headers
         ))
     }
-    /// Scan a meal photo
+    /// Scan a food or label photo
     ///
-    /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. Reading packaged-food labels (Nutrition Facts panels) is coming soon; until then, look packaged foods up by barcode (`GET /v1.2/foods/barcode/{upc}`). `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
     /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
     /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
@@ -357,7 +401,7 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ErrorResponse/message`.
             package var message: Swift.String
-            /// A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited and the four 5xx codes are safe to retry (with backoff). New codes may be added over time; treat an unknown code according to its HTTP status class.
+            /// A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, not_implemented, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited, internal_error, upstream_error, service_unavailable, and upstream_timeout are safe to retry (with backoff) — not_implemented is permanent until the feature ships. New codes may be added over time; treat an unknown code according to its HTTP status class.
             ///
             /// - Remark: Generated from `#/components/schemas/ErrorResponse/code`.
             package var code: Swift.String
@@ -369,7 +413,7 @@ package enum Components {
             ///
             /// - Parameters:
             ///   - message: A developer-facing explanation of what went wrong and how to fix it.
-            ///   - code: A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited and the four 5xx codes are safe to retry (with backoff). New codes may be added over time; treat an unknown code according to its HTTP status class.
+            ///   - code: A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording. Current values: invalid_request, unauthorized, forbidden, not_found, not_implemented, payload_too_large, rate_limited, internal_error, upstream_error, service_unavailable, upstream_timeout. Only rate_limited, internal_error, upstream_error, service_unavailable, and upstream_timeout are safe to retry (with backoff) — not_implemented is permanent until the feature ships. New codes may be added over time; treat an unknown code according to its HTTP status class.
             ///   - docsUrl: Link to the developer documentation for this API version.
             package init(
                 message: Swift.String,
@@ -591,6 +635,10 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/FoodSearchItem/image_url`.
             package var imageUrl: Swift.String?
+            /// The product's barcode, for branded foods that have one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodSearchItem/upc`.
+            package var upc: Swift.String?
             /// - Remark: Generated from `#/components/schemas/FoodSearchItem/servings`.
             package var servings: [Components.Schemas.ServingOption]
             /// Creates a new `FoodSearchItem`.
@@ -603,6 +651,7 @@ package enum Components {
             ///   - glycemicIndex: Glycemic index.
             ///   - glycemicLoad: Glycemic load.
             ///   - imageUrl: URL of a picture of the food, when the database has one.
+            ///   - upc: The product's barcode, for branded foods that have one.
             ///   - servings:
             package init(
                 id: Components.Schemas.FoodId,
@@ -612,6 +661,7 @@ package enum Components {
                 glycemicIndex: Swift.Double? = nil,
                 glycemicLoad: Swift.Double? = nil,
                 imageUrl: Swift.String? = nil,
+                upc: Swift.String? = nil,
                 servings: [Components.Schemas.ServingOption]
             ) {
                 self.id = id
@@ -621,6 +671,7 @@ package enum Components {
                 self.glycemicIndex = glycemicIndex
                 self.glycemicLoad = glycemicLoad
                 self.imageUrl = imageUrl
+                self.upc = upc
                 self.servings = servings
             }
             package enum CodingKeys: String, CodingKey {
@@ -631,6 +682,7 @@ package enum Components {
                 case glycemicIndex = "glycemic_index"
                 case glycemicLoad = "glycemic_load"
                 case imageUrl = "image_url"
+                case upc
                 case servings
             }
         }
@@ -656,6 +708,70 @@ package enum Components {
             }
             package enum CodingKeys: String, CodingKey {
                 case totalCount = "total_count"
+                case items
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/FoodSuggestion`.
+        package struct FoodSuggestion: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/FoodSuggestion/id`.
+            package var id: Components.Schemas.FoodId
+            /// Generic foods are lowercase; branded foods keep their product name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodSuggestion/name`.
+            package var name: Swift.String
+            /// Absent for generic (non-branded) foods.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodSuggestion/brand_name`.
+            package var brandName: Swift.String?
+            /// Thumbnail of the food, when the database has one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodSuggestion/image_url`.
+            package var imageUrl: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/FoodSuggestion/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts?
+            /// Creates a new `FoodSuggestion`.
+            ///
+            /// - Parameters:
+            ///   - id:
+            ///   - name: Generic foods are lowercase; branded foods keep their product name.
+            ///   - brandName: Absent for generic (non-branded) foods.
+            ///   - imageUrl: Thumbnail of the food, when the database has one.
+            ///   - nutrients:
+            package init(
+                id: Components.Schemas.FoodId,
+                name: Swift.String,
+                brandName: Swift.String? = nil,
+                imageUrl: Swift.String? = nil,
+                nutrients: Components.Schemas.NutritionFacts? = nil
+            ) {
+                self.id = id
+                self.name = name
+                self.brandName = brandName
+                self.imageUrl = imageUrl
+                self.nutrients = nutrients
+            }
+            package enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case brandName = "brand_name"
+                case imageUrl = "image_url"
+                case nutrients
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/AutocompleteFoodsResponse`.
+        package struct AutocompleteFoodsResponse: Codable, Hashable, Sendable {
+            /// Ranked suggestions, generic foods before branded. Empty when nothing matches.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AutocompleteFoodsResponse/items`.
+            package var items: [Components.Schemas.FoodSuggestion]
+            /// Creates a new `AutocompleteFoodsResponse`.
+            ///
+            /// - Parameters:
+            ///   - items: Ranked suggestions, generic foods before branded. Empty when nothing matches.
+            package init(items: [Components.Schemas.FoodSuggestion]) {
+                self.items = items
+            }
+            package enum CodingKeys: String, CodingKey {
                 case items
             }
         }
@@ -1873,6 +1989,11 @@ package enum Components {
             case branded = "branded"
             case recipe = "recipe"
         }
+        /// - Remark: Generated from `#/components/schemas/AutocompleteFoodCategory`.
+        @frozen package enum AutocompleteFoodCategory: String, Codable, Hashable, Sendable, CaseIterable {
+            case general = "general"
+            case branded = "branded"
+        }
         /// - Remark: Generated from `#/components/schemas/DietRestriction`.
         @frozen package enum DietRestriction: String, Codable, Hashable, Sendable, CaseIterable {
             case gluten = "gluten"
@@ -2283,7 +2404,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/default`.
             ///
@@ -2333,9 +2454,387 @@ package enum Operations {
             }
         }
     }
+    /// Autocomplete food names
+    ///
+    /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
+    ///
+    /// - Remark: HTTP `GET /v1.2/foods/autocomplete`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)`.
+    package enum AutocompleteFoods {
+        package static let id: Swift.String = "autocompleteFoods"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/query`.
+            package struct Query: Sendable, Hashable {
+                /// The characters the user has typed so far. Fewer than 2 letters or digits yield no suggestions.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/query/query`.
+                package var query: Swift.String
+                /// Narrows suggestions to one category. Omitted, generic and branded foods are suggested together, generic first.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/query/category`.
+                package var category: Components.Schemas.AutocompleteFoodCategory?
+                /// Maximum number of suggestions to return.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/query/limit`.
+                package var limit: Swift.Double?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - query: The characters the user has typed so far. Fewer than 2 letters or digits yield no suggestions.
+                ///   - category: Narrows suggestions to one category. Omitted, generic and branded foods are suggested together, generic first.
+                ///   - limit: Maximum number of suggestions to return.
+                package init(
+                    query: Swift.String,
+                    category: Components.Schemas.AutocompleteFoodCategory? = nil,
+                    limit: Swift.Double? = nil
+                ) {
+                    self.query = query
+                    self.category = category
+                    self.limit = limit
+                }
+            }
+            package var query: Operations.AutocompleteFoods.Input.Query
+            /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/header/x-end-user-id`.
+                package var xEndUserId: Components.Schemas.PartnerUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.AutocompleteFoods.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - xEndUserId: Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///   - accept:
+                package init(
+                    xEndUserId: Components.Schemas.PartnerUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.AutocompleteFoods.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.xEndUserId = xEndUserId
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.AutocompleteFoods.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - query:
+            ///   - headers:
+            package init(
+                query: Operations.AutocompleteFoods.Input.Query,
+                headers: Operations.AutocompleteFoods.Input.Headers = .init()
+            ) {
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.AutocompleteFoodsResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.AutocompleteFoodsResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.AutocompleteFoods.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.AutocompleteFoods.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.AutocompleteFoods.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.AutocompleteFoods.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.AutocompleteFoods.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.AutocompleteFoods.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// A parameter is missing or invalid; the message names the parameter and the accepted values.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.AutocompleteFoods.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.AutocompleteFoods.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.AutocompleteFoods.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.AutocompleteFoods.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// The Authorization header is missing or the API key is invalid.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.AutocompleteFoods.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.AutocompleteFoods.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.AutocompleteFoods.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.AutocompleteFoods.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.AutocompleteFoods.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.AutocompleteFoods.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.AutocompleteFoods.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.AutocompleteFoods.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.AutocompleteFoods.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.AutocompleteFoods.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.AutocompleteFoods.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.AutocompleteFoods.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
     /// Suggest healthier alternatives for a food
     ///
-    /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Send `["None"]` (not an empty array) to opt out of either. An empty `alternatives` result is valid — no suitable alternatives were found.
+    /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
     /// - Remark: HTTP `POST /v1.2/foods/{food_id}/alternatives`.
     /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)`.
@@ -2705,7 +3204,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)/responses/default`.
             ///
@@ -3118,7 +3617,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{upc}/get(lookupFoodByBarcode)/responses/default`.
             ///
@@ -3129,6 +3628,419 @@ package enum Operations {
             /// - Throws: An error if `self` is not `.`default``.
             /// - SeeAlso: `.`default``.
             package var `default`: Operations.LookupFoodByBarcode.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// Get a food
+    ///
+    /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and scan results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
+    ///
+    /// - Remark: HTTP `GET /v1.2/foods/{food_id}`.
+    /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)`.
+    package enum GetFood {
+        package static let id: Swift.String = "getFood"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/path`.
+            package struct Path: Sendable, Hashable {
+                /// Numeric food id from a search, scan, or detection result.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/path/food_id`.
+                package var foodId: Components.Schemas.FoodId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - foodId: Numeric food id from a search, scan, or detection result.
+                package init(foodId: Components.Schemas.FoodId) {
+                    self.foodId = foodId
+                }
+            }
+            package var path: Operations.GetFood.Input.Path
+            /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/header/x-end-user-id`.
+                package var xEndUserId: Components.Schemas.PartnerUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetFood.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - xEndUserId: Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///   - accept:
+                package init(
+                    xEndUserId: Components.Schemas.PartnerUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetFood.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.xEndUserId = xEndUserId
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.GetFood.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            package init(
+                path: Operations.GetFood.Input.Path,
+                headers: Operations.GetFood.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.FoodSearchItem)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.FoodSearchItem {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFood.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFood.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetFood.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.GetFood.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFood.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFood.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// food_id is not a numeric id; the message shows the expected form.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetFood.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.GetFood.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFood.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFood.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// The Authorization header is missing or the API key is invalid.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetFood.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.GetFood.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/404/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFood.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFood.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// No food with this id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.GetFood.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            package var notFound: Operations.GetFood.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.GetFood.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFood.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.GetFood.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.GetFood.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.GetFood.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.GetFood.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFood.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFood.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.GetFood.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.GetFood.Output.Default {
                 get throws {
                     switch self {
                     case let .`default`(_, response):
@@ -3510,7 +4422,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/default`.
             ///
@@ -3902,7 +4814,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/restaurants/menu-items/get(searchRestaurantMenuItems)/responses/default`.
             ///
@@ -3952,9 +4864,9 @@ package enum Operations {
             }
         }
     }
-    /// Scan a meal photo
+    /// Scan a food or label photo
     ///
-    /// Analyzes a meal photo and returns the detected foods with their nutrition and an aggregated total. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. Reading packaged-food labels (Nutrition Facts panels) is coming soon; until then, look packaged foods up by barcode (`GET /v1.2/foods/barcode/{upc}`). `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
     ///
     /// - Remark: HTTP `POST /v1.2/food-scans/photo`.
     /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)`.
@@ -4357,7 +5269,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-scans/photo/post(scanFoodPhoto)/responses/default`.
             ///
@@ -4710,7 +5622,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-scans/text/post(searchFoodsByNaturalLanguage)/responses/default`.
             ///
@@ -5114,7 +6026,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-scans/corrections/post(correctPhotoScan)/responses/default`.
             ///
@@ -5492,7 +6404,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/get(listFoodLogs)/responses/default`.
             ///
@@ -5852,7 +6764,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)/responses/default`.
             ///
@@ -6281,7 +7193,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/patch(updateFoodLog)/responses/default`.
             ///
@@ -6650,7 +7562,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/delete(deleteFoodLog)/responses/default`.
             ///
@@ -7061,7 +7973,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the 5xx codes.
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
             ///
             /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/default`.
             ///

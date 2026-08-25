@@ -3,8 +3,8 @@
   "contractRepository": "January-ai/partner-api-contract",
   "contractVersion": "1.2.0",
   "apiVersion": "v1.2",
-  "sourceCommit": "a2007db241f0ce3fab82b0bbbbd1849b43231565",
+  "sourceCommit": "5529ea7e0e54dde7b7de61a3d00388931eccf867",
   "artifact": "partner-api-contract-1.2.0.tar.gz",
   "archiveRoot": "partner-api-contract-1.2.0",
-  "sha256": "cabf6fb011f62a9dcc08e8a66971d7a19afa1d04c8bb50219a55f3f45a77b22c"
+  "sha256": "29d3d6f29ff35322c9943a15c72a55404ecac42d2ea34dfd8335c8e51e2c76f0"
 }

@@ -3,6 +3,22 @@
   "contractVersion": "1.2.0",
   "operations": [
     {
+      "operationId": "autocompleteFoods",
+      "resource": "foods",
+      "resourceType": "FoodsResource",
+      "publicMethod": "autocomplete",
+      "publicInput": "AutocompleteFoodsRequest",
+      "publicResult": "AutocompleteFoodsResponse"
+    },
+    {
+      "operationId": "getFood",
+      "resource": "foods",
+      "resourceType": "FoodsResource",
+      "publicMethod": "getFood",
+      "publicInput": "GetFoodRequest",
+      "publicResult": "FoodSearchItem"
+    },
+    {
       "operationId": "searchFoods",
       "resource": "foods",
       "resourceType": "FoodsResource",
@@ -157,6 +173,46 @@
       "symbol": "resources.glucose.publicType",
       "scope": "types",
       "swift": "GlucoseResource"
+    },
+    {
+      "symbol": "operations.autocompleteFoods",
+      "scope": "operations",
+      "swift": "autocompleteFoods"
+    },
+    {
+      "symbol": "operations.autocompleteFoods.method",
+      "scope": "methods.foods",
+      "swift": "autocomplete"
+    },
+    {
+      "symbol": "operations.autocompleteFoods.publicInput",
+      "scope": "types",
+      "swift": "AutocompleteFoodsRequest"
+    },
+    {
+      "symbol": "operations.autocompleteFoods.publicResult",
+      "scope": "types",
+      "swift": "AutocompleteFoodsResponse"
+    },
+    {
+      "symbol": "operations.getFood",
+      "scope": "operations",
+      "swift": "getFood"
+    },
+    {
+      "symbol": "operations.getFood.method",
+      "scope": "methods.foods",
+      "swift": "getFood"
+    },
+    {
+      "symbol": "operations.getFood.publicInput",
+      "scope": "types",
+      "swift": "GetFoodRequest"
+    },
+    {
+      "symbol": "operations.getFood.publicResult",
+      "scope": "types",
+      "swift": "FoodSearchItem"
     },
     {
       "symbol": "operations.searchFoods",
@@ -432,6 +488,11 @@
       "symbol": "schemas.FoodSearchItem",
       "scope": "types",
       "swift": "FoodSearchItem"
+    },
+    {
+      "symbol": "schemas.FoodSuggestion",
+      "scope": "types",
+      "swift": "FoodSuggestion"
     },
     {
       "symbol": "schemas.DetectedFood",
