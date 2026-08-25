@@ -1,6 +1,18 @@
 # Foods
 
-Use `client.foods` to search the food database, look up a barcode, parse a meal description, or request alternatives.
+Use `client.foods` to autocomplete and search the food database, retrieve a full food record, look up a barcode, parse a meal description, or request alternatives.
+
+## Autocomplete
+
+```swift
+let suggestions = try await client.foods.autocomplete(
+    .init(query: "ban", limit: 8, endUserID: userID)
+)
+```
+
+Autocomplete returns lightweight suggestions for type-ahead interfaces. Use
+``FoodsResource/getFood(_:)`` after the user selects a suggestion or search
+result.
 
 ## Search by name
 
@@ -15,6 +27,27 @@ let results = try await client.foods.search(
 ```
 
 Filter with `.general`, `.branded`, or `.recipe` through the request's `category` property.
+
+## Get servings and calculate a portion
+
+```swift
+let food = try await client.foods.getFood(
+    .init(foodID: results.items[0].id, endUserID: userID)
+)
+
+let portion = try food.portion(
+    servingID: food.servings[1].id,
+    quantity: 1.5
+)
+
+print(portion.nutrition.calories?.value ?? 0)
+```
+
+The full food record contains every available serving. ``FoodPortion`` validates
+the selected serving and quantity, scales every nutrient, weight, and glycemic
+load locally, and exposes `selection` for food-log and glucose-prediction
+requests. Macronutrients do not require another network request when the user
+changes the serving or quantity.
 
 ## Look up a barcode
 
@@ -52,5 +85,4 @@ let response = try await client.foods.suggestAlternatives(
 )
 ```
 
-When no restrictions or preferences apply, use the default `.none` values rather than empty arrays.
-
+When no restrictions or preferences apply, omit them or pass empty arrays.

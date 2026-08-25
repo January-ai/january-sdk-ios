@@ -63,11 +63,28 @@ for food in results.items {
 
 ## API resources
 
-- `foods` — food search, barcode lookup, natural-language search, and alternatives
+- `foods` — autocomplete, food search, full food details, barcode lookup, natural-language search, and alternatives
 - `restaurants` — restaurant and menu search
 - `photoScanning` — meal-photo scanning and corrections
 - `foodLogs` — create, retrieve, update, and delete food logs
 - `glucose` — glucose prediction
+
+## Full food details and portions
+
+Search and autocomplete return lightweight discovery results. Fetch the selected
+food to get every serving, then let the SDK scale all nutrients and build the
+selection used by food-log and glucose-prediction requests:
+
+```swift
+let food = try await january.foods.getFood(.init(foodID: result.id))
+let portion = try food.portion(
+    servingID: food.servings[1].id,
+    quantity: 1.5
+)
+
+print(portion.nutrition.calories?.value ?? 0)
+let selection = portion.selection
+```
 
 ## Error handling
 

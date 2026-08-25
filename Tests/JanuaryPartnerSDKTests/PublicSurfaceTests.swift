@@ -25,6 +25,10 @@ private actor SurfaceTransport: ClientTransport {
         switch operationID {
         case "searchFoods", "lookupFoodByBarcode":
             #"{"total_count":0,"items":[]}"#
+        case "autocompleteFoods":
+            #"{"items":[]}"#
+        case "getFood":
+            #"{"id":1,"name":"Banana","nutrients":{},"servings":[{"id":2,"quantity":1,"unit":"serving","scaling_factor":1,"weight_grams":100,"is_primary":true}]}"#
         case "searchFoodsByNaturalLanguage":
             #"{"detections":[]}"#
         case "suggestFoodAlternatives":
@@ -70,6 +74,8 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
         )
     )
 
+    _ = try await client.foods.autocomplete(.init(query: "ban", endUserID: userID))
+    _ = try await client.foods.getFood(.init(foodID: FoodID(rawValue: 1), endUserID: userID))
     _ = try await client.foods.search(.init(query: "banana", endUserID: userID))
     _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346", endUserID: userID))
     _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
@@ -92,7 +98,8 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
     )
 
     #expect(Set(await transport.operationIDs()) == Set([
-        "searchFoods", "lookupFoodByBarcode", "searchFoodsByNaturalLanguage", "suggestFoodAlternatives",
+        "autocompleteFoods", "getFood", "searchFoods", "lookupFoodByBarcode",
+        "searchFoodsByNaturalLanguage", "suggestFoodAlternatives",
         "searchRestaurants", "searchRestaurantMenuItems", "scanFoodPhoto", "correctPhotoScan",
         "createFoodLog", "listFoodLogs", "updateFoodLog", "deleteFoodLog", "predictGlucose",
     ]))

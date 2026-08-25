@@ -32,6 +32,8 @@ struct SearchView: View {
     @State private var restaurantMode = RestaurantMode.restaurants
     @State private var query = ""
     @State private var category: FoodCategory?
+    @State private var foodSuggestions: [FoodSuggestion] = []
+    @State private var autocompleteSuppressedQuery: String?
     @State private var foodResults: [FoodSearchItem] = []
     @State private var naturalResult: FoodScan?
     @State private var restaurants: [Restaurant] = []
@@ -57,8 +59,12 @@ struct SearchView: View {
                             .font(DemoTypography.screenTitle)
                             .foregroundStyle(DemoPalette.ink)
 
-                        DemoSearchField(prompt: searchPrompt, text: $query) {
+                        DemoSearchField(prompt: searchPrompt, text: queryBinding) {
                             Task { await submit() }
+                        }
+
+                        if !foodSuggestions.isEmpty {
+                            foodSuggestionList
                         }
 
                         DemoSegmentedControl(Scope.allCases, selection: $scope) { $0.rawValue }
@@ -96,7 +102,73 @@ struct SearchView: View {
                 longitude = location.longitude
                 selectedLocationID = "current"
             }
+            .task(id: autocompleteTaskID) {
+                await loadAutocomplete()
+            }
         }
+    }
+
+    private var autocompleteTaskID: String {
+        let categoryValue = switch category {
+        case .general: "general"
+        case .branded: "branded"
+        case .recipe: "recipe"
+        case nil: "all"
+        }
+        return "\(scope.rawValue)|\(foodMode.rawValue)|\(categoryValue)|\(query)"
+    }
+
+    private var queryBinding: Binding<String> {
+        Binding(
+            get: { query },
+            set: { value in
+                query = value
+                if value != autocompleteSuppressedQuery {
+                    autocompleteSuppressedQuery = nil
+                }
+            }
+        )
+    }
+
+    private var autocompleteCategory: AutocompleteFoodCategory? {
+        switch category {
+        case .general: .general
+        case .branded: .branded
+        case .recipe, nil: nil
+        }
+    }
+
+    private var canAutocomplete: Bool {
+        scope == .foods && foodMode == .name && category != .recipe
+    }
+
+    private var foodSuggestionList: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(foodSuggestions.enumerated()), id: \.element.id) { index, suggestion in
+                Button {
+                    autocompleteSuppressedQuery = suggestion.name
+                    query = suggestion.name
+                    foodSuggestions = []
+                    Task { await submit() }
+                } label: {
+                    HStack {
+                        Text(suggestion.name)
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(DemoPalette.ink)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 12)
+                    }
+                    .contentShape(Rectangle())
+                    .frame(minHeight: 48)
+                }
+                .buttonStyle(.plain)
+
+                if index < foodSuggestions.count - 1 {
+                    Divider().overlay(DemoPalette.divider)
+                }
+            }
+        }
+        .demoCard()
     }
 
     private var searchPrompt: String {
@@ -292,6 +364,7 @@ struct SearchView: View {
     private func submit() async {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return }
+        foodSuggestions = []
         isLoading = true
         error = nil
         resetResults(keepError: true)
@@ -315,8 +388,40 @@ struct SearchView: View {
         isLoading = false
     }
 
+    @MainActor
+    private func loadAutocomplete() async {
+        let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard canAutocomplete,
+              value.count >= 2,
+              value.count <= 64,
+              value != autocompleteSuppressedQuery else {
+            foodSuggestions = []
+            return
+        }
+
+        do {
+            try await Task.sleep(for: .milliseconds(300))
+            try Task.checkCancellation()
+            let response = try await client.foods.autocomplete(
+                .init(
+                    query: value,
+                    category: autocompleteCategory,
+                    limit: 8,
+                    endUserID: DemoFormatting.endUserID(endUserID)
+                )
+            )
+            try Task.checkCancellation()
+            guard query.trimmingCharacters(in: .whitespacesAndNewlines) == value else { return }
+            foodSuggestions = response.items
+        } catch is CancellationError {
+            return
+        } catch {
+            foodSuggestions = []
+        }
+    }
+
     private func resetResults(keepError: Bool = false) {
-        foodResults = []; naturalResult = nil; restaurants = []; menuItems = []
+        foodSuggestions = []; foodResults = []; naturalResult = nil; restaurants = []; menuItems = []
         if !keepError { error = nil }
     }
 }
@@ -372,14 +477,17 @@ struct FoodDetailView: View {
     let client: JanuaryPartnerClient
     let food: FoodSearchItem
     let endUserID: PartnerUserID?
+    @State private var detailFood: FoodSearchItem
     @State private var selectedServingID: ServingID
     @State private var quantity = 1.0
     @State private var isShowingAlternatives = false
     @State private var isShowingGlucose = false
+    @State private var detailLoadError: Error?
 
     init(client: JanuaryPartnerClient, food: FoodSearchItem, endUserID: PartnerUserID?) {
         self.client = client; self.food = food; self.endUserID = endUserID
         let initialServing = food.servings.first(where: \.isPrimary) ?? food.servings.first
+        _detailFood = State(initialValue: food)
         _selectedServingID = State(initialValue: initialServing?.id ?? ServingID(rawValue: 0))
         _quantity = State(initialValue: initialServing?.quantity ?? 1)
     }
@@ -391,7 +499,7 @@ struct FoodDetailView: View {
                 DemoFillWidth {
                     ZStack {
                         DemoPalette.control
-                        AsyncImage(url: food.photoURL.flatMap(URL.init(string:))) { image in
+                        AsyncImage(url: detailFood.photoURL.flatMap(URL.init(string:))) { image in
                             image.resizable().scaledToFill()
                         } placeholder: {
                             Image(systemName: "fork.knife")
@@ -405,14 +513,14 @@ struct FoodDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(food.name).font(.system(.largeTitle, design: .serif, weight: .bold))
-                    if let brand = food.brandName { Text(brand).foregroundStyle(DemoPalette.muted) }
+                    Text(detailFood.name).font(.system(.largeTitle, design: .serif, weight: .bold))
+                    if let brand = detailFood.brandName { Text(brand).foregroundStyle(DemoPalette.muted) }
                 }
 
-                if !food.servings.isEmpty {
+                if !detailFood.servings.isEmpty {
                     VStack(alignment: .leading, spacing: 12) {
                         Menu {
-                            ForEach(food.servings, id: \.id) { serving in
+                            ForEach(detailFood.servings, id: \.id) { serving in
                                 Button {
                                     selectedServingID = serving.id
                                     quantity = serving.quantity
@@ -452,14 +560,14 @@ struct FoodDetailView: View {
                 }
 
                 DemoMacroStrip(
-                    calories: scaled(food.calories),
-                    protein: scaled(food.protein),
-                    carbohydrates: scaled(food.carbohydrates),
-                    fat: scaled(food.totalFat)
+                    calories: portion?.nutrition.calories?.value,
+                    protein: portion?.nutrition.protein?.value,
+                    carbohydrates: portion?.nutrition.carbohydrates?.value,
+                    fat: portion?.nutrition.totalFat?.value
                 )
                     .demoCard()
 
-                let rows = foodNutrients(food, scale: nutritionScale)
+                let rows = portion.map(portionNutrients) ?? []
                 if !rows.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Nutrition facts").font(.system(.title2, design: .serif, weight: .semibold))
@@ -480,10 +588,15 @@ struct FoodDetailView: View {
                     .buttonStyle(DemoPrimaryButtonStyle())
 
                 DisclosureGroup("Technical details") {
-                    LabeledContent("Food ID", value: "\(food.id.rawValue)")
+                    LabeledContent("Food ID", value: "\(detailFood.id.rawValue)")
                     LabeledContent("Serving ID", value: "\(selectedServingID.rawValue)")
                 }
                 .font(.footnote)
+                if detailLoadError != nil {
+                    Text("Complete serving details could not be loaded. Showing the serving returned by search.")
+                        .font(.footnote)
+                        .foregroundStyle(DemoPalette.muted)
+                }
                 }
             }
             .padding(.vertical, 16)
@@ -491,14 +604,15 @@ struct FoodDetailView: View {
         .demoBackground()
         .navigationTitle("Food details")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: food.id) { await loadFullFood() }
         .sheet(isPresented: $isShowingAlternatives) {
-            AlternativesView(client: client, food: food, endUserID: endUserID)
+            AlternativesView(client: client, food: detailFood, endUserID: endUserID)
         }
         .sheet(isPresented: $isShowingGlucose) {
             if let selectedServing {
                 FoodGlucoseSheet(
                     client: client,
-                    food: food,
+                    food: detailFood,
                     serving: selectedServing,
                     quantity: quantity,
                     endUserID: endUserID
@@ -510,17 +624,11 @@ struct FoodDetailView: View {
     }
 
     private var selectedServing: ServingOption? {
-        food.servings.first { $0.id == selectedServingID }
+        detailFood.servings.first { $0.id == selectedServingID }
     }
 
-    private var nutritionScale: Double {
-        guard let selectedServing else { return 1 }
-        let baseQuantity = selectedServing.quantity == 0 ? 1 : selectedServing.quantity
-        return quantity * selectedServing.scalingFactor / baseQuantity
-    }
-
-    private func scaled(_ value: Double?) -> Double? {
-        value.map { $0 * nutritionScale }
+    private var portion: FoodPortion? {
+        try? detailFood.portion(servingID: selectedServingID, quantity: quantity)
     }
 
     private func servingLabel(_ serving: ServingOption) -> String {
@@ -529,6 +637,22 @@ struct FoodDetailView: View {
             parts.append("\(grams.formatted(.number.precision(.fractionLength(0...1)))) g")
         }
         return parts.joined(separator: " · ")
+    }
+
+    @MainActor
+    private func loadFullFood() async {
+        do {
+            let fullFood = try await client.foods.getFood(.init(foodID: food.id, endUserID: endUserID))
+            detailFood = fullFood
+            let initialServing = fullFood.servings.first(where: \.isPrimary) ?? fullFood.servings.first
+            if let initialServing {
+                selectedServingID = initialServing.id
+                quantity = initialServing.quantity
+            }
+            detailLoadError = nil
+        } catch {
+            detailLoadError = error
+        }
     }
 }
 
@@ -1201,6 +1325,22 @@ private func foodNutrients(_ food: FoodSearchItem, scale: Double = 1) -> [DemoNu
         food.cholesterol.map { .init(name: "Cholesterol", value: $0 * scale, unit: "mg") },
         food.glycemicIndex.map { .init(name: "Glycemic index", value: $0, unit: "") },
         food.glycemicLoad.map { .init(name: "Glycemic load", value: $0 * scale, unit: "") },
+    ].compactMap { $0 }
+}
+
+private func portionNutrients(_ portion: FoodPortion) -> [DemoNutrientRow] {
+    let nutrition = portion.nutrition
+    return [
+        nutrition.netCarbohydrates.map { .init(name: "Net carbohydrates", value: $0.value, unit: $0.unit) },
+        nutrition.saturatedFat.map { .init(name: "Saturated fat", value: $0.value, unit: $0.unit) },
+        nutrition.fiber.map { .init(name: "Fiber", value: $0.value, unit: $0.unit) },
+        nutrition.totalSugars.map { .init(name: "Total sugars", value: $0.value, unit: $0.unit) },
+        nutrition.addedSugars.map { .init(name: "Added sugars", value: $0.value, unit: $0.unit) },
+        nutrition.sodium.map { .init(name: "Sodium", value: $0.value, unit: $0.unit) },
+        nutrition.potassium.map { .init(name: "Potassium", value: $0.value, unit: $0.unit) },
+        nutrition.cholesterol.map { .init(name: "Cholesterol", value: $0.value, unit: $0.unit) },
+        portion.glycemicIndex.map { .init(name: "Glycemic index", value: $0, unit: "") },
+        portion.glycemicLoad.map { .init(name: "Glycemic load", value: $0, unit: "") },
     ].compactMap { $0 }
 }
 

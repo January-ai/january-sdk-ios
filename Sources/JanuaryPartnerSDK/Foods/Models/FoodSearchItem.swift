@@ -3,6 +3,8 @@ public struct FoodSearchItem: Codable, Hashable, Sendable {
     public var id: FoodID
     public var name: String
     public var brandName: String?
+    /// The complete per-primary-serving nutrition returned by January.
+    public var nutrients: NutritionFacts?
     public var calories: Double?
     public var protein: Double?
     public var carbohydrates: Double?
@@ -24,6 +26,7 @@ public struct FoodSearchItem: Codable, Hashable, Sendable {
         id: FoodID,
         name: String,
         brandName: String? = nil,
+        nutrients: NutritionFacts? = nil,
         calories: Double? = nil,
         protein: Double? = nil,
         carbohydrates: Double? = nil,
@@ -44,6 +47,7 @@ public struct FoodSearchItem: Codable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.brandName = brandName
+        self.nutrients = nutrients
         self.calories = calories
         self.protein = protein
         self.carbohydrates = carbohydrates
