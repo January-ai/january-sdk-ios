@@ -4,6 +4,21 @@ public struct ScanFoodPhotoRequest: Hashable, Sendable {
     public var image: String
     public var endUserID: PartnerUserID?
     public init(image: String, endUserID: PartnerUserID? = nil) { self.image = image; self.endUserID = endUserID }
+
+    /// Creates a request from local image bytes after resizing and JPEG compression.
+    public init(
+        imageData: Data,
+        endUserID: PartnerUserID? = nil,
+        maxDimension: Int = PhotoScanImage.defaultMaxDimension,
+        compressionQuality: Double = PhotoScanImage.defaultCompressionQuality
+    ) throws {
+        self.image = try PhotoScanImage.dataURI(
+            from: imageData,
+            maxDimension: maxDimension,
+            compressionQuality: compressionQuality
+        )
+        self.endUserID = endUserID
+    }
 }
 
 public enum ConfidenceScore: String, Codable, Hashable, Sendable, CaseIterable {

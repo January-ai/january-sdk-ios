@@ -7,48 +7,63 @@ struct ScanView: View {
     let client: JanuaryPartnerClient
     let settingsAction: () -> Void
 
-    @AppStorage("demo.endUserID") private var endUserID = ""
+    @Environment(UserSession.self) private var userSession
     @State private var imageInput = ""
     @State private var previewImage: UIImage?
     @State private var selectedPhoto: PhotosPickerItem?
-    @State private var result: FoodScan?
+    @State private var presentedResult: ScanResultPresentation?
+    @State private var pendingScannerResult: ScanResultPresentation?
     @State private var error: Error?
     @State private var isLoading = false
     @State private var isShowingCamera = false
     @State private var isShowingURL = false
-    @State private var isShowingCorrection = false
+    @State private var pendingBarcodeFood: FoodSearchItem?
+    @State private var presentedBarcodeFood: BarcodeFoodPresentation?
+
+    private var endUserID: String { userSession.endUserID }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text("Scan a meal")
-                            .font(DemoTypography.screenTitle)
-                            .foregroundStyle(DemoPalette.ink)
-
-                        if let result {
-                            ScanResultContent(result: result, previewImage: previewImage)
-                            Button("Correct result") { isShowingCorrection = true }
-                                .buttonStyle(DemoPrimaryButtonStyle())
-                            Button("Scan another meal") { reset() }
-                                .buttonStyle(DemoSecondaryButtonStyle())
-                        } else {
-                            imageInputContent
-                        }
-                    }
+                LazyVStack(alignment: .leading, spacing: 18) {
+                    imageInputContent
                 }
+                .padding(.horizontal, AppSpacing.screen)
                 .padding(.vertical, 16)
             }
-            .demoBackground()
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $isShowingCamera) {
-                CameraPicker { image in
-                    setLocalImage(image)
-                    isShowingCamera = false
-                }
+            .appBackground()
+            .appNavigationBar("Scan a meal", style: .leading) {
+                EmptyView()
+            } trailing: {
+                AppNavigationButton(.settings, action: settingsAction)
+            }
+            .fullScreenCover(isPresented: $isShowingCamera, onDismiss: presentPendingScannerResult) {
+                JanuaryMealScannerView(
+                    client: client,
+                    endUserID: AppFormatting.endUserID(endUserID),
+                    onResult: { scannerResult in
+                        isShowingCamera = false
+                        switch scannerResult {
+                        case .meal(let image, let analysis):
+                            previewImage = image.image
+                            imageInput = image.dataURI
+                            pendingScannerResult = ScanResultPresentation(result: analysis, previewImage: image.image)
+                            error = nil
+                        case .barcode(_, let food):
+                            pendingBarcodeFood = food
+                        }
+                    },
+                    onCancel: { isShowingCamera = false }
+                )
                 .ignoresSafeArea()
+            }
+            .sheet(item: $presentedResult) { presentation in
+                ScanResultSheet(
+                    client: client,
+                    presentation: presentation,
+                    endUserID: AppFormatting.endUserID(endUserID),
+                    onScanAnother: reset
+                )
             }
             .sheet(isPresented: $isShowingURL) {
                 ImageURLSheet { url in
@@ -57,12 +72,13 @@ struct ScanView: View {
                     isShowingURL = false
                 }
             }
-            .sheet(isPresented: $isShowingCorrection) {
-                if let result {
-                    CorrectScanView(client: client, scan: result, endUserID: DemoFormatting.endUserID(endUserID)) { corrected in
-                        self.result = corrected
-                        isShowingCorrection = false
-                    }
+            .sheet(item: $presentedBarcodeFood) { presentation in
+                NavigationStack {
+                    FoodDetailView(
+                        client: client,
+                        food: presentation.food,
+                        endUserID: AppFormatting.endUserID(endUserID)
+                    )
                 }
             }
             .onChange(of: selectedPhoto) { _, item in
@@ -78,87 +94,73 @@ struct ScanView: View {
 
     private var imageInputContent: some View {
         VStack(alignment: .leading, spacing: 18) {
-            DemoFillWidth {
-                ZStack {
-                    if let previewImage {
-                        Image(uiImage: previewImage).resizable().scaledToFill()
-                    } else if let url = URL(string: imageInput), !imageInput.isEmpty {
-                        AsyncImage(url: url) { image in image.resizable().scaledToFill() } placeholder: { ProgressView() }
-                    } else {
-                        ZStack {
-                            ScanPlaceholderPattern()
-                            VStack(spacing: 12) {
-                                Image(systemName: "camera")
-                                    .font(.system(size: 24, weight: .medium))
-                                    .foregroundStyle(DemoPalette.muted)
-                                Text("Add a clear photo of the whole meal")
-                                    .font(DemoTypography.cardTitle)
-                                    .multilineTextAlignment(.center)
-                                Text("January identifies the foods, servings, and nutrition — then estimates your response.")
-                                    .font(.system(size: 16))
-                                    .multilineTextAlignment(.center)
-                                    .foregroundStyle(DemoPalette.body)
-                            }
-                            .padding(24)
-                        }
-                    }
-                }
-            }
-            .frame(height: 340)
-            .clipped()
-            .background(DemoPalette.control)
-            .clipShape(RoundedRectangle(cornerRadius: DemoRadius.feature, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: DemoRadius.feature, style: .continuous)
-                    .stroke(DemoPalette.border, lineWidth: 1.5)
-            }
-
-            DemoEqualColumns(spacing: 10) {
-                Button("Take photo", systemImage: "camera") { isShowingCamera = true }
-                    .buttonStyle(DemoPrimaryButtonStyle())
-                    .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label("Choose photo", systemImage: "photo")
-                }
-                .buttonStyle(DemoSecondaryButtonStyle())
-            }
-
-            DemoEqualColumns(spacing: 10) {
-                Button("Use sample meal", systemImage: "fork.knife") { useSampleMeal() }
-                    .buttonStyle(DemoOutlinedButtonStyle())
-                Button("Use image URL", systemImage: "link") { isShowingURL = true }
-                    .buttonStyle(DemoOutlinedButtonStyle())
-            }
-
             if imageInput.isEmpty {
-                DemoFillWidth {
-                    HStack {
-                        Spacer(minLength: 0)
-                        Text("Analyze appears once a photo is added.")
-                            .font(.system(size: 14))
-                            .foregroundStyle(DemoPalette.muted)
-                            .multilineTextAlignment(.center)
-                        Spacer(minLength: 0)
-                    }
-                }
-            }
+                ScanPhotoInstructions()
 
-            if !imageInput.isEmpty {
-                Button { Task { await analyze() } } label: {
-                    if isLoading {
-                        HStack { ProgressView().tint(DemoPalette.paper); Text("Analyzing this meal…") }
-                    } else { Text("Analyze meal") }
+                PrimaryButton(title: "Take photo", systemImage: "camera") {
+                    presentCamera()
                 }
-                .buttonStyle(DemoPrimaryButtonStyle())
-                .disabled(isLoading)
+
+                PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                    Label("Choose from library", systemImage: "photo")
+                }
+                .buttonStyle(SecondaryButtonStyle())
+
+                SectionLabel("Other ways")
+                LazyVGrid(columns: actionColumns, spacing: 10) {
+                    Button("Sample meal", systemImage: "fork.knife") { useSampleMeal() }
+                        .buttonStyle(OutlinedButtonStyle())
+                    Button("Image URL", systemImage: "link") { isShowingURL = true }
+                        .buttonStyle(OutlinedButtonStyle())
+                }
+            } else {
+                ScanImagePreview { imageInputPreview }
+
+                LazyVGrid(columns: actionColumns, spacing: 10) {
+                    PhotosPicker(selection: $selectedPhoto, matching: .images) {
+                        Label("Change photo", systemImage: "photo")
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+
+                    Button("Remove", systemImage: "trash") {
+                        reset()
+                    }
+                    .buttonStyle(OutlinedButtonStyle())
+                }
+
+                PrimaryButton(
+                    title: "Analyze meal",
+                    isLoading: isLoading
+                ) {
+                    Task { await analyze() }
+                }
             }
 
             if isLoading {
                 Text("Complex meals can take a little longer. You can leave this screen while the request completes.")
-                    .font(.subheadline).foregroundStyle(DemoPalette.muted)
+                    .font(.subheadline).foregroundStyle(AppPalette.muted)
             }
-            if let error { DemoErrorNotice(error: error) { Task { await analyze() } } }
+            if let error { ErrorNotice(error: error) { Task { await analyze() } } }
         }
+    }
+
+    @ViewBuilder
+    private var imageInputPreview: some View {
+        if let previewImage {
+            Image(uiImage: previewImage)
+                .resizable()
+                .scaledToFill()
+        } else if let url = URL(string: imageInput), !imageInput.isEmpty {
+            AsyncImage(url: url) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                LoadingSpinner(color: AppPalette.green)
+            }
+        }
+    }
+
+    private var actionColumns: [GridItem] {
+        [GridItem(.flexible(), spacing: 10), GridItem(.flexible())]
     }
 
     @MainActor
@@ -166,45 +168,126 @@ struct ScanView: View {
         guard !imageInput.isEmpty else { return }
         isLoading = true; error = nil
         do {
-            result = try await client.photoScanning.scan(.init(image: imageInput, endUserID: DemoFormatting.endUserID(endUserID)))
+            let analysis = try await client.photoScanning.scan(
+                .init(image: imageInput, endUserID: AppFormatting.endUserID(endUserID))
+            )
+            presentedResult = ScanResultPresentation(result: analysis, previewImage: previewImage)
         } catch { self.error = error }
         isLoading = false
     }
 
     private func setLocalImage(_ image: UIImage) {
-        guard let data = image.jpegData(compressionQuality: 0.82) else { return }
-        previewImage = image
-        imageInput = "data:image/jpeg;base64,\(data.base64EncodedString())"
-        result = nil; error = nil
+        guard let originalData = image.jpegData(compressionQuality: 1),
+              let compressedData = try? PhotoScanImage.jpegData(from: originalData),
+              let compressedImage = UIImage(data: compressedData)
+        else { return }
+        previewImage = compressedImage
+        imageInput = "data:image/jpeg;base64,\(compressedData.base64EncodedString())"
+        presentedResult = nil; pendingScannerResult = nil; error = nil
     }
 
     private func useSampleMeal() {
         guard let image = UIImage(named: "burger-and-fries") else {
-            error = DemoLocalError("The bundled sample meal couldn’t be loaded.")
+            error = AppLocalError("The bundled sample meal couldn’t be loaded.")
             return
         }
         setLocalImage(image)
     }
 
     private func reset() {
-        imageInput = ""; previewImage = nil; selectedPhoto = nil; result = nil; error = nil
+        imageInput = ""; previewImage = nil; selectedPhoto = nil
+        presentedResult = nil; pendingScannerResult = nil; error = nil
+    }
+
+    private func presentCamera() {
+        pendingBarcodeFood = nil
+        pendingScannerResult = nil
+        presentedBarcodeFood = nil
+        isShowingCamera = true
+    }
+
+    private func presentPendingScannerResult() {
+        if let food = pendingBarcodeFood {
+            pendingBarcodeFood = nil
+            presentedBarcodeFood = BarcodeFoodPresentation(food: food)
+        } else if let result = pendingScannerResult {
+            pendingScannerResult = nil
+            presentedResult = result
+        }
     }
 }
 
-private struct ScanPlaceholderPattern: View {
+private struct ScanResultPresentation: Identifiable {
+    let id = UUID()
+    let result: FoodScan
+    let previewImage: UIImage?
+}
+
+private struct ScanResultSheet: View {
+    let client: JanuaryPartnerClient
+    let presentation: ScanResultPresentation
+    let endUserID: PartnerUserID?
+    let onScanAnother: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var result: FoodScan
+    @State private var isShowingCorrection = false
+
+    init(
+        client: JanuaryPartnerClient,
+        presentation: ScanResultPresentation,
+        endUserID: PartnerUserID?,
+        onScanAnother: @escaping () -> Void
+    ) {
+        self.client = client
+        self.presentation = presentation
+        self.endUserID = endUserID
+        self.onScanAnother = onScanAnother
+        _result = State(initialValue: presentation.result)
+    }
+
     var body: some View {
-        Canvas { context, size in
-            let stripe = DemoPalette.controlStrong.opacity(0.48)
-            for offset in stride(from: -size.height, through: size.width, by: 22) {
-                var path = Path()
-                path.move(to: CGPoint(x: offset, y: size.height))
-                path.addLine(to: CGPoint(x: offset + size.height, y: 0))
-                context.stroke(path, with: .color(stripe), lineWidth: 9)
+        NavigationStack {
+            ScrollView {
+                ScreenShell {
+                    VStack(alignment: .leading, spacing: 18) {
+                        ScanResultContent(result: result, previewImage: presentation.previewImage)
+
+                        PrimaryButton(title: "Correct result") {
+                            isShowingCorrection = true
+                        }
+
+                        Button("Scan another meal") {
+                            onScanAnother()
+                            dismiss()
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                    }
+                }
+                .padding(.vertical, 16)
+                .padding(.bottom, 32)
+            }
+            .appBackground()
+            .appNavigationBar("Meal analysis") {
+                AppNavigationButton(.close, title: "Close result") { dismiss() }
+            } trailing: {
+                EmptyView()
+            }
+            .sheet(isPresented: $isShowingCorrection) {
+                CorrectScanView(client: client, scan: result, endUserID: endUserID) { corrected in
+                    result = corrected
+                    isShowingCorrection = false
+                }
             }
         }
-        .background(DemoPalette.control)
-        .accessibilityHidden(true)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
+}
+
+private struct BarcodeFoodPresentation: Identifiable {
+    let id = UUID()
+    let food: FoodSearchItem
 }
 
 private struct ScanResultContent: View {
@@ -214,25 +297,28 @@ private struct ScanResultContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             if let previewImage {
-                DemoFillWidth {
-                    Image(uiImage: previewImage).resizable().scaledToFill()
-                }
-                    .frame(height: 210)
-                    .clipped()
-                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                RoundedRectangle(cornerRadius: AppRadius.feature, style: .continuous)
+                    .fill(AppPalette.control)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        Image(uiImage: previewImage)
+                            .resizable()
+                            .scaledToFill()
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.feature, style: .continuous))
             }
             Text(result.mealName ?? "Meal analysis")
                 .font(.system(.largeTitle, design: .serif, weight: .bold))
 
             if let nutrients = result.totalNutrients {
-                DemoMacroStrip(
+                MacroGrid(
                     calories: nutrients.calories?.value,
                     protein: nutrients.protein?.value,
                     carbohydrates: nutrients.carbohydrates?.value,
                     fat: nutrients.totalFat?.value
-                ).demoCard()
+                ).appCard()
                 let rows = completeNutrientRows(nutrients)
-                if !rows.isEmpty { DemoNutritionList(rows: rows).demoCard() }
+                if !rows.isEmpty { NutritionList(rows: rows).appCard() }
             }
 
             if !result.detections.isEmpty {
@@ -243,21 +329,21 @@ private struct ScanResultContent: View {
                             Text(detection.food.name).font(.headline)
                             Spacer()
                             if let confidence = detection.confidenceScore {
-                                Text(confidence.rawValue.capitalized)
+                                Text("\(confidence.rawValue.capitalized) confidence")
                                     .font(.caption.weight(.semibold))
                                     .padding(.horizontal, 10).padding(.vertical, 5)
                                     .background(confidenceColor(confidence).opacity(0.13), in: Capsule())
                                     .foregroundStyle(confidenceColor(confidence))
                             }
                         }
-                        if let brand = detection.food.brandName { Text(brand).foregroundStyle(DemoPalette.muted) }
-                        DemoMacroStrip(
+                        if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
+                        MacroGrid(
                             calories: detection.food.nutrients.calories?.value,
                             protein: detection.food.nutrients.protein?.value,
                             carbohydrates: detection.food.nutrients.carbohydrates?.value,
                             fat: detection.food.nutrients.totalFat?.value
                         )
-                    }.demoCard()
+                    }.appCard()
                 }
             }
 
@@ -265,12 +351,12 @@ private struct ScanResultContent: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Estimated glucose response").font(.system(.title2, design: .serif, weight: .semibold))
                     Text(impact.impactScore.replacingOccurrences(of: "_", with: " ").capitalized)
-                        .font(.headline).foregroundStyle(DemoPalette.rust)
-                    DemoPredictionChart(
+                        .font(.headline).foregroundStyle(AppPalette.rust)
+                    PredictionChart(
                         points: impact.prediction.map { .init(minutes: $0.minutes, value: $0.value) },
                         lowerBound: nil,
                         upperBound: nil,
-                        lineColor: DemoPalette.rust
+                        lineColor: AppPalette.rust
                     )
                 }
             }
@@ -278,7 +364,7 @@ private struct ScanResultContent: View {
     }
 
     private func confidenceColor(_ score: ConfidenceScore) -> Color {
-        switch score { case .high: return DemoPalette.green; case .medium: return DemoPalette.rust; case .low: return DemoPalette.muted }
+        switch score { case .high: return AppPalette.green; case .medium: return AppPalette.rust; case .low: return AppPalette.muted }
     }
 }
 
@@ -301,34 +387,89 @@ private struct CorrectScanView: View {
 
     var body: some View {
         NavigationStack {
-            DemoScreenShell {
-                Form {
-                Section("Meal") { TextField("Meal name", text: $mealName) }
-                Section("Current detections") {
-                    ForEach(Array(scan.detections.enumerated()), id: \.offset) { _, detection in Text(detection.food.name) }
+            ScrollView {
+                ScreenShell {
+                    VStack(alignment: .leading, spacing: AppSpacing.section) {
+                        SectionLabel("Meal")
+                        TextField("Meal name", text: $mealName)
+                            .font(AppTypography.body)
+                            .padding(.horizontal, AppSpacing.controlHorizontal)
+                            .frame(minHeight: 56)
+                            .background(
+                                AppPalette.control,
+                                in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
+                            )
+
+                        SectionLabel("Current detections")
+                        VStack(alignment: .leading, spacing: 0) {
+                            ForEach(Array(scan.detections.enumerated()), id: \.offset) { index, detection in
+                                Text(detection.food.name)
+                                    .font(AppTypography.bodyStrong)
+                                    .foregroundStyle(AppPalette.ink)
+                                    .padding(.vertical, AppSpacing.rowVertical)
+                                if index < scan.detections.count - 1 { Divider() }
+                            }
+                        }
+                        .appCard()
+
+                        SectionLabel("What should change?")
+                        ZStack(alignment: .topLeading) {
+                            if correction.isEmpty {
+                                Text("Describe the correction")
+                                    .font(AppTypography.body)
+                                    .foregroundStyle(AppPalette.subdued)
+                                    .padding(.horizontal, 17)
+                                    .padding(.vertical, 16)
+                                    .allowsHitTesting(false)
+                            }
+                            TextEditor(text: $correction)
+                                .font(AppTypography.body)
+                                .scrollContentBackground(.hidden)
+                                .padding(10)
+                                .frame(minHeight: 150)
+                                .background(Color.clear)
+                        }
+                        .background(
+                            AppPalette.surface,
+                            in: RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
+                        )
+                        .overlay {
+                            RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
+                                .stroke(AppPalette.border, lineWidth: 1)
+                        }
+
+                        Text("For example: The oatmeal was steel-cut, about 2 cups, and there was no honey.")
+                            .font(.footnote)
+                            .foregroundStyle(AppPalette.muted)
+
+                        if let error {
+                            ErrorNotice(error: error) { Task { await submit() } }
+                        }
+
+                    PrimaryButton(
+                        title: "Submit correction",
+                        isLoading: isLoading,
+                        isDisabled: correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ) {
+                        Task { await submit() }
+                        }
+                    }
                 }
-                Section {
-                    TextField("What should change?", text: $correction, axis: .vertical).lineLimit(4...8)
-                } footer: {
-                    Text("For example: The oatmeal was steel-cut, about 2 cups, and there was no honey.")
-                }
-                if let error { Section { DemoErrorNotice(error: error) { Task { await submit() } } } }
-                Section {
-                    Button { Task { await submit() } } label: {
-                        if isLoading { ProgressView() } else { Text("Submit correction") }
-                    }.disabled(correction.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
-                }
-                }
+                .padding(.vertical, AppSpacing.sheetTop)
             }
-            .navigationTitle("Correct result").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .appBackground()
+            .appNavigationBar("Correct result") {
+                AppNavigationButton(.close, title: "Close correction") { dismiss() }
+            } trailing: {
+                EmptyView()
+            }
         }
         .presentationDetents([.large])
     }
 
     @MainActor private func submit() async {
         guard !scan.detections.isEmpty else {
-            error = DemoLocalError("There are no detections available to correct."); return
+            error = AppLocalError("There are no detections available to correct."); return
         }
         isLoading = true; error = nil
         do {
@@ -346,25 +487,56 @@ private struct ImageURLSheet: View {
 
     var body: some View {
         NavigationStack {
-            DemoScreenShell {
-                Form {
-                Section {
-                    TextField("https://…", text: $text).keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
-                } header: {
-                    Text("Public image URL")
-                } footer: {
-                    Text("The server must be able to download the image without signing in.")
+            ScrollView {
+                ScreenShell {
+                    LazyVStack(alignment: .leading, spacing: AppSpacing.section) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Public image", systemImage: "link")
+                                .font(AppTypography.bodyStrong)
+                                .foregroundStyle(AppPalette.green)
+                            Text("Paste a direct HTTPS link to a meal photo.")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppPalette.body)
+                        }
+                        .appCard()
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            SectionLabel("Image address")
+                            TextField("https://example.com/meal.jpg", text: $text)
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .font(AppTypography.body)
+                                .padding(.horizontal, AppSpacing.controlHorizontal)
+                                .frame(minHeight: 56)
+                                .background(
+                                    AppPalette.control,
+                                    in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
+                                )
+                            Text("The server must be able to download the image without signing in.")
+                                .font(.footnote)
+                                .foregroundStyle(AppPalette.muted)
+                        }
+
+                        PrimaryButton(
+                            title: "Use image URL",
+                            systemImage: "arrow.down.circle",
+                            isDisabled: validURL == nil
+                        ) {
+                            if let url = validURL { onSelect(url) }
+                        }
+                    }
                 }
-                }
+                .padding(.vertical, AppSpacing.sheetTop)
             }
-            .navigationTitle("Use image URL").navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Use URL") { if let url = validURL { onSelect(url) } }.disabled(validURL == nil)
-                }
+            .appBackground()
+            .appNavigationBar("Use image URL") {
+                AppNavigationButton(.cancel) { dismiss() }
+            } trailing: {
+                EmptyView()
             }
-        }.presentationDetents([.medium])
+        }
+        .presentationDetents([.medium])
     }
 
     private var validURL: URL? {
@@ -373,29 +545,13 @@ private struct ImageURLSheet: View {
     }
 }
 
-private struct CameraPicker: UIViewControllerRepresentable {
-    let onImage: (UIImage) -> Void
-    func makeCoordinator() -> Coordinator { Coordinator(onImage: onImage) }
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let picker = UIImagePickerController(); picker.sourceType = .camera; picker.delegate = context.coordinator; return picker
-    }
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
-        let onImage: (UIImage) -> Void
-        init(onImage: @escaping (UIImage) -> Void) { self.onImage = onImage }
-        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let image = info[.originalImage] as? UIImage { onImage(image) }
-        }
-    }
-}
-
-struct DemoLocalError: LocalizedError {
+struct AppLocalError: LocalizedError {
     let message: String
     init(_ message: String) { self.message = message }
     var errorDescription: String? { message }
 }
 
-func completeNutrientRows(_ value: CompleteScanNutritionFacts) -> [DemoNutrientRow] {
+func completeNutrientRows(_ value: CompleteScanNutritionFacts) -> [NutrientRow] {
     [
         value.netCarbohydrates.map { .init(name: "Net carbohydrates", value: $0.value, unit: $0.unit) },
         value.saturatedFat.map { .init(name: "Saturated fat", value: $0.value, unit: $0.unit) },

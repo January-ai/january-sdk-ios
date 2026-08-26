@@ -2,14 +2,14 @@ import Foundation
 import JanuaryPartnerSDK
 import Observation
 
-enum DemoAuthenticationConfiguration: Sendable {
+enum AuthenticationConfiguration: Sendable {
     case developmentAPIKey(String)
     case clientToken(partnerTokenURL: URL, januaryServerURL: URL, endUserID: String)
 }
 
 @MainActor
 @Observable
-final class DemoAppModel {
+final class AppModel {
     enum State: Equatable {
         case loading
         case connecting
@@ -19,11 +19,12 @@ final class DemoAppModel {
 
     private(set) var state: State = .loading
     private(set) var client: JanuaryPartnerClient?
+    let userSession = UserSession()
 
-    private let authentication: DemoAuthenticationConfiguration
+    private let authentication: AuthenticationConfiguration
     private var hasBootstrapped = false
 
-    init(authentication: DemoAuthenticationConfiguration) {
+    init(authentication: AuthenticationConfiguration) {
         self.authentication = authentication
     }
 
@@ -34,7 +35,7 @@ final class DemoAppModel {
         connect(authentication: authentication)
     }
 
-    private func connect(authentication: DemoAuthenticationConfiguration) {
+    private func connect(authentication: AuthenticationConfiguration) {
         state = .connecting
 
         do {
@@ -43,7 +44,7 @@ final class DemoAppModel {
                 let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !normalizedAPIKey.isEmpty else {
                     state = .failed(
-                        "Set DemoConfiguration.apiKey in JanuaryPartnerDemoApp.swift."
+                        "Set AppConfiguration.apiKey in JanuaryPartnerDemoApp.swift."
                     )
                     return
                 }
@@ -74,11 +75,11 @@ final class DemoAppModel {
         request.setValue(endUserID, forHTTPHeaderField: "x-demo-user-id")
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-            throw DemoTokenError.requestFailed
+            throw TokenError.requestFailed
         }
-        let wire = try JSONDecoder().decode(DemoTokenResponse.self, from: data)
+        let wire = try JSONDecoder().decode(TokenResponse.self, from: data)
         guard let expiresAt = parseISO8601(wire.expiresAt) else {
-            throw DemoTokenError.invalidExpiration
+            throw TokenError.invalidExpiration
         }
         return JanuaryClientToken(value: wire.accessToken, expiresAt: expiresAt)
     }
@@ -90,12 +91,12 @@ final class DemoAppModel {
     }
 }
 
-nonisolated private struct DemoTokenResponse: Decodable, Sendable {
+nonisolated private struct TokenResponse: Decodable, Sendable {
     let accessToken: String
     let expiresAt: String
 }
 
-private enum DemoTokenError: Error {
+private enum TokenError: Error {
     case requestFailed
     case invalidExpiration
 }

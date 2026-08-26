@@ -1,7 +1,7 @@
 import SwiftUI
 import JanuaryPartnerSDK
 
-struct DemoTabView: View {
+struct AppTabView: View {
     let client: JanuaryPartnerClient
     @State private var isShowingSettings = false
 
@@ -24,10 +24,10 @@ struct DemoTabView: View {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        .tint(DemoPalette.ink)
+        .tint(AppPalette.ink)
         .background(Color.clear)
         .sheet(isPresented: $isShowingSettings) {
-            DemoSettingsView()
+            SettingsView()
         }
     }
 

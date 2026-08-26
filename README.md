@@ -86,6 +86,37 @@ print(portion.nutrition.calories?.value ?? 0)
 let selection = portion.selection
 ```
 
+## Ready-to-use meal scanner for iOS
+
+The existing `JanuaryPartnerSDK` product includes a complete camera flow. Add
+`NSCameraUsageDescription` to the host app's Info.plist, then present the
+scanner. It handles camera permission, denied-access recovery, meal-photo
+compression, barcode detection, and the corresponding API requests.
+
+```swift
+import JanuaryPartnerSDK
+
+JanuaryMealScannerView(
+    client: january,
+    endUserID: PartnerUserID(rawValue: userID),
+    onResult: { result in
+        switch result {
+        case .meal(let image, let analysis):
+            // image is the square JPEG sent to January; analysis is the FoodScan.
+            showMeal(image.image, analysis)
+        case .barcode(let value, let food):
+            // food is the full food record, including its available servings.
+            showBarcodeFood(value, food)
+        }
+    },
+    onCancel: { dismissScanner() }
+)
+```
+
+UIKit apps can present the same flow with
+`JanuaryMealScanner.makeViewController(...)`. The host app remains responsible
+only for the camera usage-description string and presenting the scanner.
+
 ## Error handling
 
 SDK requests throw `JanuaryError`, which provides a category, machine-readable

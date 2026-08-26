@@ -6,7 +6,7 @@ let package = Package(
     name: "JanuaryPartnerSDK",
     platforms: [
         .macOS(.v13),
-        .iOS(.v16),
+        .iOS(.v15),
     ],
     products: [
         .library(

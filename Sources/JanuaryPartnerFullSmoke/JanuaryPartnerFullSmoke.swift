@@ -13,11 +13,64 @@ struct JanuaryPartnerFullSmoke {
                 throw SmokeError("JANUARY_END_USER_ID is not configured.")
             }
             let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
+            if environment["JANUARY_FOOD_LOG_DATE_SMOKE"] == "1" {
+                try await runFoodLogDateSmoke(client: client, userID: PartnerUserID(rawValue: rawUserID))
+                writeLine("PASS food logs created and queried across day, week, month, and year ranges")
+                return
+            }
             try await run(client: client, userID: PartnerUserID(rawValue: rawUserID))
             writeLine("PASS all independently runnable Partner API v1.2 checks through the public Swift SDK")
         } catch {
             writeLine("FAIL live Partner API v1.2 smoke:\n\(error)")
             exit(1)
+        }
+    }
+
+    private static func runFoodLogDateSmoke(
+        client: JanuaryPartnerClient,
+        userID: PartnerUserID
+    ) async throws {
+        let search = try await client.foods.search(.init(query: "banana", limit: 3, endUserID: userID))
+        guard let food = search.items.first(where: { !$0.servings.isEmpty }),
+              let serving = food.servings.first else {
+            throw SmokeError("foods.search returned no banana with a serving")
+        }
+
+        let selectedFood = FoodSelection(id: food.id, serving: .init(id: serving.id, quantity: 1))
+        let userClient = client.forUser(userID, timezone: timezone)
+        let entries = [
+            DateSmokeEntry(key: "today", name: "Date smoke · Today", timestampUTC: "2026-08-25T16:00:00Z"),
+            DateSmokeEntry(key: "week", name: "Date smoke · Week", timestampUTC: "2026-08-23T16:00:00Z"),
+            DateSmokeEntry(key: "month", name: "Date smoke · Month", timestampUTC: "2026-07-15T16:00:00Z"),
+            DateSmokeEntry(key: "year", name: "Date smoke · Year", timestampUTC: "2026-01-15T17:00:00Z")
+        ]
+        var createdIDs: [String: String] = [:]
+
+        for entry in entries {
+            let created = try await userClient.foodLogs.create(
+                foods: [selectedFood],
+                timestampUTC: entry.timestampUTC,
+                name: entry.name
+            )
+            createdIDs[entry.key] = created.id
+            writeLine("PASS foodLogs.create \(entry.key)")
+        }
+
+        let ranges: [(name: String, start: String, end: String, expectedKeys: [String])] = [
+            ("day", "2026-08-25", "2026-08-25", ["today"]),
+            ("week", "2026-08-23", "2026-08-29", ["today", "week"]),
+            ("month", "2026-07-01", "2026-07-31", ["month"]),
+            ("year", "2026-01-01", "2026-12-31", ["today", "week", "month", "year"])
+        ]
+
+        for range in ranges {
+            let response = try await userClient.foodLogs.list(start: range.start, end: range.end)
+            for key in range.expectedKeys {
+                guard let expectedID = createdIDs[key], response.items.contains(where: { $0.id == expectedID }) else {
+                    throw SmokeError("foodLogs.list \(range.name) did not return the \(key) log")
+                }
+            }
+            writeLine("PASS foodLogs.list \(range.name)")
         }
     }
 
@@ -180,6 +233,12 @@ struct JanuaryPartnerFullSmoke {
         )
     }
 
+}
+
+private struct DateSmokeEntry {
+    let key: String
+    let name: String
+    let timestampUTC: String
 }
 
 private actor SmokeReport {

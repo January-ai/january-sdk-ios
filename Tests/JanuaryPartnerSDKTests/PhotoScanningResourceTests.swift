@@ -1,5 +1,6 @@
 import Foundation
 import HTTPTypes
+import ImageIO
 import OpenAPIRuntime
 import Testing
 @testable import JanuaryPartnerSDK
@@ -59,4 +60,33 @@ func photoScanSendsPublicURLAndPNGDataURIThroughPublicClient() async throws {
     let encodedPNG = try #require(images[1].split(separator: ",", maxSplits: 1).last)
     #expect(images[1].hasPrefix("data:image/png;base64,"))
     #expect(Data(base64Encoded: String(encodedPNG)) == fixture)
+}
+
+@Test
+func localPhotoRequestResizesCompressesAndOrientsAsJPEG() throws {
+    let fixtureURL = try #require(
+        Bundle.module.url(
+            forResource: "burger-and-fries",
+            withExtension: "png",
+            subdirectory: "Fixtures/PhotoScanning"
+        )
+    )
+    let fixture = try Data(contentsOf: fixtureURL)
+
+    let request = try ScanFoodPhotoRequest(imageData: fixture)
+    #expect(request.image.hasPrefix("data:image/jpeg;base64,"))
+
+    let encoded = try #require(request.image.split(separator: ",", maxSplits: 1).last)
+    let jpeg = try #require(Data(base64Encoded: String(encoded)))
+    #expect(jpeg.count < fixture.count)
+
+    let source = try #require(CGImageSourceCreateWithData(jpeg as CFData, nil))
+    let properties = try #require(
+        CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+    )
+    let width = try #require(properties[kCGImagePropertyPixelWidth] as? Int)
+    let height = try #require(properties[kCGImagePropertyPixelHeight] as? Int)
+    #expect(max(width, height) <= PhotoScanImage.defaultMaxDimension)
+    #expect(width == 1_000)
+    #expect(height == 562)
 }

@@ -53,33 +53,10 @@ fi
 tar -xzf "$archive_path" -C "$working_directory"
 cp "$working_directory/$archive_root/openapi/partner-api.generator.yaml" "$generator_openapi"
 
-node --input-type=module - \
+node "$repository_root/scripts/build-sdk-vocabulary.mjs" \
     "$working_directory/$archive_root/sdk-surface.json" \
     "$vocabulary_path" \
-    "$contract_version" <<'NODE'
-import fs from "node:fs";
-
-const [surfacePath, outputPath, contractVersion] = process.argv.slice(2);
-const surface = JSON.parse(fs.readFileSync(surfacePath, "utf8"));
-const vocabulary = {
-    version: 1,
-    contractVersion,
-    operations: surface.operations.map((operation) => ({
-        operationId: operation.operationId,
-        resource: operation.resource,
-        resourceType: operation.resourceType,
-        publicMethod: operation.publicMethod,
-        publicInput: operation.publicInput,
-        publicResult: operation.publicResult.type,
-    })),
-    swiftSymbols: surface.rendering.symbols.map(({ symbol, scope, swift }) => ({
-        symbol,
-        scope,
-        swift,
-    })),
-};
-fs.writeFileSync(outputPath, `${JSON.stringify(vocabulary, null, 2)}\n`);
-NODE
+    "$contract_version"
 
 # The deployed API omits individual nutrient keys when they are unavailable.
 # Keep the generated response decoder tolerant until the shared schema is

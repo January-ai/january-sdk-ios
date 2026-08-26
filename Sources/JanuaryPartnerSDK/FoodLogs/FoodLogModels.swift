@@ -1,10 +1,7 @@
 import Foundation
 
-public struct FoodLogUserContext: Hashable, Sendable {
-    public var endUserID: PartnerUserID
-    public var timezone: String?
-    public init(endUserID: PartnerUserID, timezone: String? = nil) { self.endUserID = endUserID; self.timezone = timezone }
-}
+/// Backward-compatible name for the user context required by Food Logs.
+public typealias FoodLogUserContext = PartnerUserContext
 
 public struct CreateFoodLogRequest: Hashable, Sendable {
     public var foods: [FoodSelection]

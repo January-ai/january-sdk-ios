@@ -27,6 +27,12 @@ jobs:
       - name: Show Swift toolchain
         run: swift --version
 
+      - name: Reject committed Partner API keys
+        run: node scripts/check-no-committed-secrets.mjs
+
+      - name: Verify SDK vocabulary projection
+        run: node scripts/test-sdk-vocabulary-projection.mjs
+
       - name: Verify public vocabulary
         run: |
           node scripts/check-public-api-vocabulary.mjs

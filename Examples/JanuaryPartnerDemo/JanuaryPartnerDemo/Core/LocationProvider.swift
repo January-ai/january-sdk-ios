@@ -2,7 +2,7 @@ import CoreLocation
 import Foundation
 import Observation
 
-struct DemoLocation: Equatable, Sendable {
+struct DeviceLocation: Equatable, Sendable {
     let latitude: Double
     let longitude: Double
 
@@ -15,9 +15,9 @@ struct DemoLocation: Equatable, Sendable {
 /// It requests permission only in response to a user action and never continuously tracks.
 @MainActor
 @Observable
-final class DemoLocationProvider: NSObject, CLLocationManagerDelegate {
+final class LocationProvider: NSObject, CLLocationManagerDelegate {
     private(set) var authorizationStatus: CLAuthorizationStatus
-    private(set) var location: DemoLocation?
+    private(set) var location: DeviceLocation?
     private(set) var isRequesting = false
     private(set) var errorMessage: String?
 
@@ -89,7 +89,7 @@ final class DemoLocationProvider: NSObject, CLLocationManagerDelegate {
             return
         }
 
-        location = DemoLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
+        location = DeviceLocation(latitude: coordinate.latitude, longitude: coordinate.longitude)
         isRequesting = false
         errorMessage = nil
     }

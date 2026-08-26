@@ -45,7 +45,7 @@ The demo uses one shared SwiftUI token layer in `Core/DemoComponents.swift`. Scr
 - Use system serif display type for screen, sheet, and card titles; use system sans for body and controls.
 - Use monospaced numerals for nutrition, measurements, glucose values, quantities, and chart annotations.
 - Body copy is 17 pt. Short uppercase eyebrow labels are 13 pt bold with tracking.
-- Every screen uses `DemoScreenShell` and its fixed 16 pt left/right gutter. The shell must force its content to the finite available width so every title, control, and card shares the same horizontal center and equal outer gutters. Never use `.frame(maxWidth: .infinity)`; use `DemoFillWidth` or `DemoEqualColumns` with the finite parent proposal.
+- Every screen uses a fixed 16 pt left/right gutter so every title, control, and card shares the same horizontal center and equal outer gutters. Use native stacks and flexible `LazyVGrid` columns; do not use custom `Layout`, `GeometryReader`, or `.frame(maxWidth: .infinity)` for ordinary screen layout.
 - Use 20 pt section rhythm, 22 pt card insets, 18 pt control horizontal insets, 24 pt card corners, 28 pt feature corners, and 18 pt control corners.
 - Compact custom sheets show the native drag indicator and keep at least 28 pt between the sheet’s content boundary and the first custom header row.
 - Primary actions are 56 pt-high ink buttons with paper text. Secondary actions use the pale control surface. Tertiary actions use white outlined controls. Yellow is not a button fill.

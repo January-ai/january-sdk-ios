@@ -1,20 +1,20 @@
 import JanuaryPartnerSDK
 import SwiftUI
 
-private struct DemoSearchCity: Identifiable, Hashable {
+private struct SearchCity: Identifiable, Hashable {
     let id: String
     let name: String
     let latitude: Double
     let longitude: Double
 
     static let cities = [
-        DemoSearchCity(id: "san-francisco", name: "San Francisco, CA", latitude: 37.7749, longitude: -122.4194),
-        DemoSearchCity(id: "new-york", name: "New York, NY", latitude: 40.7128, longitude: -74.0060),
-        DemoSearchCity(id: "los-angeles", name: "Los Angeles, CA", latitude: 34.0522, longitude: -118.2437),
-        DemoSearchCity(id: "chicago", name: "Chicago, IL", latitude: 41.8781, longitude: -87.6298),
-        DemoSearchCity(id: "austin", name: "Austin, TX", latitude: 30.2672, longitude: -97.7431),
-        DemoSearchCity(id: "miami", name: "Miami, FL", latitude: 25.7617, longitude: -80.1918),
-        DemoSearchCity(id: "seattle", name: "Seattle, WA", latitude: 47.6062, longitude: -122.3321),
+        SearchCity(id: "san-francisco", name: "San Francisco, CA", latitude: 37.7749, longitude: -122.4194),
+        SearchCity(id: "new-york", name: "New York, NY", latitude: 40.7128, longitude: -74.0060),
+        SearchCity(id: "los-angeles", name: "Los Angeles, CA", latitude: 34.0522, longitude: -118.2437),
+        SearchCity(id: "chicago", name: "Chicago, IL", latitude: 41.8781, longitude: -87.6298),
+        SearchCity(id: "austin", name: "Austin, TX", latitude: 30.2672, longitude: -97.7431),
+        SearchCity(id: "miami", name: "Miami, FL", latitude: 25.7617, longitude: -80.1918),
+        SearchCity(id: "seattle", name: "Seattle, WA", latitude: 47.6062, longitude: -122.3321),
     ]
 }
 
@@ -26,7 +26,7 @@ struct SearchView: View {
     let client: JanuaryPartnerClient
     let settingsAction: () -> Void
 
-    @AppStorage("demo.endUserID") private var endUserID = ""
+    @Environment(UserSession.self) private var userSession
     @State private var scope = Scope.foods
     @State private var foodMode = FoodMode.name
     @State private var restaurantMode = RestaurantMode.restaurants
@@ -48,18 +48,16 @@ struct SearchView: View {
     @State private var radius = 8000.0
     @State private var foodResultLimit = 10
     @State private var restaurantResultLimit = 10
-    @State private var locationProvider = DemoLocationProvider()
+    @State private var locationProvider = LocationProvider()
+
+    private var endUserID: String { userSession.endUserID }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
+                ScreenShell {
                     LazyVStack(alignment: .leading, spacing: 18) {
-                        Text("Search")
-                            .font(DemoTypography.screenTitle)
-                            .foregroundStyle(DemoPalette.ink)
-
-                        DemoSearchField(prompt: searchPrompt, text: queryBinding) {
+                        SearchField(prompt: searchPrompt, text: queryBinding) {
                             Task { await submit() }
                         }
 
@@ -67,7 +65,7 @@ struct SearchView: View {
                             foodSuggestionList
                         }
 
-                        DemoSegmentedControl(Scope.allCases, selection: $scope) { $0.rawValue }
+                        SegmentedControl(Scope.allCases, selection: $scope) { $0.rawValue }
                             .onChange(of: scope) { _, _ in resetResults() }
 
                         if scope == .foods { foodContent } else { restaurantContent }
@@ -76,9 +74,12 @@ struct SearchView: View {
                 .padding(.vertical, 16)
             }
             .scrollDismissesKeyboard(.interactively)
-            .demoBackground()
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
+            .appBackground()
+            .appNavigationBar("Search", style: .leading) {
+                EmptyView()
+            } trailing: {
+                AppNavigationButton(.settings, action: settingsAction)
+            }
             .sheet(isPresented: $isShowingFilters) {
                 RestaurantFiltersSheet(
                     latitude: $latitude,
@@ -154,7 +155,7 @@ struct SearchView: View {
                     HStack {
                         Text(suggestion.name)
                             .font(.body.weight(.medium))
-                            .foregroundStyle(DemoPalette.ink)
+                            .foregroundStyle(AppPalette.ink)
                             .multilineTextAlignment(.leading)
                         Spacer(minLength: 12)
                     }
@@ -164,11 +165,11 @@ struct SearchView: View {
                 .buttonStyle(.plain)
 
                 if index < foodSuggestions.count - 1 {
-                    Divider().overlay(DemoPalette.divider)
+                    Divider().overlay(AppPalette.divider)
                 }
             }
         }
-        .demoCard()
+        .appCard()
     }
 
     private var searchPrompt: String {
@@ -182,7 +183,7 @@ struct SearchView: View {
 
     @ViewBuilder
     private var foodContent: some View {
-        DemoSegmentedControl(FoodMode.allCases, selection: $foodMode) { mode in
+        SegmentedControl(FoodMode.allCases, selection: $foodMode) { mode in
             mode == .meal ? "Description" : mode.rawValue
         }
         .onChange(of: foodMode) { _, _ in resetResults() }
@@ -204,11 +205,11 @@ struct SearchView: View {
             } label: {
                 Label("Scan barcode", systemImage: "barcode.viewfinder")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(OutlinedButtonStyle())
         } else {
             Text("Try “a bowl of oatmeal with honey and a banana.”")
                 .font(.subheadline)
-                .foregroundStyle(DemoPalette.muted)
+                .foregroundStyle(AppPalette.muted)
         }
 
         if query.isEmpty {
@@ -225,56 +226,58 @@ struct SearchView: View {
         if let naturalResult {
             NaturalMealResultView(result: naturalResult)
         } else if !foodResults.isEmpty {
-            DemoFillWidth {
-                HStack(alignment: .firstTextBaseline) {
-                    DemoSectionLabel("Results · January food database")
-                    Spacer(minLength: 12)
-                    Menu {
-                        ForEach([10, 20, 40], id: \.self) { limit in
-                            Button("\(limit) results") { foodResultLimit = limit }
-                        }
-                    } label: {
-                        Text("\(foodResults.count)")
-                            .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                            .foregroundStyle(DemoPalette.muted)
+            HStack(alignment: .firstTextBaseline) {
+                SectionLabel("Results · January food database")
+                Spacer(minLength: 12)
+                Menu {
+                    ForEach([10, 20, 40], id: \.self) { limit in
+                        Button("\(limit) results") { foodResultLimit = limit }
                     }
+                } label: {
+                    Text("\(foodResults.count)")
+                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(AppPalette.muted)
                 }
             }
             VStack(spacing: 0) {
                 ForEach(Array(foodResults.enumerated()), id: \.element.id) { index, food in
                     NavigationLink {
-                        FoodDetailView(client: client, food: food, endUserID: DemoFormatting.endUserID(endUserID))
+                        FoodDetailView(client: client, food: food, endUserID: AppFormatting.endUserID(endUserID))
                     } label: {
-                        DemoFoodRow(food: food)
+                        FoodRow(food: food)
                             .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
                     if index < foodResults.count - 1 {
-                        Divider().overlay(DemoPalette.divider)
+                        Divider().overlay(AppPalette.divider)
                     }
                 }
             }
-            .demoCard()
+            .appCard()
         } else if !isLoading, error == nil, !query.isEmpty {
-            ContentUnavailableView("No foods found", systemImage: "magnifyingglass", description: Text("Try a different search."))
+            EmptyStateCard(
+                title: "No foods found",
+                message: "Try another name or broaden the selected food category.",
+                symbol: "magnifyingglass"
+            )
         }
     }
 
     @ViewBuilder
     private var restaurantContent: some View {
-        DemoSegmentedControl(RestaurantMode.allCases, selection: $restaurantMode) { $0.rawValue }
+        SegmentedControl(RestaurantMode.allCases, selection: $restaurantMode) { $0.rawValue }
         .onChange(of: restaurantMode) { _, _ in resetResults() }
 
         Button { isShowingFilters = true } label: {
             HStack(spacing: 12) {
                 Image(systemName: "location.fill")
-                    .foregroundStyle(DemoPalette.green)
+                    .foregroundStyle(AppPalette.green)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Search location")
                         .font(.headline)
                     Text(locationSummary)
                         .font(.caption)
-                        .foregroundStyle(DemoPalette.muted)
+                        .foregroundStyle(AppPalette.muted)
                         .monospacedDigit()
                 }
                 Spacer(minLength: 8)
@@ -284,9 +287,9 @@ struct SearchView: View {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
             }
-            .foregroundStyle(DemoPalette.body)
+            .foregroundStyle(AppPalette.body)
         }
-        .demoCard()
+        .appCard()
 
         if query.isEmpty {
             SearchPromptCard(title: "Search nearby", message: "Find restaurants or dishes around a location.", symbol: "mappin.and.ellipse")
@@ -307,23 +310,33 @@ struct SearchView: View {
                         radius: radius,
                         resultLimit: restaurantResultLimit,
                         menuQuery: query,
-                        endUserID: DemoFormatting.endUserID(endUserID)
+                        endUserID: AppFormatting.endUserID(endUserID)
                     )
                 } label: {
-                    RestaurantRow(restaurant: restaurant).demoCard()
+                    RestaurantRow(restaurant: restaurant).appCard()
                 }
                 .buttonStyle(.plain)
             }
         } else if restaurantMode == .menuItems, !menuItems.isEmpty {
             Text("Nearby menu items").font(.system(.title3, design: .serif, weight: .semibold))
             ForEach(menuItems, id: \.id) { item in
-                NavigationLink { RestaurantMenuItemDetailView(item: item) } label: {
-                    MenuItemRow(item: item).demoCard()
+                NavigationLink {
+                    RestaurantMenuItemDetailView(
+                        client: client,
+                        item: item,
+                        endUserID: AppFormatting.endUserID(endUserID)
+                    )
+                } label: {
+                    MenuItemRow(item: item).appCard()
                 }
                 .buttonStyle(.plain)
             }
         } else if !isLoading, error == nil, !query.isEmpty {
-            ContentUnavailableView("No nearby matches", systemImage: "mappin.slash", description: Text("Try another name, location, or radius."))
+            EmptyStateCard(
+                title: "No nearby matches",
+                message: "Try another name, location, or search radius.",
+                symbol: "mappin.slash"
+            )
         }
     }
 
@@ -331,18 +344,17 @@ struct SearchView: View {
         if selectedLocationID == "current", let location = locationProvider.location {
             return "Current location · \(location.coordinateDescription)"
         }
-        let city = DemoSearchCity.cities.first { $0.id == selectedLocationID } ?? DemoSearchCity.cities[0]
+        let city = SearchCity.cities.first { $0.id == selectedLocationID } ?? SearchCity.cities[0]
         return "Preset city · \(city.name)"
     }
 
     private var submitButton: some View {
-        Button {
+        PrimaryButton(
+            title: buttonTitle,
+            isLoading: isLoading
+        ) {
             Task { await submit() }
-        } label: {
-            if isLoading { ProgressView().tint(DemoPalette.ink) } else { Text(buttonTitle) }
         }
-        .buttonStyle(DemoPrimaryButtonStyle())
-        .disabled(isLoading)
     }
 
     private var buttonTitle: String {
@@ -352,12 +364,12 @@ struct SearchView: View {
 
     @ViewBuilder
     private var requestState: some View {
-        if let error { DemoErrorNotice(error: error) { Task { await submit() } } }
+        if let error { ErrorNotice(error: error) { Task { await submit() } } }
     }
 
     private func categoryChip(_ label: String, category value: FoodCategory?) -> some View {
         Button(label) { category = value }
-            .buttonStyle(DemoChipButtonStyle(isSelected: category == value))
+            .buttonStyle(ChipButtonStyle(isSelected: category == value))
     }
 
     @MainActor
@@ -369,7 +381,7 @@ struct SearchView: View {
         error = nil
         resetResults(keepError: true)
         do {
-            let userID = DemoFormatting.endUserID(endUserID)
+            let userID = AppFormatting.endUserID(endUserID)
             if scope == .foods {
                 switch foodMode {
                 case .name:
@@ -407,7 +419,7 @@ struct SearchView: View {
                     query: value,
                     category: autocompleteCategory,
                     limit: 8,
-                    endUserID: DemoFormatting.endUserID(endUserID)
+                    endUserID: AppFormatting.endUserID(endUserID)
                 )
             )
             try Task.checkCancellation()
@@ -432,11 +444,10 @@ private struct SearchPromptCard: View {
     let symbol: String
 
     var body: some View {
-        DemoEmptyStateCard(
+        EmptyStateCard(
             title: title,
             message: message,
-            symbol: symbol == "fork.knife" ? "Sr" : symbol,
-            usesSerifSymbol: symbol == "fork.knife"
+            symbol: symbol
         )
     }
 }
@@ -448,26 +459,26 @@ private struct NaturalMealResultView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Meal nutrition").font(.system(.title2, design: .serif, weight: .semibold))
             if let nutrients = result.totalNutrients {
-                DemoMacroStrip(
+                MacroGrid(
                     calories: nutrients.calories?.value,
                     protein: nutrients.protein?.value,
                     carbohydrates: nutrients.carbohydrates?.value,
                     fat: nutrients.totalFat?.value
                 )
-                .demoCard()
+                .appCard()
             }
             ForEach(Array(result.detections.enumerated()), id: \.offset) { _, detection in
                 VStack(alignment: .leading, spacing: 10) {
                     Text(detection.food.name).font(.headline)
-                    if let brand = detection.food.brandName { Text(brand).foregroundStyle(DemoPalette.muted) }
-                    DemoMacroStrip(
+                    if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
+                    MacroGrid(
                         calories: detection.food.nutrients.calories?.value,
                         protein: detection.food.nutrients.protein?.value,
                         carbohydrates: detection.food.nutrients.carbohydrates?.value,
                         fat: detection.food.nutrients.totalFat?.value
                     )
                 }
-                .demoCard()
+                .appCard()
             }
         }
     }
@@ -494,27 +505,26 @@ struct FoodDetailView: View {
 
     var body: some View {
         ScrollView {
-            DemoScreenShell {
+            ScreenShell {
                 VStack(alignment: .leading, spacing: 18) {
-                DemoFillWidth {
-                    ZStack {
-                        DemoPalette.control
-                        AsyncImage(url: detailFood.photoURL.flatMap(URL.init(string:))) { image in
-                            image.resizable().scaledToFill()
-                        } placeholder: {
-                            Image(systemName: "fork.knife")
-                                .font(.system(size: 44))
-                                .foregroundStyle(DemoPalette.green)
-                        }
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(AppPalette.control)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                    NetworkImage(
+                        url: detailFood.photoURL,
+                        placeholder: Image(systemName: "fork.knife"),
+                        contentMode: .fit
+                    )
+                    .padding(18)
+                    .font(.system(size: 44))
+                    .foregroundStyle(AppPalette.green)
                     }
-                }
-                .frame(height: 220)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 5) {
                     Text(detailFood.name).font(.system(.largeTitle, design: .serif, weight: .bold))
-                    if let brand = detailFood.brandName { Text(brand).foregroundStyle(DemoPalette.muted) }
+                    if let brand = detailFood.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
                 }
 
                 if !detailFood.servings.isEmpty {
@@ -537,15 +547,15 @@ struct FoodDetailView: View {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Serving unit")
                                         .font(.caption)
-                                        .foregroundStyle(DemoPalette.muted)
+                                        .foregroundStyle(AppPalette.muted)
                                     Text(selectedServing.map(servingLabel) ?? "Choose a serving")
                                         .font(.headline)
-                                        .foregroundStyle(DemoPalette.green)
+                                        .foregroundStyle(AppPalette.green)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.up.chevron.down")
                                     .font(.caption.weight(.semibold))
-                                    .foregroundStyle(DemoPalette.green)
+                                    .foregroundStyle(AppPalette.green)
                             }
                         }
                         Stepper(
@@ -556,36 +566,37 @@ struct FoodDetailView: View {
                         )
                         .monospacedDigit()
                     }
-                    .demoCard()
+                    .appCard()
                 }
 
-                DemoMacroStrip(
+                MacroGrid(
                     calories: portion?.nutrition.calories?.value,
                     protein: portion?.nutrition.protein?.value,
                     carbohydrates: portion?.nutrition.carbohydrates?.value,
                     fat: portion?.nutrition.totalFat?.value
                 )
-                    .demoCard()
+                    .appCard()
 
                 let rows = portion.map(portionNutrients) ?? []
                 if !rows.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Nutrition facts").font(.system(.title2, design: .serif, weight: .semibold))
-                        DemoNutritionList(rows: rows)
+                        NutritionList(rows: rows)
                     }
-                    .demoCard()
+                    .appCard()
                 }
 
-                Button {
+                PrimaryButton(
+                    title: "Check glucose",
+                    systemImage: "waveform.path.ecg",
+                    isDisabled: selectedServing == nil
+                ) {
                     isShowingGlucose = true
-                } label: {
-                    Label("Check glucose", systemImage: "waveform.path.ecg")
                 }
-                .buttonStyle(DemoPrimaryButtonStyle())
-                .disabled(selectedServing == nil)
 
-                Button("Find alternatives") { isShowingAlternatives = true }
-                    .buttonStyle(DemoPrimaryButtonStyle())
+                PrimaryButton(title: "Find alternatives") {
+                    isShowingAlternatives = true
+                }
 
                 DisclosureGroup("Technical details") {
                     LabeledContent("Food ID", value: "\(detailFood.id.rawValue)")
@@ -595,15 +606,14 @@ struct FoodDetailView: View {
                 if detailLoadError != nil {
                     Text("Complete serving details could not be loaded. Showing the serving returned by search.")
                         .font(.footnote)
-                        .foregroundStyle(DemoPalette.muted)
+                        .foregroundStyle(AppPalette.muted)
                 }
                 }
             }
             .padding(.vertical, 16)
         }
-        .demoBackground()
-        .navigationTitle("Food details")
-        .navigationBarTitleDisplayMode(.inline)
+        .appBackground()
+        .appNavigationBar("Food details")
         .task(id: food.id) { await loadFullFood() }
         .sheet(isPresented: $isShowingAlternatives) {
             AlternativesView(client: client, food: detailFood, endUserID: endUserID)
@@ -612,7 +622,8 @@ struct FoodDetailView: View {
             if let selectedServing {
                 FoodGlucoseSheet(
                     client: client,
-                    food: detailFood,
+                    foodID: detailFood.id,
+                    foodName: detailFood.name,
                     serving: selectedServing,
                     quantity: quantity,
                     endUserID: endUserID
@@ -658,16 +669,19 @@ struct FoodDetailView: View {
 
 private struct FoodGlucoseSheet: View {
     let client: JanuaryPartnerClient
-    let food: FoodSearchItem
+    let foodID: FoodID
+    let foodName: String
     let serving: ServingOption
     let quantity: Double
     let endUserID: PartnerUserID?
 
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("demo.timezone") private var timezone = TimeZone.current.identifier
+    @Environment(UserSession.self) private var userSession
     @State private var prediction: GlucosePrediction?
     @State private var isLoading = false
     @State private var error: Error?
+
+    private var timezone: String { userSession.timezone }
 
     private let profile = GlucosePredictionProfile(
         age: 42,
@@ -681,36 +695,35 @@ private struct FoodGlucoseSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
+                ScreenShell {
                     VStack(alignment: .leading, spacing: 18) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(food.name)
+                        Text(foodName)
                             .font(.title2.weight(.semibold))
-                            .foregroundStyle(DemoPalette.ink)
+                            .foregroundStyle(AppPalette.ink)
                         Text("\(quantity.formatted(.number.precision(.fractionLength(0...2)))) \(serving.unit)")
                             .font(.subheadline)
                             .monospacedDigit()
-                            .foregroundStyle(DemoPalette.muted)
+                            .foregroundStyle(AppPalette.muted)
                     }
 
                     if isLoading {
                         HStack(spacing: 0) {
                             Spacer(minLength: 0)
                             VStack(spacing: 14) {
-                            ProgressView()
-                                .controlSize(.large)
+                            LoadingSpinner(color: AppPalette.green, size: 30)
                             Text("Predicting your glucose response…")
                                 .font(.headline)
                             Text("This usually takes a few seconds.")
                                 .font(.subheadline)
-                                .foregroundStyle(DemoPalette.muted)
+                                .foregroundStyle(AppPalette.muted)
                             }
                             Spacer(minLength: 0)
                         }
                         .padding(.vertical, 42)
-                        .demoCard()
+                        .appCard()
                     } else if let error {
-                        DemoErrorNotice(error: error) {
+                        ErrorNotice(error: error) {
                             Task { await predict() }
                         }
                     } else if let prediction {
@@ -722,24 +735,22 @@ private struct FoodGlucoseSheet: View {
                             .font(.headline)
                         Text("42 years · Female · 66 in · 150 lb · No reported condition")
                             .font(.subheadline)
-                            .foregroundStyle(DemoPalette.muted)
+                            .foregroundStyle(AppPalette.muted)
                     }
-                    .demoCard()
+                    .appCard()
 
                     Text("This is an estimate for demonstration purposes, not medical advice.")
                         .font(.footnote)
-                        .foregroundStyle(DemoPalette.muted)
+                        .foregroundStyle(AppPalette.muted)
                     }
                 }
                 .padding(.vertical, 16)
             }
-            .demoBackground()
-            .navigationTitle("Glucose response")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
+            .appBackground()
+            .appNavigationBar("Glucose response") {
+                EmptyView()
+            } trailing: {
+                AppNavigationButton(.done) { dismiss() }
             }
             .task {
                 guard prediction == nil, !isLoading else { return }
@@ -750,9 +761,9 @@ private struct FoodGlucoseSheet: View {
 
     @ViewBuilder
     private func predictionContent(_ prediction: GlucosePrediction) -> some View {
-        let points = prediction.curve.compactMap { point -> DemoChartPoint? in
+        let points = prediction.curve.compactMap { point -> ChartPoint? in
             guard point.count >= 2 else { return nil }
-            return DemoChartPoint(minutes: point[0], value: point[1])
+            return ChartPoint(minutes: point[0], value: point[1])
         }
 
         HStack {
@@ -762,15 +773,15 @@ private struct FoodGlucoseSheet: View {
             Spacer()
             Text("Estimated impact")
                 .font(.subheadline)
-                .foregroundStyle(DemoPalette.muted)
+                .foregroundStyle(AppPalette.muted)
         }
-        .demoCard()
+        .appCard()
 
-        DemoPredictionChart(
+        PredictionChart(
             points: points,
             lowerBound: prediction.minimum,
             upperBound: prediction.maximum,
-            lineColor: prediction.scoring == .lowImpact ? DemoPalette.green : DemoPalette.rust
+            lineColor: prediction.scoring == .lowImpact ? AppPalette.green : AppPalette.rust
         )
 
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -795,7 +806,7 @@ private struct FoodGlucoseSheet: View {
             }
             .padding(.top, 8)
         }
-        .demoCard()
+        .appCard()
     }
 
     private func glucoseMetric(_ title: String, value: Double?, unit: String) -> some View {
@@ -803,21 +814,21 @@ private struct FoodGlucoseSheet: View {
             VStack(alignment: .leading, spacing: 5) {
             Text(title)
                 .font(.caption)
-                .foregroundStyle(DemoPalette.muted)
+                .foregroundStyle(AppPalette.muted)
             if let value {
                 Text("\(value.formatted(.number.precision(.fractionLength(0...1))))\(unit.isEmpty ? "" : " \(unit)")")
                     .font(.system(.headline, design: .monospaced))
                     .monospacedDigit()
-                    .foregroundStyle(DemoPalette.ink)
+                    .foregroundStyle(AppPalette.ink)
             } else {
                 Text("—")
                     .font(.headline)
-                    .foregroundStyle(DemoPalette.muted)
+                    .foregroundStyle(AppPalette.muted)
             }
             }
             Spacer(minLength: 0)
         }
-        .demoCard()
+        .appCard()
     }
 
     @MainActor
@@ -828,7 +839,7 @@ private struct FoodGlucoseSheet: View {
             prediction = try await client.glucose.predict(.init(
                 userProfile: profile,
                 foods: [FoodSelection(
-                    id: food.id,
+                    id: foodID,
                     serving: ServingSelection(id: serving.id, quantity: quantity)
                 )],
                 startTime: .now,
@@ -849,10 +860,10 @@ private struct FoodGlucoseSheet: View {
     }
 
     private func impactColor(_ impact: GlucoseImpact) -> Color {
-        if impact == .lowImpact { return DemoPalette.green }
-        if impact == .mediumImpact { return DemoPalette.yellow }
-        if impact == .highImpact { return DemoPalette.rust }
-        return DemoPalette.muted
+        if impact == .lowImpact { return AppPalette.green }
+        if impact == .mediumImpact { return AppPalette.yellow }
+        if impact == .highImpact { return AppPalette.rust }
+        return AppPalette.muted
     }
 }
 
@@ -864,110 +875,170 @@ private struct AlternativesView: View {
     @State private var restrictions: Set<DietRestriction> = []
     @State private var preferences: Set<DietPreference> = []
     @State private var result: SuggestFoodAlternativesResponse?
+    @State private var alternativeDetails: [FoodID: FoodSearchItem] = [:]
     @State private var error: Error?
     @State private var isLoading = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
-                    VStack(alignment: .leading, spacing: 18) {
-                    Text("Dietary restrictions").font(.headline)
-                    FlowChoiceGrid(values: DietRestriction.allCases, selected: $restrictions)
-                    Text("Dietary preferences").font(.headline)
-                    FlowChoiceGrid(values: DietPreference.allCases, selected: $preferences)
+                ScreenShell {
+                    LazyVStack(alignment: .leading, spacing: AppSpacing.section) {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Label("Personalized suggestions", systemImage: "leaf.fill")
+                                .font(AppTypography.eyebrow)
+                                .foregroundStyle(AppPalette.green)
+                            Text(food.name)
+                                .font(AppTypography.sheetTitle)
+                                .foregroundStyle(AppPalette.ink)
+                            Text("Choose any dietary needs that should shape January’s recommendations.")
+                                .font(AppTypography.body)
+                                .foregroundStyle(AppPalette.body)
+                        }
+                        .appCard()
 
-                    Button { Task { await load() } } label: {
-                        if isLoading { ProgressView().tint(DemoPalette.ink) } else { Text("Find alternatives") }
-                    }
-                    .buttonStyle(DemoPrimaryButtonStyle())
+                        VStack(alignment: .leading, spacing: 10) {
+                            SectionLabel("Dietary restrictions")
+                            FlowChoiceGrid(values: DietRestriction.allCases, selected: $restrictions)
+                        }
 
-                    if let error { DemoErrorNotice(error: error) { Task { await load() } } }
-                    if let result {
-                        if result.alternatives.isEmpty {
-                            ContentUnavailableView("No suitable alternatives", systemImage: "leaf", description: Text("No alternatives matched these choices."))
-                        } else {
-                            ForEach(Array(result.alternatives.enumerated()), id: \.offset) { _, alternative in
-                                Group {
-                                    if let detailFood = alternativeDetailFood(alternative.food) {
-                                        NavigationLink {
-                                            FoodDetailView(client: client, food: detailFood, endUserID: endUserID)
-                                        } label: {
-                                            AlternativeFoodRow(food: alternative.food, isInteractive: true)
+                        VStack(alignment: .leading, spacing: 10) {
+                            SectionLabel("Dietary preferences")
+                            FlowChoiceGrid(values: DietPreference.allCases, selected: $preferences)
+                        }
+
+                        PrimaryButton(
+                            title: result == nil ? "Find alternatives" : "Refresh alternatives",
+                            systemImage: "leaf",
+                            isLoading: isLoading && result == nil,
+                            isDisabled: isLoading
+                        ) {
+                            Task { await load() }
+                        }
+
+                        if let error { ErrorNotice(error: error) { Task { await load() } } }
+                        if let result {
+                            if result.alternatives.isEmpty {
+                                EmptyStateCard(
+                                    title: "No suitable alternatives",
+                                    message: "No foods matched every selected dietary need.",
+                                    symbol: "leaf"
+                                )
+                            } else {
+                                SectionLabel("Suggestions · \(result.alternatives.count)")
+                                ForEach(Array(result.alternatives.enumerated()), id: \.offset) { _, alternative in
+                                    let loadedFood = alternative.food.id.flatMap { alternativeDetails[$0] }
+                                    let detailFood = loadedFood ?? alternativeDetailFood(alternative.food)
+                                    Group {
+                                        if let detailFood {
+                                            NavigationLink {
+                                                FoodDetailView(client: client, food: detailFood, endUserID: endUserID)
+                                            } label: {
+                                                AlternativeFoodRow(food: alternative.food, photoURL: detailFood.photoURL, isInteractive: true)
+                                            }
+                                            .buttonStyle(.plain)
+                                        } else {
+                                            AlternativeFoodRow(food: alternative.food, photoURL: nil, isInteractive: false)
                                         }
-                                        .buttonStyle(.plain)
-                                    } else {
-                                        AlternativeFoodRow(food: alternative.food, isInteractive: false)
                                     }
+                                    .appCard()
                                 }
-                                .demoCard()
                             }
                         }
-                    }
                     }
                 }
                 .padding(.vertical, 16)
             }
-            .demoBackground()
-            .navigationTitle("Alternatives")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+            .appBackground()
+            .appNavigationBar("Food alternatives") {
+                AppNavigationButton(.close, title: "Close alternatives") { dismiss() }
+            } trailing: {
+                EmptyView()
+            }
         }
+        .presentationDetents([.large])
     }
 
     @MainActor private func load() async {
         isLoading = true; error = nil
         do {
-            result = try await client.foods.suggestAlternatives(.init(
+            let response = try await client.foods.suggestAlternatives(.init(
                 foodID: food.id,
                 dietRestrictions: Array(restrictions),
                 dietPreferences: Array(preferences),
                 endUserID: endUserID
             ))
+            result = response
+            alternativeDetails = [:]
+            await loadAlternativeDetails(response)
         } catch { self.error = error }
         isLoading = false
+    }
+
+    @MainActor
+    private func loadAlternativeDetails(_ response: SuggestFoodAlternativesResponse) async {
+        let ids = Set(response.alternatives.compactMap(\.food.id))
+        await withTaskGroup(of: (FoodID, FoodSearchItem)?.self) { group in
+            for id in ids {
+                group.addTask {
+                    guard let detail = try? await client.foods.getFood(.init(foodID: id, endUserID: endUserID)) else {
+                        return nil
+                    }
+                    return (id, detail)
+                }
+            }
+            for await detail in group {
+                if let (id, food) = detail {
+                    alternativeDetails[id] = food
+                }
+            }
+        }
     }
 }
 
 private struct AlternativeFoodRow: View {
     let food: DetectedFood
+    let photoURL: String?
     let isInteractive: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(DemoPalette.green.opacity(0.12))
-                Image(systemName: "leaf.fill")
-                    .font(.title3)
-                    .foregroundStyle(DemoPalette.green)
-            }
-            .frame(width: 54, height: 54)
+        HStack(spacing: 14) {
+            NetworkImage(
+                url: photoURL,
+                placeholder: Image(systemName: "fork.knife")
+            )
+            .font(.title3)
+            .foregroundStyle(AppPalette.green)
+            .frame(width: 58, height: 58)
+            .background(AppPalette.control)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 7) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(food.name)
                         .font(.headline)
-                        .foregroundStyle(DemoPalette.ink)
+                        .foregroundStyle(AppPalette.ink)
                     if let brand = food.brandName, !brand.isEmpty {
                         Text(brand)
                             .font(.subheadline)
-                            .foregroundStyle(DemoPalette.muted)
+                            .foregroundStyle(AppPalette.muted)
                     }
                     if let serving = food.servings?.first {
                         Text("\((serving.quantity ?? 1).formatted(.number.precision(.fractionLength(0...2)))) \(serving.unit)")
                             .font(.caption)
                             .monospacedDigit()
-                            .foregroundStyle(DemoPalette.muted)
+                            .foregroundStyle(AppPalette.muted)
                     }
                 }
 
-                HStack(spacing: 7) {
-                    nutrientPill("cal", food.nutrients.calories?.value)
-                    nutrientPill("P", food.nutrients.protein?.value)
-                    nutrientPill("C", food.nutrients.carbohydrates?.value)
-                    nutrientPill("F", food.nutrients.totalFat?.value)
+                HStack(spacing: 10) {
+                    nutrientMetric("cal", food.nutrients.calories?.value)
+                    nutrientMetric("P", food.nutrients.protein?.value)
+                    nutrientMetric("C", food.nutrients.carbohydrates?.value)
+                    nutrientMetric("F", food.nutrients.totalFat?.value)
                 }
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             }
 
             Spacer(minLength: 4)
@@ -975,7 +1046,6 @@ private struct AlternativeFoodRow: View {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.tertiary)
-                    .padding(.top, 20)
             }
         }
         .contentShape(Rectangle())
@@ -983,7 +1053,7 @@ private struct AlternativeFoodRow: View {
         .accessibilityHint(isInteractive ? "Opens food details" : "Details are unavailable for this result")
     }
 
-    private func nutrientPill(_ label: String, _ value: Double?) -> some View {
+    private func nutrientMetric(_ label: String, _ value: Double?) -> some View {
         Group {
             if let value {
                 Text(label == "cal"
@@ -991,12 +1061,9 @@ private struct AlternativeFoodRow: View {
                      : "\(label) \(value.formatted(.number.precision(.fractionLength(0...1))))g")
             }
         }
-        .font(.system(.caption2, design: .monospaced, weight: .medium))
+        .font(.system(.caption, design: .monospaced, weight: .medium))
         .monospacedDigit()
-        .foregroundStyle(DemoPalette.body)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(DemoPalette.control, in: Capsule())
+        .foregroundStyle(AppPalette.muted)
     }
 }
 
@@ -1038,12 +1105,14 @@ private struct FlowChoiceGrid<Value: CaseIterable & Hashable & RawRepresentable>
     var body: some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 8)], alignment: .leading, spacing: 8) {
             ForEach(Array(values), id: \.self) { value in
-                Button(value.rawValue) { toggle(value) }
-                    .buttonStyle(.borderedProminent)
-                    .tint(selected.contains(value) ? DemoPalette.green : DemoPalette.control)
-                    .foregroundStyle(selected.contains(value) ? .white : DemoPalette.body)
+                Button(choiceLabel(value)) { toggle(value) }
+                    .buttonStyle(ChipButtonStyle(isSelected: selected.contains(value)))
             }
         }
+    }
+
+    private func choiceLabel(_ value: Value) -> String {
+        value.rawValue.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
     private func toggle(_ value: Value) {
@@ -1061,11 +1130,11 @@ private struct RestaurantRow: View {
     let restaurant: Restaurant
     var body: some View {
         HStack {
-            Image(systemName: "fork.knife.circle.fill").font(.title).foregroundStyle(DemoPalette.green)
+            Image(systemName: "fork.knife.circle.fill").font(.title).foregroundStyle(AppPalette.green)
             VStack(alignment: .leading, spacing: 4) {
                 Text(restaurant.name).font(.headline)
                 Text([restaurant.city, restaurant.distance.map { "\(($0 / 1609.344).formatted(.number.precision(.fractionLength(1)))) mi" }].compactMap { $0 }.joined(separator: " · "))
-                    .font(.subheadline).foregroundStyle(DemoPalette.muted)
+                    .font(.subheadline).foregroundStyle(AppPalette.muted)
             }
             Spacer(); Image(systemName: "chevron.right").foregroundStyle(.tertiary)
         }
@@ -1076,11 +1145,14 @@ private struct MenuItemRow: View {
     let item: RestaurantMenuItem
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: item.photoURL.flatMap(URL.init(string:))) { $0.resizable().scaledToFill() } placeholder: { Image(systemName: "takeoutbag.and.cup.and.straw") }
-                .frame(width: 56, height: 56).background(DemoPalette.control).clipShape(RoundedRectangle(cornerRadius: 14))
+            NetworkImage(
+                url: item.photoURL,
+                placeholder: Image(systemName: "takeoutbag.and.cup.and.straw")
+            )
+                .frame(width: 56, height: 56).background(AppPalette.control).clipShape(RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name).font(.headline)
-                Text(item.restaurantName).foregroundStyle(DemoPalette.muted)
+                Text(item.restaurantName).foregroundStyle(AppPalette.muted)
                 if let calories = item.calories { Text("\(calories.formatted(.number.precision(.fractionLength(0)))) cal").font(.caption) }
             }
             Spacer(); Image(systemName: "chevron.right").foregroundStyle(.tertiary)
@@ -1091,40 +1163,57 @@ private struct MenuItemRow: View {
 private struct RestaurantDetailView: View {
     let client: JanuaryPartnerClient
     let restaurant: Restaurant
-    let latitude: Double
-    let longitude: Double
-    let radius: Double
-    let resultLimit: Int
-    let menuQuery: String
     let endUserID: PartnerUserID?
+    @StateObject private var model: RestaurantDetailViewModel
 
-    @State private var menuItems: [RestaurantMenuItem] = []
-    @State private var isLoadingMenu = false
-    @State private var menuError: Error?
+    init(
+        client: JanuaryPartnerClient,
+        restaurant: Restaurant,
+        latitude: Double,
+        longitude: Double,
+        radius: Double,
+        resultLimit: Int,
+        menuQuery: String,
+        endUserID: PartnerUserID?
+    ) {
+        self.client = client
+        self.restaurant = restaurant
+        self.endUserID = endUserID
+        _model = StateObject(wrappedValue: RestaurantDetailViewModel(
+            client: client,
+            restaurant: restaurant,
+            latitude: latitude,
+            longitude: longitude,
+            radius: radius,
+            resultLimit: resultLimit,
+            menuQuery: menuQuery,
+            endUserID: endUserID
+        ))
+    }
 
     var body: some View {
         ScrollView {
-            DemoScreenShell {
+            ScreenShell {
                 VStack(alignment: .leading, spacing: 20) {
                     Text(restaurant.name)
                         .font(.system(.largeTitle, design: .serif, weight: .bold))
-                        .foregroundStyle(DemoPalette.ink)
+                        .foregroundStyle(AppPalette.ink)
 
                     VStack(alignment: .leading, spacing: 12) {
-                        DemoSectionLabel("Location")
+                        SectionLabel("Location")
                         if let city = restaurant.city { LabeledContent("City", value: city) }
                         if let address = restaurant.address1 { Text(address) }
                         if let address = restaurant.address2 { Text(address) }
                         if let distance = restaurant.distance {
-                            Divider().overlay(DemoPalette.divider)
+                            Divider().overlay(AppPalette.divider)
                             LabeledContent("Distance", value: "\((distance / 1609.344).formatted(.number.precision(.fractionLength(1)))) mi")
                                 .monospacedDigit()
                         }
                     }
-                    .demoCard()
+                    .appCard()
 
                     VStack(alignment: .leading, spacing: 12) {
-                        DemoSectionLabel("Menu items")
+                        SectionLabel("Menu items")
                         menuContent
                     }
 
@@ -1137,104 +1226,174 @@ private struct RestaurantDetailView: View {
             }
             .padding(.vertical, 16)
         }
-        .demoBackground()
-        .navigationTitle("Restaurant")
-        .navigationBarTitleDisplayMode(.inline)
-        .task(id: restaurant.id) { await loadMenuItems() }
+        .appBackground()
+        .appNavigationBar("Restaurant")
+        .task(id: restaurant.id) { await model.loadIfNeeded() }
     }
 
     @ViewBuilder
     private var menuContent: some View {
-        if isLoadingMenu {
-            HStack {
-                Spacer(minLength: 0)
-                ProgressView("Loading menu")
-                Spacer(minLength: 0)
+        if model.showsInitialLoading {
+            HStack(spacing: 12) {
+                LoadingSpinner(color: AppPalette.green)
+                Text("Loading menu")
+                    .font(.headline)
+                    .foregroundStyle(AppPalette.muted)
             }
-            .demoCard()
-        } else if let menuError {
-            DemoErrorNotice(error: menuError) { Task { await loadMenuItems() } }
-        } else if menuItems.isEmpty {
-            DemoEmptyStateCard(
+            .appCard()
+        } else if model.menuItems.isEmpty, let menuError = model.error {
+            ErrorNotice(error: menuError) { Task { await model.retry() } }
+        } else if model.menuItems.isEmpty {
+            EmptyStateCard(
                 title: "No menu items found",
                 message: "January did not return menu items for this restaurant.",
                 symbol: "fork.knife"
             )
         } else {
             VStack(spacing: 0) {
-                ForEach(Array(menuItems.enumerated()), id: \.element.id) { index, item in
+                ForEach(Array(model.menuItems.enumerated()), id: \.element.id) { index, item in
                     NavigationLink {
-                        RestaurantMenuItemDetailView(item: item)
+                        RestaurantMenuItemDetailView(client: client, item: item, endUserID: endUserID)
                     } label: {
                         MenuItemRow(item: item)
                             .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
-                    if index < menuItems.count - 1 {
-                        Divider().overlay(DemoPalette.divider)
+                    if index < model.menuItems.count - 1 {
+                        Divider().overlay(AppPalette.divider)
                     }
                 }
             }
-            .demoCard()
+            .appCard()
         }
     }
 
-    @MainActor
-    private func loadMenuItems() async {
-        isLoadingMenu = true
-        menuError = nil
-        do {
-            let response = try await client.restaurants.searchMenuItems(.init(
-                query: menuQuery,
-                latitude: latitude,
-                longitude: longitude,
-                radius: radius,
-                limit: resultLimit,
-                endUserID: endUserID
-            ))
-            let selectedRestaurantName = normalizedRestaurantName(restaurant.name)
-            menuItems = response.items.filter {
-                let itemRestaurantName = normalizedRestaurantName($0.restaurantName)
-                return itemRestaurantName.contains(selectedRestaurantName)
-                    || selectedRestaurantName.contains(itemRestaurantName)
-            }
-        } catch {
-            menuError = error
-        }
-        isLoadingMenu = false
-    }
-
-    private func normalizedRestaurantName(_ value: String) -> String {
-        let baseName = value.split(separator: "(", maxSplits: 1).first.map(String.init) ?? value
-        return baseName
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-    }
 }
 
 private struct RestaurantMenuItemDetailView: View {
+    let client: JanuaryPartnerClient
     let item: RestaurantMenuItem
+    let endUserID: PartnerUserID?
+
+    @State private var selectedServingID: ServingID?
+    @State private var quantity: Double
+    @State private var isShowingGlucoseImpact = false
+
+    init(client: JanuaryPartnerClient, item: RestaurantMenuItem, endUserID: PartnerUserID?) {
+        self.client = client
+        self.item = item
+        self.endUserID = endUserID
+        let initialServing = item.servings.first(where: \.isPrimary) ?? item.servings.first
+        _selectedServingID = State(initialValue: initialServing?.id)
+        _quantity = State(initialValue: initialServing?.quantity ?? 1)
+    }
+
     var body: some View {
         ScrollView {
-            DemoScreenShell {
+            ScreenShell {
                 VStack(alignment: .leading, spacing: 18) {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(AppPalette.control)
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay {
+                        NetworkImage(
+                            url: item.photoURL,
+                            placeholder: Image(systemName: "takeoutbag.and.cup.and.straw"),
+                            contentMode: .fit
+                        )
+                        .padding(18)
+                        .font(.system(size: 44))
+                        .foregroundStyle(AppPalette.green)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+
                 Text(item.name).font(.system(.largeTitle, design: .serif, weight: .bold))
-                Text(item.restaurantName).foregroundStyle(DemoPalette.muted)
-                DemoMacroStrip(calories: item.calories, protein: item.protein, carbohydrates: item.carbohydrates, fat: item.totalFat).demoCard()
-                DemoNutritionList(rows: menuItemNutrients(item)).demoCard()
+                Text(item.restaurantName).foregroundStyle(AppPalette.muted)
+                MacroGrid(calories: item.calories, protein: item.protein, carbohydrates: item.carbohydrates, fat: item.totalFat).appCard()
+                NutritionList(rows: menuItemNutrients(item)).appCard()
                 if !item.servings.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Servings").font(.headline)
-                        ForEach(item.servings, id: \.id) { Text("\($0.quantity.formatted()) \($0.unit)") }
-                    }.demoCard()
+                    VStack(alignment: .leading, spacing: 12) {
+                        SectionLabel("Serving")
+                        Menu {
+                            ForEach(item.servings, id: \.id) { serving in
+                                Button {
+                                    selectedServingID = serving.id
+                                    quantity = serving.quantity
+                                } label: {
+                                    if serving.id == selectedServingID {
+                                        Label(servingLabel(serving), systemImage: "checkmark")
+                                    } else {
+                                        Text(servingLabel(serving))
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(selectedServing.map(servingLabel) ?? "Choose a serving")
+                                    .font(.headline)
+                                    .foregroundStyle(AppPalette.green)
+                                Spacer(minLength: 12)
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppPalette.green)
+                            }
+                        }
+                        Stepper(
+                            "Quantity: \(quantity.formatted(.number.precision(.fractionLength(0...2)))) \(selectedServing?.unit ?? "")",
+                            value: $quantity,
+                            in: 0.25...100,
+                            step: 0.25
+                        )
+                        .monospacedDigit()
+                    }
+                    .appCard()
                 }
+
+                PrimaryButton(
+                    title: "See glucose impact",
+                    systemImage: "waveform.path.ecg",
+                    isDisabled: selectedServing == nil || glucoseFoodID == nil
+                ) {
+                    isShowingGlucoseImpact = true
+                }
+
                 DisclosureGroup("Technical details") { LabeledContent("Menu item ID", value: item.id) }.font(.footnote)
                 }
             }
             .padding(.vertical, 16)
-        }.demoBackground().navigationTitle("Menu item").navigationBarTitleDisplayMode(.inline)
+        }
+        .appBackground()
+        .appNavigationBar("Menu item")
+        .sheet(isPresented: $isShowingGlucoseImpact) {
+            if let glucoseFoodID, let selectedServing {
+                FoodGlucoseSheet(
+                    client: client,
+                    foodID: glucoseFoodID,
+                    foodName: item.name,
+                    serving: selectedServing,
+                    quantity: quantity,
+                    endUserID: endUserID
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+    }
+
+    private var glucoseFoodID: FoodID? {
+        Int64(item.id).map(FoodID.init(rawValue:))
+    }
+
+    private var selectedServing: ServingOption? {
+        item.servings.first { $0.id == selectedServingID }
+    }
+
+    private func servingLabel(_ serving: ServingOption) -> String {
+        var parts = [serving.unit]
+        if let grams = serving.weightGrams {
+            parts.append("\(grams.formatted(.number.precision(.fractionLength(0...1)))) g")
+        }
+        return parts.joined(separator: " · ")
     }
 }
 
@@ -1245,75 +1404,145 @@ private struct RestaurantFiltersSheet: View {
     @Binding var selectedLocationID: String
     @Binding var radius: Double
     @Binding var limit: Int
-    let locationProvider: DemoLocationProvider
+    let locationProvider: LocationProvider
 
     @Environment(\.openURL) private var openURL
 
     var body: some View {
         NavigationStack {
-            DemoScreenShell {
-                Form {
-                Section("Location") {
-                    LabeledContent("Status", value: locationProvider.authorizationDescription)
+            ScrollView {
+                ScreenShell {
+                    LazyVStack(alignment: .leading, spacing: AppSpacing.section) {
+                        SectionLabel("Location")
+                        VStack(spacing: 0) {
+                            HStack(alignment: .top, spacing: 16) {
+                                Image(systemName: "location.circle.fill")
+                                    .font(.title2)
+                                    .foregroundStyle(AppPalette.green)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Location access")
+                                        .font(AppTypography.bodyStrong)
+                                    Text(locationProvider.authorizationDescription)
+                                        .font(.subheadline)
+                                        .foregroundStyle(AppPalette.muted)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(.vertical, AppSpacing.rowVertical)
 
-                    Picker("City", selection: $selectedLocationID) {
-                        if selectedLocationID == "current" {
-                            Text("Current location").tag("current")
+                            Divider().overlay(AppPalette.divider)
+
+                            HStack(spacing: 12) {
+                                Text("Search city")
+                                    .font(AppTypography.bodyStrong)
+                                Spacer(minLength: 12)
+                                Picker("Search city", selection: $selectedLocationID) {
+                                    if selectedLocationID == "current" {
+                                        Text("Current location").tag("current")
+                                    }
+                                    ForEach(SearchCity.cities) { city in
+                                        Text(city.name).tag(city.id)
+                                    }
+                                }
+                                .labelsHidden()
+                                .tint(AppPalette.green)
+                                .onChange(of: selectedLocationID) { _, id in
+                                    guard let city = SearchCity.cities.first(where: { $0.id == id }) else { return }
+                                    latitude = city.latitude
+                                    longitude = city.longitude
+                                }
+                            }
+                            .padding(.vertical, AppSpacing.rowVertical)
+
+                            Divider().overlay(AppPalette.divider)
+
+                            HStack(spacing: 12) {
+                                Text("Coordinates")
+                                    .font(AppTypography.bodyStrong)
+                                Spacer(minLength: 12)
+                                Text("\(latitude.formatted(.number.precision(.fractionLength(3)))), \(longitude.formatted(.number.precision(.fractionLength(3))))")
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundStyle(AppPalette.muted)
+                            }
+                            .padding(.vertical, AppSpacing.rowVertical)
                         }
-                        ForEach(DemoSearchCity.cities) { city in
-                            Text(city.name).tag(city.id)
+                        .appCard()
+
+                        Button {
+                            locationProvider.requestCurrentLocation()
+                        } label: {
+                            Label(
+                                locationProvider.isRequesting ? "Finding current location" : "Use my current location",
+                                systemImage: "location.fill"
+                            )
                         }
-                    }
-                    .onChange(of: selectedLocationID) { _, id in
-                        guard let city = DemoSearchCity.cities.first(where: { $0.id == id }) else { return }
-                        latitude = city.latitude
-                        longitude = city.longitude
-                    }
+                        .buttonStyle(OutlinedButtonStyle())
+                        .disabled(locationProvider.isRequesting)
 
-                    LabeledContent("Coordinates") {
-                        Text("\(latitude.formatted(.number.precision(.fractionLength(4)))), \(longitude.formatted(.number.precision(.fractionLength(4))))")
-                            .monospacedDigit()
-                    }
-
-                    Button {
-                        locationProvider.requestCurrentLocation()
-                    } label: {
-                        if locationProvider.isRequesting {
-                            Label("Finding current location", systemImage: "location.fill")
-                        } else {
-                            Label("Use my current location", systemImage: "location.fill")
+                        if locationProvider.requiresSettings,
+                           let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                            Button("Open location settings", systemImage: "gear") {
+                                openURL(settingsURL)
+                            }
+                            .buttonStyle(OutlinedButtonStyle())
                         }
-                    }
-                    .disabled(locationProvider.isRequesting)
 
-                    if locationProvider.requiresSettings,
-                       let settingsURL = URL(string: UIApplication.openSettingsURLString) {
-                        Button("Open location settings", systemImage: "gear") {
-                            openURL(settingsURL)
+                        if let errorMessage = locationProvider.errorMessage {
+                            ErrorNotice(error: AppLocalError(errorMessage)) {
+                                locationProvider.requestCurrentLocation()
+                            }
                         }
-                    }
 
-                    if let errorMessage = locationProvider.errorMessage {
-                        Text(errorMessage)
-                            .font(.footnote)
-                            .foregroundStyle(DemoPalette.rust)
+                        SectionLabel("Search radius")
+                        VStack(alignment: .leading, spacing: 14) {
+                            HStack {
+                                Text("Nearby distance")
+                                    .font(AppTypography.bodyStrong)
+                                Spacer(minLength: 12)
+                                Text("\((radius / 1609.344).formatted(.number.precision(.fractionLength(1)))) mi")
+                                    .font(AppTypography.metric)
+                                    .foregroundStyle(AppPalette.green)
+                            }
+                            Slider(value: $radius, in: 500...17_000, step: 500)
+                                .tint(AppPalette.green)
+                            Text("Search within \(Int(radius).formatted()) meters of the selected location.")
+                                .font(.footnote)
+                                .foregroundStyle(AppPalette.muted)
+                        }
+                        .appCard()
+
+                        SectionLabel("Results")
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Maximum results")
+                                    .font(AppTypography.bodyStrong)
+                                Text("Up to \(limit) nearby matches")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppPalette.muted)
+                            }
+                            Spacer(minLength: 12)
+                            Stepper("Maximum results", value: $limit, in: 1...100)
+                                .labelsHidden()
+                        }
+                        .appCard()
+
+                        PrimaryButton(title: "Apply filters") { dismiss() }
                     }
                 }
-
-                Section("Radius") {
-                    Slider(value: $radius, in: 500...17_000, step: 500)
-                    LabeledContent("Distance", value: "\((radius / 1609.344).formatted(.number.precision(.fractionLength(1)))) mi · \(Int(radius)) m")
-                }
-                Section("Results") { Stepper("Limit: \(limit)", value: $limit, in: 1...100) }
-                }
+                .padding(.vertical, AppSpacing.sheetTop)
             }
-            .navigationTitle("Search filters").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+            .appBackground()
+            .appNavigationBar("Search filters") {
+                AppNavigationButton(.close, title: "Close filters") { dismiss() }
+            } trailing: {
+                EmptyView()
+            }
         }
+        .presentationDetents([.large])
     }
 }
 
-private func foodNutrients(_ food: FoodSearchItem, scale: Double = 1) -> [DemoNutrientRow] {
+private func foodNutrients(_ food: FoodSearchItem, scale: Double = 1) -> [NutrientRow] {
     [
         food.netCarbohydrates.map { .init(name: "Net carbohydrates", value: $0 * scale, unit: "g") },
         food.saturatedFat.map { .init(name: "Saturated fat", value: $0 * scale, unit: "g") },
@@ -1328,7 +1557,7 @@ private func foodNutrients(_ food: FoodSearchItem, scale: Double = 1) -> [DemoNu
     ].compactMap { $0 }
 }
 
-private func portionNutrients(_ portion: FoodPortion) -> [DemoNutrientRow] {
+private func portionNutrients(_ portion: FoodPortion) -> [NutrientRow] {
     let nutrition = portion.nutrition
     return [
         nutrition.netCarbohydrates.map { .init(name: "Net carbohydrates", value: $0.value, unit: $0.unit) },
@@ -1344,7 +1573,7 @@ private func portionNutrients(_ portion: FoodPortion) -> [DemoNutrientRow] {
     ].compactMap { $0 }
 }
 
-private func menuItemNutrients(_ item: RestaurantMenuItem) -> [DemoNutrientRow] {
+private func menuItemNutrients(_ item: RestaurantMenuItem) -> [NutrientRow] {
     [
         item.netCarbohydrates.map { .init(name: "Net carbohydrates", value: $0, unit: "g") },
         item.fiber.map { .init(name: "Fiber", value: $0, unit: "g") },
@@ -1382,6 +1611,16 @@ private struct BarcodeScannerView: UIViewControllerRepresentable {
 #else
 private struct BarcodeScannerView: View {
     let onCode: (String) -> Void
-    var body: some View { ContentUnavailableView("Barcode scanning unavailable", systemImage: "barcode.viewfinder") }
+    var body: some View {
+        ScreenShell {
+            EmptyStateCard(
+                title: "Barcode scanning unavailable",
+                message: "Use a physical device with a supported camera to scan a barcode.",
+                symbol: "barcode.viewfinder"
+            )
+        }
+        .padding(.vertical, AppSpacing.sheetTop)
+        .appBackground()
+    }
 }
 #endif

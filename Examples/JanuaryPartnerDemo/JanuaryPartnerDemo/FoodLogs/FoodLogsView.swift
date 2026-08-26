@@ -5,10 +5,8 @@ struct FoodLogsView: View {
     let client: JanuaryPartnerClient
     let settingsAction: () -> Void
 
-    @AppStorage("demo.endUserID") private var endUserID = ""
-    @AppStorage("demo.timezone") private var timezone = TimeZone.current.identifier
-    @State private var startDate = Calendar.current.date(byAdding: .day, value: -7, to: .now) ?? .now
-    @State private var endDate = Date.now
+    @Environment(UserSession.self) private var userSession
+    @State private var selectedTimeSpan = FoodLogTimeSpan.currentWeek
     @State private var logs: [FoodLog] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -17,103 +15,93 @@ struct FoodLogsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
+                ScreenShell {
                     LazyVStack(alignment: .leading, spacing: 16) {
-                    Text("Food logs")
-                        .font(DemoTypography.screenTitle)
-                        .foregroundStyle(DemoPalette.ink)
+                        WorkflowGuideCard(
+                            title: "Build one complete meal",
+                            message: "One food log represents one meal or eating event. It can contain multiple foods, each with its own serving and quantity.",
+                            steps: [
+                                "Identify the user who owns the log",
+                                "Create a log and add every food in the meal",
+                                "Save it, then browse that user’s history"
+                            ],
+                            symbol: "list.bullet.clipboard"
+                        )
 
-                    if userID == nil {
-                        VStack(alignment: .leading, spacing: 10) {
-                            DemoSectionLabel("One thing first", color: DemoPalette.goldText)
-                                .padding(.horizontal, 0)
-                            Text("Logs are stored per person. Add the partner’s stable user ID before loading or creating logs.")
-                                .font(DemoTypography.body)
-                                .foregroundStyle(DemoPalette.ink)
-                            Button("Open settings", action: settingsAction)
-                                .buttonStyle(DemoPrimaryButtonStyle())
-                        }
-                        .padding(DemoSpacing.card)
-                        .background(DemoPalette.goldBackground, in: RoundedRectangle(cornerRadius: DemoRadius.feature, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: DemoRadius.feature, style: .continuous)
-                                .stroke(Color(red: 217 / 255, green: 194 / 255, blue: 95 / 255), lineWidth: 1.5)
-                        }
-                    }
+                        SectionLabel("User identity")
+                        FoodLogUserCard(
+                            userID: userID?.rawValue,
+                            timezone: userSession.timezone,
+                            onSave: { userSession.endUserID = $0 },
+                            onSettings: settingsAction
+                        )
 
-                    DemoSectionLabel("Date range")
-                    VStack(spacing: 0) {
-                        HStack {
-                            Text("From").font(DemoTypography.bodyStrong)
-                            Spacer(minLength: 12)
-                            DatePicker("From", selection: $startDate, displayedComponents: .date)
-                                .labelsHidden()
-                                .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                        }
-                        .padding(.vertical, DemoSpacing.rowVertical)
-                        Divider().overlay(DemoPalette.divider)
-                        HStack {
-                            Text("To").font(DemoTypography.bodyStrong)
-                            Spacer(minLength: 12)
-                            DatePicker("To", selection: $endDate, in: startDate..., displayedComponents: .date)
-                                .labelsHidden()
-                                .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                        }
-                        .padding(.vertical, DemoSpacing.rowVertical)
-                    }
-                    .demoCard()
+                        if let context {
+                            PrimaryButton(title: "Create a food log", systemImage: "plus") {
+                                isCreating = true
+                            }
 
-                    Button("Load logs") { Task { await load() } }
-                        .buttonStyle(DemoPrimaryButtonStyle())
-                        .disabled(userID == nil || isLoading)
+                            SectionLabel("Browse saved logs")
+                            Text("Food logs are fetched for the selected user ID and date range.")
+                                .font(.system(size: 15))
+                                .foregroundStyle(AppPalette.body)
 
-                    if userID == nil {
-                        DemoFillWidth {
-                            HStack {
-                                Spacer(minLength: 0)
-                                Text("Available once a user ID is set.")
-                                    .font(.system(size: 14))
-                                    .foregroundStyle(DemoPalette.muted)
-                                    .multilineTextAlignment(.center)
-                                Spacer(minLength: 0)
+                            FoodLogTimeSpanPicker(
+                                selection: $selectedTimeSpan,
+                                range: selectedDateRange,
+                                calendar: foodLogCalendar
+                            )
+
+                            PrimaryButton(
+                                title: "Refresh food logs",
+                                isLoading: isLoading && logs.isEmpty,
+                                isDisabled: isLoading
+                            ) {
+                                Task { await load() }
+                            }
+
+                            if isLoading, logs.isEmpty {
+                                HStack(spacing: 12) {
+                                    LoadingSpinner(color: AppPalette.green)
+                                    Text("Loading food logs…")
+                                        .font(.headline)
+                                        .foregroundStyle(AppPalette.muted)
+                                }
+                                .padding()
+                            }
+                            if let error { ErrorNotice(error: error) { Task { await load() } } }
+
+                            if !logs.isEmpty {
+                                ForEach(logs, id: \.id) { log in
+                                    NavigationLink {
+                                        FoodLogDetailView(client: client, log: log, context: context) { Task { await load() } }
+                                    } label: {
+                                        FoodLogRow(log: log).appCard()
+                                    }.buttonStyle(.plain)
+                                }
+                            } else if !isLoading, error == nil {
+                                EmptyStateCard(
+                                    title: "No food logs in this range",
+                                    message: "Create a log, add one or more foods to the meal, then save it for this user.",
+                                    symbol: "list.bullet.clipboard"
+                                )
                             }
                         }
                     }
-
-                    if isLoading {
-                        HStack {
-                            Spacer(minLength: 0)
-                            ProgressView("Loading food logs…")
-                            Spacer(minLength: 0)
-                        }
-                        .padding()
-                    }
-                    if let error { DemoErrorNotice(error: error) { Task { await load() } } }
-
-                    if let context, !logs.isEmpty {
-                        ForEach(logs, id: \.id) { log in
-                            NavigationLink {
-                                FoodLogDetailView(client: client, log: log, context: context) { Task { await load() } }
-                            } label: {
-                                FoodLogRow(log: log).demoCard()
-                            }.buttonStyle(.plain)
-                        }
-                    } else if !isLoading, error == nil, userID != nil {
-                        ContentUnavailableView("No food logs", systemImage: "list.bullet.clipboard", description: Text("There are no logs in this date range."))
-                    }
-                    }
                 }
                 .padding(.vertical, 16)
+                .padding(.bottom, 88)
             }
             .refreshable { await load() }
-            .demoBackground()
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if userID != nil {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Add food log", systemImage: "plus") { isCreating = true }
+            .appBackground()
+            .appNavigationBar("Food logs", style: .leading) {
+                EmptyView()
+            } trailing: {
+                HStack(spacing: 8) {
+                    if userID != nil {
+                        AppNavigationButton(.add, title: "Add food log") { isCreating = true }
                     }
+                    AppNavigationButton(.settings, action: settingsAction)
                 }
             }
             .sheet(isPresented: $isCreating) {
@@ -124,22 +112,44 @@ struct FoodLogsView: View {
                     }
                 }
             }
-            .task { if userID != nil { await load() } }
+            .task(id: loadTaskID) {
+                guard userID != nil else {
+                    logs = []
+                    error = nil
+                    return
+                }
+                logs = []
+                await load()
+            }
         }
     }
 
-    private var userID: PartnerUserID? { DemoFormatting.endUserID(endUserID) }
-    private var context: FoodLogUserContext? { userID.map { .init(endUserID: $0, timezone: timezone) } }
+    private var userID: PartnerUserID? { userSession.partnerUserID }
+    private var context: PartnerUserContext? { userSession.partnerContext }
+    private var foodLogCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone(identifier: userSession.timezone) ?? .current
+        calendar.firstWeekday = 1
+        calendar.minimumDaysInFirstWeek = 1
+        return calendar
+    }
+    private var selectedDateRange: FoodLogDateRange {
+        selectedTimeSpan.dateRange(calendar: foodLogCalendar)
+    }
+    private var loadTaskID: String {
+        "\(userSession.endUserID)|\(userSession.timezone)|\(selectedTimeSpan.rawValue)"
+    }
 
     @MainActor private func load() async {
-        guard let context else { return }
+        guard let userClient = userSession.client(for: client) else { return }
         isLoading = true; error = nil
         do {
-            logs = try await client.foodLogs.list(.init(
-                start: DemoFormatting.apiDay.string(from: startDate),
-                end: DemoFormatting.apiDay.string(from: endDate),
-                user: context
-            )).items
+            let query = selectedDateRange.apiQuery(calendar: foodLogCalendar)
+            logs = try await userClient.foodLogs.list(
+                start: query.start,
+                end: query.end
+            ).items
         } catch { self.error = error }
         isLoading = false
     }
@@ -149,14 +159,14 @@ private struct FoodLogRow: View {
     let log: FoodLog
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
-            Image(systemName: "fork.knife.circle.fill").font(.largeTitle).foregroundStyle(DemoPalette.green)
+            Image(systemName: "fork.knife.circle.fill").font(.largeTitle).foregroundStyle(AppPalette.green)
             VStack(alignment: .leading, spacing: 5) {
                 Text(log.name?.isEmpty == false ? log.name! : "Meal").font(.headline)
-                Text(log.foods.map(\.name).joined(separator: ", ")).lineLimit(2).foregroundStyle(DemoPalette.body)
+                Text(log.foods.map(\.name).joined(separator: ", ")).lineLimit(2).foregroundStyle(AppPalette.body)
                 HStack {
                     Text(localDate(log.timestampUTC))
                     Text("· \(log.foods.count) food\(log.foods.count == 1 ? "" : "s")")
-                }.font(.caption).foregroundStyle(DemoPalette.muted)
+                }.font(.caption).foregroundStyle(AppPalette.muted)
             }
             Spacer(); Image(systemName: "chevron.right").foregroundStyle(.tertiary)
         }
@@ -172,7 +182,7 @@ private struct FoodLogEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name: String
     @State private var timestamp: Date
-    @State private var foods: [DemoSelectedFood]
+    @State private var foods: [SelectedFood]
     @State private var isShowingFoodPicker = false
     @State private var isSaving = false
     @State private var error: Error?
@@ -180,46 +190,143 @@ private struct FoodLogEditorView: View {
     init(client: JanuaryPartnerClient, context: FoodLogUserContext, existing: FoodLog?, onSaved: @escaping () -> Void) {
         self.client = client; self.context = context; self.existing = existing; self.onSaved = onSaved
         _name = State(initialValue: existing?.name ?? "")
-        _timestamp = State(initialValue: existing.flatMap { DemoFormatting.apiDate.date(from: $0.timestampUTC) } ?? .now)
+        _timestamp = State(initialValue: existing.flatMap { AppFormatting.apiDate.date(from: $0.timestampUTC) } ?? .now)
         _foods = State(initialValue: existing?.foods.map(selectedFood) ?? [])
     }
 
     var body: some View {
         NavigationStack {
-            DemoScreenShell {
-                Form {
-                Section("Meal") {
-                    TextField("Name (optional)", text: $name)
-                    DatePicker("Date and time", selection: $timestamp)
-                }
-                Section("Foods") {
-                    ForEach($foods) { $item in
+            ScrollView {
+                ScreenShell {
+                    LazyVStack(alignment: .leading, spacing: AppSpacing.section) {
+                        WorkflowGuideCard(
+                            title: existing == nil ? "Build this meal" : "Update this meal",
+                            message: "A log is one meal. Add every food that belongs to it, then choose each serving and quantity before saving.",
+                            steps: [
+                                "Set the meal time",
+                                "Add one or more foods",
+                                "Review servings and save"
+                            ],
+                            symbol: "fork.knife"
+                        )
+
+                        SectionLabel("Meal details")
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(item.food.name).font(.headline)
-                            Picker("Serving", selection: $item.serving) {
-                                ForEach(item.food.servings, id: \.id) { serving in Text("\(serving.quantity.formatted()) \(serving.unit)").tag(serving) }
-                            }
-                            Stepper("Quantity: \(item.quantity.formatted(.number.precision(.fractionLength(0...2))))", value: $item.quantity, in: 0.25...10_000, step: 0.25)
+                            Text("Meal name")
+                                .font(AppTypography.bodyStrong)
+                            TextField("Optional name", text: $name)
+                                .font(AppTypography.body)
+                                .padding(.horizontal, AppSpacing.controlHorizontal)
+                                .frame(minHeight: 54)
+                                .background(
+                                    AppPalette.control,
+                                    in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
+                                )
                         }
-                    }.onDelete { foods.remove(atOffsets: $0) }
-                    Button("Add food", systemImage: "plus") { isShowingFoodPicker = true }
+
+                        HStack(spacing: 12) {
+                            Text("Date and time")
+                                .font(AppTypography.bodyStrong)
+                            Spacer(minLength: 12)
+                            DatePicker("Date and time", selection: $timestamp)
+                                .labelsHidden()
+                        }
+                        .appCard()
+
+                        SectionLabel("Foods in this meal · \(foods.count)")
+                        if foods.isEmpty {
+                            EmptyStateCard(
+                                title: "No foods added",
+                                message: "Start with one food, then keep adding until the complete meal is represented.",
+                                symbol: "plus.circle"
+                            )
+                        } else {
+                            ForEach($foods) { $item in
+                                VStack(alignment: .leading, spacing: 14) {
+                                    HStack(alignment: .top, spacing: 12) {
+                                        Image(systemName: "fork.knife.circle.fill")
+                                            .font(.title2)
+                                            .foregroundStyle(AppPalette.green)
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(item.food.name)
+                                                .font(AppTypography.bodyStrong)
+                                            if let brand = item.food.brandName, !brand.isEmpty {
+                                                Text(brand)
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(AppPalette.muted)
+                                            }
+                                        }
+                                        Spacer(minLength: 8)
+                                        Button("Remove \(item.food.name)", systemImage: "trash", role: .destructive) {
+                                            foods.removeAll { $0.id == item.id }
+                                        }
+                                        .labelStyle(.iconOnly)
+                                    }
+
+                                    Divider().overlay(AppPalette.divider)
+
+                                    HStack(spacing: 12) {
+                                        Text("Serving")
+                                            .font(AppTypography.bodyStrong)
+                                        Spacer(minLength: 12)
+                                        Picker("Serving", selection: $item.serving) {
+                                            ForEach(item.food.servings, id: \.id) { serving in
+                                                Text("\(serving.quantity.formatted()) \(serving.unit)").tag(serving)
+                                            }
+                                        }
+                                        .labelsHidden()
+                                        .tint(AppPalette.green)
+                                    }
+
+                                    Divider().overlay(AppPalette.divider)
+
+                                    HStack(spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text("Quantity")
+                                                .font(AppTypography.bodyStrong)
+                                            Text(item.quantity.formatted(.number.precision(.fractionLength(0...2))))
+                                                .font(.subheadline.monospacedDigit())
+                                                .foregroundStyle(AppPalette.muted)
+                                        }
+                                        Spacer(minLength: 12)
+                                        Stepper("Quantity", value: $item.quantity, in: 0.25...10_000, step: 0.25)
+                                            .labelsHidden()
+                                    }
+                                }
+                                .appCard()
+                            }
+                        }
+
+                        Button(foods.isEmpty ? "Add first food" : "Add another food", systemImage: "plus") {
+                            isShowingFoodPicker = true
+                        }
+                            .buttonStyle(OutlinedButtonStyle())
+
+                        if let error { ErrorNotice(error: error) { Task { await save() } } }
+
+                        PrimaryButton(
+                            title: existing == nil ? "Save food log" : "Update food log",
+                            isLoading: isSaving,
+                            isDisabled: foods.isEmpty
+                        ) {
+                            Task { await save() }
+                        }
+                    }
                 }
-                if let error { Section { DemoErrorNotice(error: error) { Task { await save() } } } }
-                }
+                .padding(.vertical, AppSpacing.sheetTop)
+                .padding(.bottom, 88)
             }
-            .navigationTitle(existing == nil ? "New food log" : "Edit food log")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(existing == nil ? "Save" : "Update") { Task { await save() } }
-                        .disabled(foods.isEmpty || isSaving)
-                }
+            .appBackground()
+            .appNavigationBar(existing == nil ? "New food log" : "Edit food log") {
+                AppNavigationButton(.cancel) { dismiss() }
+            } trailing: {
+                EmptyView()
             }
             .sheet(isPresented: $isShowingFoodPicker) {
                 FoodPickerView(client: client, endUserID: context.endUserID) { food in foods.append(food); isShowingFoodPicker = false }
             }
         }
+        .presentationDetents([.large])
     }
 
     @MainActor private func save() async {
@@ -231,14 +338,14 @@ private struct FoodLogEditorView: View {
                 _ = try await client.foodLogs.update(.init(
                     id: existing.id,
                     foods: foods.map(\.selection),
-                    timestampUTC: DemoFormatting.apiDate.string(from: timestamp),
+                    timestampUTC: AppFormatting.apiDate.string(from: timestamp),
                     name: normalizedName.isEmpty ? nil : normalizedName,
                     user: context
                 ))
             } else {
                 _ = try await client.foodLogs.create(.init(
                     foods: foods.map(\.selection),
-                    timestampUTC: DemoFormatting.apiDate.string(from: timestamp),
+                    timestampUTC: AppFormatting.apiDate.string(from: timestamp),
                     name: normalizedName.isEmpty ? nil : normalizedName,
                     user: context
                 ))
@@ -263,39 +370,51 @@ private struct FoodLogDetailView: View {
 
     var body: some View {
         ScrollView {
-            DemoScreenShell {
+            ScreenShell {
                 VStack(alignment: .leading, spacing: 18) {
                 Text(log.name?.isEmpty == false ? log.name! : "Meal").font(.system(.largeTitle, design: .serif, weight: .bold))
-                Text(localDate(log.timestampUTC)).foregroundStyle(DemoPalette.muted)
+                Text(localDate(log.timestampUTC)).foregroundStyle(AppPalette.muted)
                 ForEach(log.foods, id: \.id) { food in
                     VStack(alignment: .leading, spacing: 10) {
                         Text(food.name).font(.headline)
-                        if let brand = food.brandName { Text(brand).foregroundStyle(DemoPalette.muted) }
+                        if let brand = food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
                         Text("\(food.consumedServing.quantity.formatted()) × \(food.servingDetails.quantity.formatted()) \(food.servingDetails.unit)")
                             .font(.subheadline)
-                        DemoMacroStrip(
+                        MacroGrid(
                             calories: food.nutrients.calories?.value,
                             protein: food.nutrients.protein?.value,
                             carbohydrates: food.nutrients.carbohydrates?.value,
                             fat: food.nutrients.totalFat?.value
                         )
-                        DemoNutritionList(rows: nutritionRows(food.nutrients))
-                    }.demoCard()
+                        NutritionList(rows: nutritionRows(food.nutrients))
+                    }.appCard()
                 }
                 DisclosureGroup("Technical details") { LabeledContent("Log ID", value: log.id) }.font(.footnote)
                 HStack {
                     Spacer(minLength: 0)
                     Button("Delete food log", role: .destructive) { isConfirmingDelete = true }
-                        .buttonStyle(.bordered)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AppPalette.rustText)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 48)
+                        .background(AppPalette.rustBackground, in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
+                                .stroke(AppPalette.rust.opacity(0.35), lineWidth: 1.5)
+                        }
                     Spacer(minLength: 0)
                 }
-                if let error { DemoErrorNotice(error: error) { Task { await delete() } } }
+                if let error { ErrorNotice(error: error) { Task { await delete() } } }
                 }
             }
             .padding(.vertical, 16)
         }
-        .demoBackground().navigationTitle("Food log").navigationBarTitleDisplayMode(.inline)
-        .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Edit") { isEditing = true } } }
+        .appBackground()
+        .appNavigationBar("Food log") {
+            EmptyView()
+        } trailing: {
+            AppNavigationButton(.edit) { isEditing = true }
+        }
         .sheet(isPresented: $isEditing) {
             FoodLogEditorView(client: client, context: context, existing: log) { isEditing = false; onChanged(); dismiss() }
         }
@@ -316,7 +435,7 @@ private struct FoodLogDetailView: View {
 struct FoodPickerView: View {
     let client: JanuaryPartnerClient
     let endUserID: PartnerUserID?
-    let onSelect: (DemoSelectedFood) -> Void
+    let onSelect: (SelectedFood) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var results: [FoodSearchItem] = []
@@ -327,10 +446,9 @@ struct FoodPickerView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
-                    DemoFillWidth {
-                        VStack(alignment: .leading, spacing: 16) {
-                            DemoSearchField(prompt: "Search foods", text: $query) {
+                ScreenShell {
+                    VStack(alignment: .leading, spacing: 16) {
+                            SearchField(prompt: "Search foods", text: $query) {
                                 Task { await search() }
                             }
                             .onChange(of: query) { _, value in
@@ -341,54 +459,47 @@ struct FoodPickerView: View {
                             }
 
                             if let error {
-                                DemoErrorNotice(error: error) { Task { await search() } }
+                                ErrorNotice(error: error) { Task { await search() } }
                             } else if results.isEmpty && !isLoading {
-                                DemoEmptyStateCard(
+                                EmptyStateCard(
                                     title: "Find a food",
                                     message: "Search January’s food database, then choose a serving and quantity.",
                                     symbol: "fork.knife"
                                 )
                             } else if !results.isEmpty {
                                 VStack(alignment: .leading, spacing: 10) {
-                                    DemoSectionLabel("Results · January food database")
+                                    SectionLabel("Results · January food database")
                                     VStack(spacing: 0) {
                                         ForEach(Array(results.enumerated()), id: \.element.id) { index, food in
                                             Button { chosenFood = food } label: {
-                                                DemoFoodRow(food: food)
+                                                FoodRow(food: food)
                                                     .padding(.vertical, 12)
                                             }
                                             .buttonStyle(.plain)
-                                            if index < results.count - 1 { Divider().overlay(DemoPalette.divider) }
+                                            if index < results.count - 1 { Divider().overlay(AppPalette.divider) }
                                         }
                                     }
-                                    .demoCard()
-                                    DemoFillWidth {
+                                    .appCard()
+                                    HStack {
+                                        Spacer(minLength: 0)
                                         Text("Photos load from January’s food database.")
                                             .font(.system(size: 14))
-                                            .foregroundStyle(DemoPalette.muted)
+                                            .foregroundStyle(AppPalette.muted)
                                             .multilineTextAlignment(.center)
+                                        Spacer(minLength: 0)
                                     }
                                 }
                             }
-                        }
                     }
                 }
                 .padding(.vertical, 16)
                 .padding(.bottom, 32)
             }
-            .demoBackground()
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(DemoPalette.goldText)
-                }
-                ToolbarItem(placement: .principal) {
-                    Text("Add food")
-                        .font(DemoTypography.cardTitle)
-                        .foregroundStyle(DemoPalette.ink)
-                }
+            .appBackground()
+            .appNavigationBar("Add food") {
+                AppNavigationButton(.cancel) { dismiss() }
+            } trailing: {
+                EmptyView()
             }
             .sheet(isPresented: Binding(
                 get: { chosenFood != nil },
@@ -410,12 +521,12 @@ struct FoodPickerView: View {
 
 private struct ServingSelectionSheet: View {
     let food: FoodSearchItem
-    let onSelect: (DemoSelectedFood) -> Void
+    let onSelect: (SelectedFood) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var serving: ServingOption
     @State private var quantity = 1.0
 
-    init(food: FoodSearchItem, onSelect: @escaping (DemoSelectedFood) -> Void) {
+    init(food: FoodSearchItem, onSelect: @escaping (SelectedFood) -> Void) {
         self.food = food; self.onSelect = onSelect
         _serving = State(initialValue: food.servings.first(where: \.isPrimary) ?? food.servings.first ?? .init(id: .init(rawValue: 0), quantity: 1, unit: "serving", scalingFactor: 1, isPrimary: true))
     }
@@ -423,31 +534,16 @@ private struct ServingSelectionSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                DemoScreenShell {
-                    DemoFillWidth {
-                        VStack(alignment: .leading, spacing: 14) {
-                            DemoFillWidth {
-                                HStack(spacing: 8) {
-                                    Button("Cancel") { dismiss() }
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundStyle(DemoPalette.goldText)
-                                        .frame(width: 88, alignment: .leading)
-                                    Spacer(minLength: 0)
-                                    DemoSectionLabel("Choose serving")
-                                        .padding(.horizontal, 0)
-                                    Spacer(minLength: 0)
-                                    Color.clear.frame(width: 88, height: 1)
-                                }
-                            }
-
+                ScreenShell {
+                    VStack(alignment: .leading, spacing: 14) {
                             Text(food.name)
-                                .font(DemoTypography.sheetTitle)
-                                .foregroundStyle(DemoPalette.ink)
+                                .font(AppTypography.sheetTitle)
+                                .foregroundStyle(AppPalette.ink)
 
                             VStack(spacing: 0) {
                                 HStack(spacing: 12) {
                                     Text("Serving")
-                                        .font(DemoTypography.bodyStrong)
+                                        .font(AppTypography.bodyStrong)
                                     Spacer(minLength: 8)
                                     Picker("Serving", selection: $serving) {
                                         ForEach(food.servings, id: \.id) {
@@ -455,61 +551,68 @@ private struct ServingSelectionSheet: View {
                                         }
                                     }
                                     .labelsHidden()
-                                    .tint(DemoPalette.goldText)
+                                    .tint(AppPalette.goldText)
                                 }
                                 .padding(.horizontal, 22)
                                 .padding(.vertical, 11)
 
-                                Divider().overlay(DemoPalette.border)
+                                Divider().overlay(AppPalette.border)
 
                                 HStack(spacing: 12) {
                                     Text("Quantity")
-                                        .font(DemoTypography.bodyStrong)
+                                        .font(AppTypography.bodyStrong)
                                     Spacer(minLength: 8)
                                     Button("Decrease quantity", systemImage: "minus") {
                                         quantity = max(0.25, quantity - 0.25)
                                     }
                                     .labelStyle(.iconOnly)
-                                    .buttonStyle(DemoQuantityButtonStyle())
+                                    .buttonStyle(QuantityButtonStyle())
                                     Text(quantity.formatted(.number.precision(.fractionLength(0...2))))
-                                        .font(.system(size: 34, weight: .semibold, design: .monospaced))
+                                        .font(.system(size: 26, weight: .semibold, design: .monospaced))
                                         .monospacedDigit()
-                                        .frame(width: 66)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.8)
+                                        .frame(width: 64)
                                     Button("Increase quantity", systemImage: "plus") {
                                         quantity += 0.25
                                     }
                                     .labelStyle(.iconOnly)
-                                    .buttonStyle(DemoQuantityButtonStyle(isPrimary: true))
+                                    .buttonStyle(QuantityButtonStyle(isPrimary: true))
                                 }
                                 .padding(.horizontal, 22)
                                 .padding(.vertical, 10)
                             }
-                            .background(DemoPalette.paper, in: RoundedRectangle(cornerRadius: DemoRadius.card, style: .continuous))
+                            .background(AppPalette.paper, in: RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous))
                             .overlay {
-                                RoundedRectangle(cornerRadius: DemoRadius.card, style: .continuous)
-                                    .stroke(DemoPalette.border, lineWidth: 1.5)
+                                RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
+                                    .stroke(AppPalette.border, lineWidth: 1.5)
                             }
 
-                            DemoEqualColumns(spacing: 8) {
+                            LazyVGrid(
+                                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4),
+                                spacing: 8
+                            ) {
                                 servingMetric("Calories", scaled(food.calories), "cal")
                                 servingMetric("Carbs", scaled(food.carbohydrates), "g")
                                 servingMetric("Protein", scaled(food.protein), "g")
                                 servingMetric("Fat", scaled(food.totalFat), "g")
                             }
 
-                            Button("Add to meal") {
+                            PrimaryButton(title: "Add to meal") {
                                 onSelect(.init(food: food, serving: serving, quantity: quantity))
                                 dismiss()
                             }
-                            .buttonStyle(DemoPrimaryButtonStyle())
-                        }
                     }
                 }
-                .padding(.top, DemoSpacing.sheetTop)
+                .padding(.top, AppSpacing.sheetTop)
                 .padding(.bottom, 12)
             }
-            .demoBackground()
-            .toolbar(.hidden, for: .navigationBar)
+            .appBackground()
+            .appNavigationBar("Choose serving") {
+                AppNavigationButton(.cancel) { dismiss() }
+            } trailing: {
+                EmptyView()
+            }
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
@@ -529,20 +632,20 @@ private struct ServingSelectionSheet: View {
             Text(label.uppercased())
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.7)
-                .foregroundStyle(DemoPalette.muted)
+                .foregroundStyle(AppPalette.muted)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value?.formatted(.number.precision(.fractionLength(0...1))) ?? "—")
                     .font(.system(size: 20, weight: .semibold, design: .monospaced))
                     .monospacedDigit()
                 Text(unit)
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(DemoPalette.muted)
+                    .foregroundStyle(AppPalette.muted)
             }
         }
     }
 }
 
-private func selectedFood(_ logged: LoggedFood) -> DemoSelectedFood {
+private func selectedFood(_ logged: LoggedFood) -> SelectedFood {
     let serving = ServingOption(
         id: logged.servingDetails.id,
         quantity: logged.servingDetails.quantity,
@@ -575,7 +678,7 @@ private func selectedFood(_ logged: LoggedFood) -> DemoSelectedFood {
     return .init(food: food, serving: serving, quantity: logged.consumedServing.quantity)
 }
 
-private func nutritionRows(_ value: NutritionFacts) -> [DemoNutrientRow] {
+private func nutritionRows(_ value: NutritionFacts) -> [NutrientRow] {
     [
         value.netCarbohydrates.map { .init(name: "Net carbohydrates", value: $0.value, unit: $0.unit) },
         value.transFat.map { .init(name: "Trans fat", value: $0.value, unit: $0.unit) },
@@ -593,6 +696,6 @@ private func nutritionRows(_ value: NutritionFacts) -> [DemoNutrientRow] {
 }
 
 private func localDate(_ value: String) -> String {
-    guard let date = DemoFormatting.apiDate.date(from: value) else { return value }
+    guard let date = AppFormatting.apiDate.date(from: value) else { return value }
     return date.formatted(date: .abbreviated, time: .shortened)
 }

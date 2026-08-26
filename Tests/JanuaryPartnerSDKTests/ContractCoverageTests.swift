@@ -624,6 +624,48 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     #expect(profile["health_conditions"] as? [String] == ["prediabetes"])
 }
 
+@Test
+func userScopedClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
+    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z","name":"Meal"}"#
+    let transport = ContractProbeTransport(responses: [
+        "createFoodLog": logJSON,
+        "listFoodLogs": #"{"total_count":0,"items":[]}"#,
+        "updateFoodLog": logJSON,
+        "deleteFoodLog": #"{"status":"deleted"}"#,
+        "predictGlucose": #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#,
+    ])
+    let client = try probeClient(transport)
+    let context = PartnerUserContext(
+        endUserID: PartnerUserID(rawValue: "scoped-user"),
+        timezone: "America/New_York"
+    )
+    let userClient = client.forUser(context)
+    let food = FoodSelection(
+        id: FoodID(rawValue: 42),
+        serving: ServingSelection(id: ServingID(rawValue: 7), quantity: 1)
+    )
+
+    let created = try await userClient.foodLogs.create(foods: [food], name: "Meal")
+    _ = try await userClient.foodLogs.list(start: "2026-08-22", end: "2026-08-24")
+    _ = try await userClient.foodLogs.update(id: created.id, foods: [food], name: "Updated")
+    _ = try await userClient.foodLogs.delete(id: created.id)
+    _ = try await userClient.glucose.predict(.init(
+        userProfile: .init(age: 35, gender: .female, height: 65, weight: 140),
+        foods: [food],
+        startTime: Date(timeIntervalSince1970: 0),
+        endUserID: PartnerUserID(rawValue: "request-user-is-replaced"),
+        timezone: "UTC"
+    ))
+
+    #expect(userClient.context == context)
+    let requests = await transport.requests()
+    #expect(requests.count == 5)
+    for request in requests {
+        #expect(request.headers[HTTPField.Name("x-end-user-id")!] == "scoped-user")
+        #expect(request.headers[HTTPField.Name("x-end-user-timezone")!] == "America/New_York")
+    }
+}
+
 private func expectEndpointError<Value: Sendable>(
     status: Int,
     category: ErrorCategory,
