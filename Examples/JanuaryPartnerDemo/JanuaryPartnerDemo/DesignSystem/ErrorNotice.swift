@@ -8,7 +8,7 @@ struct ErrorNotice: View {
     private var title: String {
         guard let januaryError = error as? JanuaryError else { return "Couldn’t complete that request" }
         switch januaryError.category {
-        case .authentication, .authorization: return "Couldn’t use the configured API key"
+        case .authentication, .authorization: return "Couldn’t use the configured credentials"
         case .validation: return "Check the information you entered"
         case .notFound: return "No matching result was found"
         case .rateLimited: return "Too many requests"
@@ -52,4 +52,3 @@ struct ErrorNotice: View {
     .padding()
     .background(AppPalette.paper)
 }
-

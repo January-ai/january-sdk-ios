@@ -4,7 +4,6 @@ struct AppNavigationButton: View {
     enum Kind {
         case back
         case close
-        case cancel
         case done
         case add
         case edit
@@ -45,7 +44,6 @@ private extension AppNavigationButton.Kind {
         switch self {
         case .back: "Back"
         case .close: "Close"
-        case .cancel: "Cancel"
         case .done: "Done"
         case .add: "Add"
         case .edit: "Edit"
@@ -59,21 +57,21 @@ private extension AppNavigationButton.Kind {
         case .close: "xmark"
         case .add: "plus"
         case .settings: "gearshape"
-        case .cancel, .done, .edit: nil
+        case .done, .edit: nil
         }
     }
 
     var isIconOnly: Bool {
         switch self {
-        case .close, .add, .settings: true
-        case .back, .cancel, .done, .edit: false
+        case .back, .close, .add, .settings: true
+        case .done, .edit: false
         }
     }
 
     var tint: Color {
         switch self {
-        case .close, .add, .settings: AppPalette.ink
-        case .back, .cancel, .done, .edit: AppPalette.goldText
+        case .back, .close, .add, .settings: AppPalette.ink
+        case .done, .edit: AppPalette.goldText
         }
     }
 }
@@ -82,7 +80,7 @@ private extension AppNavigationButton.Kind {
     NavigationStack {
         Color.clear
             .appNavigationBar("Add food") {
-                AppNavigationButton(.cancel, action: {})
+                AppNavigationButton(.close, action: {})
             } trailing: {
                 AppNavigationButton(.done, action: {})
             }

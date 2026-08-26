@@ -4,6 +4,7 @@ import OpenAPIRuntime
 
 enum AuthenticationSource: Sendable {
     case developmentAPIKey(String)
+    case fixedClientToken(String)
     case clientToken(ClientTokenManager)
 }
 
@@ -30,33 +31,64 @@ struct AuthenticationMiddleware: ClientMiddleware {
                 body,
                 baseURL
             )
+        case .fixedClientToken(let token):
+            return try await next(
+                authenticatedRequest(request, bearerToken: token, omitEndUserID: true),
+                body,
+                baseURL
+            )
         case .clientToken(let manager):
             let token = try await manager.token()
-            let authenticated = authenticatedRequest(request, bearerToken: token.value)
+            let authenticated = authenticatedRequest(
+                request,
+                bearerToken: token.token,
+                omitEndUserID: true
+            )
             let firstResponse = try await next(authenticated, body, baseURL)
 
             guard
                 firstResponse.0.status == .unauthorized,
-                isInvalidTokenChallenge(firstResponse.0),
-                isReplayable(body)
+                isReplayable(body),
+                let responseBody = firstResponse.1
             else {
                 return firstResponse
             }
 
-            await manager.invalidate(ifMatching: token.value)
+            let responseBytes = try await [UInt8](collecting: responseBody, upTo: 64 * 1_024)
+            let bufferedResponse = (firstResponse.0, HTTPBody(responseBytes))
+            guard
+                let error = try? JSONDecoder().decode(TokenErrorResponse.self, from: Data(responseBytes)),
+                error.code == "token_expired"
+            else {
+                return bufferedResponse
+            }
+
+            await manager.invalidate(ifMatching: token.token)
             let refreshedToken = try await manager.token()
             return try await next(
-                authenticatedRequest(request, bearerToken: refreshedToken.value),
+                authenticatedRequest(
+                    request,
+                    bearerToken: refreshedToken.token,
+                    omitEndUserID: true
+                ),
                 body,
                 baseURL
             )
         }
     }
 
-    private func authenticatedRequest(_ original: HTTPRequest, bearerToken: String) -> HTTPRequest {
+    private func authenticatedRequest(
+        _ original: HTTPRequest,
+        bearerToken: String,
+        omitEndUserID: Bool = false
+    ) -> HTTPRequest {
         var request = original
         request.headerFields[.authorization] = "Bearer \(bearerToken)"
         request.headerFields[.userAgent] = userAgent
+
+        if omitEndUserID, let name = HTTPField.Name("x-end-user-id") {
+            request.headerFields[name] = nil
+        }
 
         for rawName in ["x-end-user-id", "x-end-user-timezone"] {
             if
@@ -70,13 +102,6 @@ struct AuthenticationMiddleware: ClientMiddleware {
         return request
     }
 
-    private func isInvalidTokenChallenge(_ response: HTTPResponse) -> Bool {
-        guard let challenge = response.headerFields[.wwwAuthenticate]?.lowercased() else {
-            return false
-        }
-        return challenge.contains("error=\"invalid_token\"") || challenge.contains("error=invalid_token")
-    }
-
     private func isReplayable(_ body: HTTPBody?) -> Bool {
         guard let body else { return true }
         switch body.iterationBehavior {
@@ -84,4 +109,8 @@ struct AuthenticationMiddleware: ClientMiddleware {
         case .single: return false
         }
     }
+}
+
+private struct TokenErrorResponse: Decodable {
+    let code: String
 }

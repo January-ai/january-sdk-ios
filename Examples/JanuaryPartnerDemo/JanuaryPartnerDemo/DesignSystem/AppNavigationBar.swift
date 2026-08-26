@@ -19,7 +19,7 @@ private struct AppNavigationBarModifier<Leading: View, Trailing: View>: ViewModi
                 if style == .centered {
                     ToolbarItem(placement: .principal) {
                         Text(title)
-                            .font(AppTypography.cardTitle)
+                            .font(AppTypography.navigationTitle)
                             .foregroundStyle(AppPalette.ink)
                     }
                 }

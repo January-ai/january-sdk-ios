@@ -141,10 +141,51 @@ integrating app's authenticated backend:
 
 ```swift
 let january = try JanuaryPartnerClient(clientTokenProvider: {
-    let token = try await partnerBackend.createJanuaryToken()
-    return JanuaryClientToken(value: token.accessToken, expiresAt: token.expiresAt)
+    try await partnerBackend.createJanuaryToken()
 })
 ```
+
+Token-provider failures are retried with bounded exponential backoff and jitter.
+The default makes four total attempts (the initial fetch plus three retries).
+Customize or disable this behavior explicitly when constructing the client:
+
+```swift
+let retryPolicy = JanuaryTokenRetryPolicy(
+    maximumAttempts: 5,
+    initialDelay: 0.25,
+    multiplier: 2,
+    maximumDelay: 2,
+    jitterRatio: 0.2
+)
+
+let january = try JanuaryPartnerClient(
+    clientTokenProvider: { try await partnerBackend.createJanuaryToken() },
+    tokenRetryPolicy: retryPolicy
+)
+```
+
+Decode the backend's JSON response directly as `JanuaryClientToken`; its
+stable shape is `{ token, expiresIn }`. Decoding also tolerates January's
+snake-case `{ token, expires_in }` response.
+
+If the app manages refresh itself, pass the short-lived token directly and
+recreate the client when it changes:
+
+```swift
+let january = try JanuaryPartnerClient(clientToken: accessToken)
+let user = january.forUser(PartnerUserID(rawValue: partnerUserID))
+```
+
+For larger integrations, implement `JanuaryTokenProvider` instead of a
+closure. Provider tokens are kept only in memory, refreshed 60 seconds before
+expiration, and shared across concurrent requests. A failed provider fetch uses
+the configured bounded backoff policy. An HTTP 401 whose JSON body has
+`code: "token_expired"` invalidates the token and replays the January operation
+once after obtaining a replacement. Other authentication errors are surfaced
+without replaying. The provider owns its endpoint URL,
+request authentication, and headers; the SDK provides no token-endpoint URL or
+fallback. Client-token requests omit `x-end-user-id`, because the token already
+identifies the end user.
 
 The existing `developmentAPIKey:` initializer remains supported during the
 server rollout.

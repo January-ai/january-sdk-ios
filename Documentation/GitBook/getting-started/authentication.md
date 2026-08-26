@@ -1,9 +1,11 @@
 # Authentication and security
 
-The SDK supports two additive authentication modes:
+The SDK supports three additive authentication modes:
 
 1. a development API key for current non-distributable integration work; and
-2. short-lived client tokens fetched from the integrating app's backend.
+2. an app-managed short-lived client token; or
+3. short-lived client tokens fetched from the integrating app's backend through
+   a callback or `JanuaryTokenProvider` implementation.
 
 The current SDK accepts a development API key when creating `JanuaryPartnerClient`.
 
@@ -37,6 +39,14 @@ Do not pass email addresses, names, or other directly identifying information as
 
 ## Short-lived client tokens
 
+If the app already owns the complete token lifecycle, pass the token directly
+and recreate the client when it changes:
+
+```swift
+let january = try JanuaryPartnerClient(clientToken: accessToken)
+let user = january.forUser(PartnerUserID(rawValue: partnerOwnedUserID))
+```
+
 In a distributable application, provide an asynchronous closure that calls your
 own authenticated backend. Your backend derives the current user from its
 session and requests a short-lived token from January using its server-side
@@ -44,21 +54,62 @@ partner secret.
 
 ```swift
 let january = try JanuaryPartnerClient(clientTokenProvider: {
-    let response = try await partnerBackend.createJanuaryToken()
-    return JanuaryClientToken(
-        value: response.accessToken,
-        expiresAt: response.expiresAt
-    )
+    try await partnerBackend.createJanuaryToken()
 })
 ```
 
+The same integration can use a named provider object when that fits the app's
+dependency-injection architecture:
+
+```swift
+struct AppJanuaryTokenProvider: JanuaryTokenProvider {
+    let partnerBackend: PartnerBackend
+
+    func fetchClientToken() async throws -> JanuaryClientToken {
+        try await partnerBackend.createJanuaryToken()
+    }
+}
+
+let january = try JanuaryPartnerClient(
+    clientTokenProvider: AppJanuaryTokenProvider(partnerBackend: partnerBackend)
+)
+```
+
+By default, a failed provider fetch gets four total attempts with exponential
+backoff and jitter. The policy is configurable and can be disabled with
+`.none`:
+
+```swift
+let january = try JanuaryPartnerClient(
+    clientTokenProvider: AppJanuaryTokenProvider(partnerBackend: partnerBackend),
+    tokenRetryPolicy: JanuaryTokenRetryPolicy(
+        maximumAttempts: 5,
+        initialDelay: 0.25,
+        multiplier: 2,
+        maximumDelay: 2,
+        jitterRatio: 0.2
+    )
+)
+```
+
+Have the backend client decode the response as `JanuaryClientToken`. Its stable
+shape is `{ token, expiresIn }`; the decoder also accepts `{ token, expires_in }`
+when a backend relays January's response without changing the casing.
+
 The SDK caches the token in memory, refreshes it one minute before expiration,
-and coalesces concurrent refreshes. When January returns the standard
-`invalid_token` challenge, the SDK refreshes and retries a replayable request
-once. It never persists or logs the token.
+coalesces concurrent refreshes, and retries failed provider fetches using the
+configured bounded policy. Only an HTTP 401 whose JSON body contains
+`code: "token_expired"` causes invalidation and one replay of the January API
+operation. Other authentication errors stop immediately and surface to the app.
+It never persists or logs the
+token, and client-token requests omit `x-end-user-id` because the token already
+identifies the user.
 
 The provider must call the partner's backend, not January's token-issuance
-endpoint. A partner API key must never enter the app process.
+endpoint. It owns the endpoint URL, HTTP method, session authentication, and
+headers. The SDK intentionally has no default token endpoint, so missing app
+configuration fails where the app constructs its provider. A partner API key
+must never enter the app process.
 
 ## Production applications
 

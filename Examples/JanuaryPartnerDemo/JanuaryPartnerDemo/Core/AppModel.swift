@@ -1,10 +1,11 @@
 import Foundation
-import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) import JanuaryPartnerSDK
 import Observation
 
 enum AuthenticationConfiguration: Sendable {
     case developmentAPIKey(String)
-    case clientToken(partnerTokenURL: URL, januaryServerURL: URL, endUserID: String)
+    case clientToken(partnerTokenURL: URL, apiBaseURL: URL, endUserID: String)
+    case invalid(String)
 }
 
 @MainActor
@@ -44,18 +45,24 @@ final class AppModel {
                 let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !normalizedAPIKey.isEmpty else {
                     state = .failed(
-                        "Set AppConfiguration.apiKey in JanuaryPartnerDemoApp.swift."
+                        "Set JANUARY_DEMO_API_KEY or PARTNER_TOKEN_URL in the Xcode scheme."
                     )
                     return
                 }
                 client = try JanuaryPartnerClient(developmentAPIKey: normalizedAPIKey)
-            case .clientToken(let partnerTokenURL, let januaryServerURL, let endUserID):
-                client = try JanuaryPartnerClient(serverURL: januaryServerURL) {
-                    try await Self.fetchClientToken(
-                        from: partnerTokenURL,
-                        endUserID: endUserID
-                    )
-                }
+            case .clientToken(let partnerTokenURL, let apiBaseURL, let endUserID):
+                client = try JanuaryPartnerClient(
+                    clientTokenProvider: {
+                        try await Self.fetchClientToken(
+                            from: partnerTokenURL,
+                            endUserID: endUserID
+                        )
+                    },
+                    apiBaseURL: apiBaseURL
+                )
+            case .invalid(let message):
+                state = .failed(message)
+                return
             }
             state = .ready
         } catch {
@@ -68,35 +75,26 @@ final class AppModel {
         from url: URL,
         endUserID: String
     ) async throws -> JanuaryClientToken {
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        // Local simulation only. A production partner route uses the app's
-        // existing authenticated session and derives the user on its server.
-        request.setValue(endUserID, forHTTPHeaderField: "x-demo-user-id")
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            throw TokenError.invalidURL
+        }
+        components.queryItems = (components.queryItems ?? []) + [
+            URLQueryItem(name: "user", value: endUserID),
+        ]
+        guard let requestURL = components.url else { throw TokenError.invalidURL }
+        var request = URLRequest(url: requestURL)
+        request.httpMethod = "GET"
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
             throw TokenError.requestFailed
         }
-        let wire = try JSONDecoder().decode(TokenResponse.self, from: data)
-        guard let expiresAt = parseISO8601(wire.expiresAt) else {
-            throw TokenError.invalidExpiration
-        }
-        return JanuaryClientToken(value: wire.accessToken, expiresAt: expiresAt)
+        let token = try JSONDecoder().decode(JanuaryClientToken.self, from: data)
+        print("January demo fetched a short-lived token valid for \(token.expiresIn) seconds.")
+        return token
     }
-
-    private static func parseISO8601(_ value: String) -> Date? {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
-    }
-}
-
-nonisolated private struct TokenResponse: Decodable, Sendable {
-    let accessToken: String
-    let expiresAt: String
 }
 
 private enum TokenError: Error {
     case requestFailed
-    case invalidExpiration
+    case invalidURL
 }

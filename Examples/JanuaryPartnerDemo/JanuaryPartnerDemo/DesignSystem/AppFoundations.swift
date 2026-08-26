@@ -43,6 +43,7 @@ enum AppTypography {
     static let screenTitle = Font.system(size: 32, weight: .regular, design: .serif)
     static let sheetTitle = Font.system(size: 28, weight: .regular, design: .serif)
     static let cardTitle = Font.system(size: 24, weight: .regular, design: .serif)
+    static let navigationTitle = Font.headline
     static let body = Font.system(size: 17)
     static let bodyStrong = Font.system(size: 17, weight: .semibold)
     static let metric = Font.system(size: 20, weight: .semibold, design: .monospaced)

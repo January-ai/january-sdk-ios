@@ -3,6 +3,7 @@ import SwiftUI
 
 struct FoodRow: View {
     let food: FoodSearchItem
+    var isLoading = false
 
     var body: some View {
         HStack(spacing: 14) {
@@ -32,7 +33,13 @@ struct FoodRow: View {
                 .foregroundStyle(AppPalette.muted)
             }
             Spacer(minLength: 4)
-            Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            if isLoading {
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(AppPalette.muted)
+            } else {
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+            }
         }
         .contentShape(Rectangle())
     }

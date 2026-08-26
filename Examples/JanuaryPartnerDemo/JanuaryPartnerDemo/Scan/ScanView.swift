@@ -531,7 +531,7 @@ private struct ImageURLSheet: View {
             }
             .appBackground()
             .appNavigationBar("Use image URL") {
-                AppNavigationButton(.cancel) { dismiss() }
+                AppNavigationButton(.close, title: "Close image URL entry") { dismiss() }
             } trailing: {
                 EmptyView()
             }

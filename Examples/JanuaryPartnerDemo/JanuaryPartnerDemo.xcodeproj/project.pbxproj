@@ -41,12 +41,15 @@
 		A10000000000000000000013 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* ScanView.swift */; };
 		A10000000000000000000014 /* FoodLogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* FoodLogsView.swift */; };
 		A10000000000000000000015 /* GlucoseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* GlucoseView.swift */; };
+		A10000000000000000000021 /* HeightInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021 /* HeightInput.swift */; };
+		A10000000000000000000022 /* WeightInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000022 /* WeightInput.swift */; };
 		A10000000000000000000016 /* burger-and-fries.png in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* burger-and-fries.png */; };
 		A10000000000000000000017 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* LocationProvider.swift */; };
 		A10000000000000000000018 /* RestaurantDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018 /* RestaurantDetailViewModel.swift */; };
 		A10000000000000000000019 /* UserSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000019 /* UserSession.swift */; };
 		A10000000000000000000020 /* FoodLogTimeSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000020 /* FoodLogTimeSpan.swift */; };
 		B10000000000000000000020 /* FoodLogTimeSpanPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000020 /* FoodLogTimeSpanPicker.swift */; };
+		B10000000000000000000021 /* EndAlignedNumberField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000021 /* EndAlignedNumberField.swift */; };
 		C10000000000000000000001 /* ScanPhotoInstructions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000001 /* ScanPhotoInstructions.swift */; };
 		C10000000000000000000002 /* ScanImagePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000002 /* ScanImagePreview.swift */; };
 /* End PBXBuildFile section */
@@ -86,12 +89,15 @@
 		A20000000000000000000013 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
 		A20000000000000000000014 /* FoodLogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogsView.swift; sourceTree = "<group>"; };
 		A20000000000000000000015 /* GlucoseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseView.swift; sourceTree = "<group>"; };
+		A20000000000000000000021 /* HeightInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightInput.swift; sourceTree = "<group>"; };
+		A20000000000000000000022 /* WeightInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightInput.swift; sourceTree = "<group>"; };
 		A20000000000000000000016 /* burger-and-fries.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "burger-and-fries.png"; path = "../../../Tests/JanuaryPartnerSDKTests/Fixtures/PhotoScanning/burger-and-fries.png"; sourceTree = "<group>"; };
 		A20000000000000000000017 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		A20000000000000000000018 /* RestaurantDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantDetailViewModel.swift; sourceTree = "<group>"; };
 		A20000000000000000000019 /* UserSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSession.swift; sourceTree = "<group>"; };
 		A20000000000000000000020 /* FoodLogTimeSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogTimeSpan.swift; sourceTree = "<group>"; };
 		B20000000000000000000020 /* FoodLogTimeSpanPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogTimeSpanPicker.swift; sourceTree = "<group>"; };
+		B20000000000000000000021 /* EndAlignedNumberField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndAlignedNumberField.swift; sourceTree = "<group>"; };
 		C20000000000000000000001 /* ScanPhotoInstructions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanPhotoInstructions.swift; sourceTree = "<group>"; };
 		C20000000000000000000002 /* ScanImagePreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanImagePreview.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -178,6 +184,7 @@
 				B2000000000000000000000D /* MacroGrid.swift */,
 				B2000000000000000000000E /* NutritionList.swift */,
 				B2000000000000000000000F /* PredictionChart.swift */,
+				B20000000000000000000021 /* EndAlignedNumberField.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -240,6 +247,8 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000015 /* GlucoseView.swift */,
+				A20000000000000000000021 /* HeightInput.swift */,
+				A20000000000000000000022 /* WeightInput.swift */,
 			);
 			path = Glucose;
 			sourceTree = "<group>";
@@ -370,6 +379,7 @@
 				B1000000000000000000000D /* MacroGrid.swift in Sources */,
 				B1000000000000000000000E /* NutritionList.swift in Sources */,
 				B1000000000000000000000F /* PredictionChart.swift in Sources */,
+				B10000000000000000000021 /* EndAlignedNumberField.swift in Sources */,
 				A10000000000000000000011 /* SettingsView.swift in Sources */,
 				A10000000000000000000012 /* SearchView.swift in Sources */,
 				A10000000000000000000013 /* ScanView.swift in Sources */,
@@ -378,6 +388,8 @@
 				A10000000000000000000014 /* FoodLogsView.swift in Sources */,
 				B10000000000000000000019 /* FoodLogUserCard.swift in Sources */,
 				A10000000000000000000015 /* GlucoseView.swift in Sources */,
+				A10000000000000000000021 /* HeightInput.swift in Sources */,
+				A10000000000000000000022 /* WeightInput.swift in Sources */,
 				A10000000000000000000017 /* LocationProvider.swift in Sources */,
 				A10000000000000000000018 /* RestaurantDetailViewModel.swift in Sources */,
 				A10000000000000000000019 /* UserSession.swift in Sources */,

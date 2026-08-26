@@ -77,9 +77,9 @@ struct GlucoseView: View {
                             .padding(.vertical, 14)
 
                             Divider()
-                            measurementRow("Height", value: $height, unit: "in")
+                            HeightInput(heightInches: $height)
                             Divider()
-                            measurementRow("Weight", value: $weight, unit: "lb")
+                            WeightInput(weightPounds: $weight)
                             Divider()
                             NavigationLink {
                                 ConditionSelectionView(selection: $conditions)

@@ -62,7 +62,12 @@ struct SearchView: View {
                         }
 
                         if !foodSuggestions.isEmpty {
-                            foodSuggestionList
+                            FoodSuggestionList(items: foodSuggestions) { suggestion in
+                                autocompleteSuppressedQuery = suggestion.name
+                                query = suggestion.name
+                                foodSuggestions = []
+                                Task { await submit() }
+                            }
                         }
 
                         SegmentedControl(Scope.allCases, selection: $scope) { $0.rawValue }
@@ -141,35 +146,6 @@ struct SearchView: View {
 
     private var canAutocomplete: Bool {
         scope == .foods && foodMode == .name && category != .recipe
-    }
-
-    private var foodSuggestionList: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(foodSuggestions.enumerated()), id: \.element.id) { index, suggestion in
-                Button {
-                    autocompleteSuppressedQuery = suggestion.name
-                    query = suggestion.name
-                    foodSuggestions = []
-                    Task { await submit() }
-                } label: {
-                    HStack {
-                        Text(suggestion.name)
-                            .font(.body.weight(.medium))
-                            .foregroundStyle(AppPalette.ink)
-                            .multilineTextAlignment(.leading)
-                        Spacer(minLength: 12)
-                    }
-                    .contentShape(Rectangle())
-                    .frame(minHeight: 48)
-                }
-                .buttonStyle(.plain)
-
-                if index < foodSuggestions.count - 1 {
-                    Divider().overlay(AppPalette.divider)
-                }
-            }
-        }
-        .appCard()
     }
 
     private var searchPrompt: String {
@@ -435,6 +411,58 @@ struct SearchView: View {
     private func resetResults(keepError: Bool = false) {
         foodSuggestions = []; foodResults = []; naturalResult = nil; restaurants = []; menuItems = []
         if !keepError { error = nil }
+    }
+}
+
+struct FoodSuggestionList: View {
+    let items: [FoodSuggestion]
+    var loadingID: FoodID?
+    let onSelect: (FoodSuggestion) -> Void
+
+    init(
+        items: [FoodSuggestion],
+        loadingID: FoodID? = nil,
+        onSelect: @escaping (FoodSuggestion) -> Void
+    ) {
+        self.items = items
+        self.loadingID = loadingID
+        self.onSelect = onSelect
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.element.id) { index, suggestion in
+                Button { onSelect(suggestion) } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(suggestion.name)
+                                .font(.body.weight(.medium))
+                                .foregroundStyle(AppPalette.ink)
+                                .multilineTextAlignment(.leading)
+                            if let brandName = suggestion.brandName, !brandName.isEmpty {
+                                Text(brandName)
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppPalette.muted)
+                            }
+                        }
+                        Spacer(minLength: 12)
+                        if loadingID == suggestion.id {
+                            ProgressView()
+                                .tint(AppPalette.goldText)
+                        }
+                    }
+                    .contentShape(Rectangle())
+                    .frame(minHeight: 48)
+                }
+                .buttonStyle(.plain)
+                .disabled(loadingID != nil)
+
+                if index < items.count - 1 {
+                    Divider().overlay(AppPalette.divider)
+                }
+            }
+        }
+        .appCard()
     }
 }
 
@@ -748,9 +776,9 @@ private struct FoodGlucoseSheet: View {
             }
             .appBackground()
             .appNavigationBar("Glucose response") {
-                EmptyView()
+                AppNavigationButton(.close, title: "Close glucose response") { dismiss() }
             } trailing: {
-                AppNavigationButton(.done) { dismiss() }
+                EmptyView()
             }
             .task {
                 guard prediction == nil, !isLoading else { return }

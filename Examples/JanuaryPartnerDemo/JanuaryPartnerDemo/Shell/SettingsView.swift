@@ -78,7 +78,7 @@ struct SettingsView: View {
                             LabeledContent("App version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")
                                 .padding(.vertical, AppSpacing.rowVertical)
                             Divider().overlay(AppPalette.divider)
-                            LabeledContent("Environment", value: "Development")
+                            LabeledContent("January API", value: "Production")
                                 .padding(.vertical, AppSpacing.rowVertical)
                         }
                         .font(AppTypography.body)

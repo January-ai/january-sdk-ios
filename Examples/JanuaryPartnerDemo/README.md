@@ -1,8 +1,8 @@
 # January Partner Demo
 
-The demo keeps development API-key authentication and adds a local
-short-lived-token mode. Credentials are read from the Xcode scheme environment;
-none are stored in source.
+The demo supports development API-key authentication and the production-shaped
+short-lived-token provider. Credentials are read from the Xcode scheme
+environment; none are stored in source.
 
 For the existing API-key flow, set:
 
@@ -10,20 +10,21 @@ For the existing API-key flow, set:
 JANUARY_DEMO_API_KEY=<development-key>
 ```
 
-For the complete local token simulation, first start `mock-january` on port
-4010 and the Node partner example on port 4020 from the adjacent
-`january-server-sdks` workspace. Then set these Xcode scheme variables:
+To exercise the token provider with January's local stand-in backend, set these
+Xcode scheme variables explicitly:
 
 ```text
-JANUARY_DEMO_AUTH_MODE=token
-PARTNER_TOKEN_URL=http://127.0.0.1:4020/api/january/token
-JANUARY_BASE_URL=http://127.0.0.1:4010
+PARTNER_TOKEN_URL=http://127.0.0.1:8787/january-token
+JANUARY_INTERNAL_API_BASE_URL=https://partners.dev.january.ai
 JANUARY_END_USER_ID=local-ios-user
 ```
 
-The mock issues one-hour, in-memory tokens. Open
-`JanuaryPartnerDemo.xcodeproj` and run the `JanuaryPartnerDemo` scheme on an
-iOS 26 simulator.
+The demo refuses to start token mode when either URL is missing. The token
+endpoint must return `{ "token": "ct-…", "expiresIn": 1800 }` (snake-case
+`expires_in` is also accepted). These development URL settings belong to the
+January-owned demo and are not public SDK configuration.
+Open `JanuaryPartnerDemo.xcodeproj` and run the `JanuaryPartnerDemo` scheme on
+an iOS 26 simulator.
 
 The demo provides native screens for food and restaurant discovery, meal-photo
 analysis and correction, food-log management, and glucose prediction. Set an
@@ -37,8 +38,64 @@ screens should use that shared system rather than defining local colors,
 typography, spacing, or button styles.
 
 The project links the repository's `JanuaryPartnerSDK` library through a local
-Swift Package dependency. In token mode the app calls the local partner route;
-the SDK then caches the returned token in memory and calls the local January
-food-search fixture directly.
+Swift Package dependency. In token mode the app calls the partner route; the
+SDK then caches the returned token in memory and calls the explicitly configured
+January development API through a development-only SPI.
 
 Never embed a partner API key in an app distributed to customers.
+
+## Live token-refresh smoke test
+
+Run the stand-in backend with January's minimum client-token lifetime:
+
+```sh
+cd ../partner-proxy-service
+JANUARY_API_KEY="$JANUARY_API_KEY" TTL_SECONDS=300 \
+  node scripts/mock-partner-backend.js
+```
+
+For a fast live proof that the SDK calls the provider again, the smoke executable
+can report a 61-second cache lifetime while the real token remains valid for 300
+seconds. After two seconds, the SDK is inside its 60-second refresh window:
+
+```sh
+PARTNER_TOKEN_URL=http://127.0.0.1:8787/january-token \
+JANUARY_INTERNAL_API_BASE_URL=https://partners.dev.january.ai \
+JANUARY_END_USER_ID=refresh-smoke-user \
+JANUARY_TEST_REPORTED_EXPIRES_IN=61 \
+JANUARY_TEST_SECOND_REQUEST_DELAY_SECONDS=2 \
+swift run JanuaryPartnerTokenSmoke
+```
+
+The output must report two provider calls, and the stand-in backend must report
+two token mints. To exercise January's real `401 token_expired` response, report
+a longer cache lifetime than the real token and wait just over five minutes:
+
+```sh
+PARTNER_TOKEN_URL=http://127.0.0.1:8787/january-token \
+JANUARY_INTERNAL_API_BASE_URL=https://partners.dev.january.ai \
+JANUARY_END_USER_ID=refresh-smoke-user \
+JANUARY_TEST_REPORTED_EXPIRES_IN=3600 \
+JANUARY_TEST_SECOND_REQUEST_DELAY_SECONDS=305 \
+swift run JanuaryPartnerTokenSmoke
+```
+
+That second mode deliberately prevents proactive refresh in the smoke process:
+the second search sends the actually expired token, the SDK receives
+`token_expired`, calls the provider, and retries once with the newly minted token.
+These lifetime overrides exist only in the smoke executable and do not alter SDK
+production behavior.
+
+To prove provider retry and backoff in the real executable without making the
+stand-in backend unreliable, deliberately fail the first two provider calls:
+
+```sh
+PARTNER_TOKEN_URL=http://127.0.0.1:8787/january-token \
+JANUARY_INTERNAL_API_BASE_URL=https://partners.dev.january.ai \
+JANUARY_END_USER_ID=retry-smoke-user \
+JANUARY_TEST_PROVIDER_FAILURES=2 \
+swift run JanuaryPartnerTokenSmoke
+```
+
+The process must succeed with three provider calls while the stand-in backend
+reports one token mint. The failure switch exists only in this smoke executable.

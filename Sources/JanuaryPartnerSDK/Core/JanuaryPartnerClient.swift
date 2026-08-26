@@ -5,6 +5,7 @@ import OpenAPIURLSession
 
 /// The entry point for the January Partner SDK.
 public struct JanuaryPartnerClient: Sendable {
+    private static let productionServerURL = URL(string: "https://partners.january.ai")!
     /// Food search operations.
     public let foods: FoodsResource
     public let restaurants: RestaurantsResource
@@ -19,7 +20,7 @@ public struct JanuaryPartnerClient: Sendable {
     public init(developmentAPIKey: String) throws {
         try self.init(
             developmentAPIKey: developmentAPIKey,
-            serverURL: URL(string: "https://partners.dev.january.ai")!,
+            serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
             userAgent: SDKUserAgent.current
         )
@@ -31,14 +32,80 @@ public struct JanuaryPartnerClient: Sendable {
     /// Tokens are cached in memory, refreshed shortly before expiration, and
     /// never persisted by the SDK. The provider must not return a partner API key.
     public init(
-        serverURL: URL = URL(string: "https://partners.january.ai")!,
-        clientTokenProvider: @escaping JanuaryClientTokenProvider
+        clientTokenProvider: @escaping JanuaryClientTokenProvider,
+        tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
         try self.init(
-            serverURL: serverURL,
+            serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
             clientTokenProvider: clientTokenProvider,
+            userAgent: SDKUserAgent.current,
+            tokenRetryPolicy: tokenRetryPolicy
+        )
+    }
+
+    /// Explicit non-production API origin used by January-owned demo tooling.
+    /// Partner applications should use the production initializer above.
+    @_spi(JanuaryDevelopment)
+    public init(
+        clientTokenProvider: @escaping JanuaryClientTokenProvider,
+        apiBaseURL: URL,
+        tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
+    ) throws {
+        try self.init(
+            serverURL: apiBaseURL,
+            transport: URLSessionTransport(),
+            clientTokenProvider: clientTokenProvider,
+            userAgent: SDKUserAgent.current,
+            tokenRetryPolicy: tokenRetryPolicy
+        )
+    }
+
+    /// Creates a client with a short-lived token managed by the integrating app.
+    ///
+    /// Recreate the client when the token changes. For automatic refresh, use a
+    /// `clientTokenProvider` or `JanuaryTokenProvider` implementation.
+    public init(
+        clientToken: String
+    ) throws {
+        try self.init(
+            clientToken: clientToken,
+            serverURL: Self.productionServerURL,
+            transport: URLSessionTransport(),
             userAgent: SDKUserAgent.current
+        )
+    }
+
+    internal init(
+        clientToken: String,
+        serverURL: URL,
+        transport: any ClientTransport,
+        userAgent: String = SDKUserAgent.current
+    ) throws {
+        let normalizedToken = clientToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedToken.isEmpty else {
+            throw JanuaryError(
+                category: .authentication,
+                code: "invalid_client_token",
+                message: "A client token is required."
+            )
+        }
+        self.init(
+            serverURL: serverURL,
+            transport: transport,
+            authenticationSource: .fixedClientToken(normalizedToken),
+            userAgent: userAgent
+        )
+    }
+
+    /// Creates a client backed by a named token-provider implementation.
+    public init(
+        clientTokenProvider: any JanuaryTokenProvider,
+        tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
+    ) throws {
+        try self.init(
+            clientTokenProvider: { try await clientTokenProvider.fetchClientToken() },
+            tokenRetryPolicy: tokenRetryPolicy
         )
     }
 
@@ -69,7 +136,12 @@ public struct JanuaryPartnerClient: Sendable {
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         userAgent: String = SDKUserAgent.current,
         refreshLeeway: TimeInterval = 60,
-        now: @escaping @Sendable () -> Date = Date.init
+        tokenRetryPolicy: JanuaryTokenRetryPolicy = .default,
+        now: @escaping @Sendable () -> Date = Date.init,
+        sleep: @escaping @Sendable (TimeInterval) async throws -> Void = { seconds in
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+        },
+        unitRandom: @escaping @Sendable () -> Double = { Double.random(in: 0...1) }
     ) throws {
         self.init(
             serverURL: serverURL,
@@ -78,7 +150,10 @@ public struct JanuaryPartnerClient: Sendable {
                 ClientTokenManager(
                     provider: clientTokenProvider,
                     refreshLeeway: refreshLeeway,
-                    now: now
+                    retryPolicy: tokenRetryPolicy,
+                    now: now,
+                    sleep: sleep,
+                    unitRandom: unitRandom
                 )
             ),
             userAgent: userAgent

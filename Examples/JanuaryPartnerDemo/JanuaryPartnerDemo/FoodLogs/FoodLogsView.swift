@@ -318,7 +318,7 @@ private struct FoodLogEditorView: View {
             }
             .appBackground()
             .appNavigationBar(existing == nil ? "New food log" : "Edit food log") {
-                AppNavigationButton(.cancel) { dismiss() }
+                AppNavigationButton(.close, title: existing == nil ? "Close new food log" : "Close food log editor") { dismiss() }
             } trailing: {
                 EmptyView()
             }
@@ -438,8 +438,12 @@ struct FoodPickerView: View {
     let onSelect: (SelectedFood) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
+    @State private var suggestions: [FoodSuggestion] = []
+    @State private var autocompleteSuppressedQuery: String?
     @State private var results: [FoodSearchItem] = []
     @State private var chosenFood: FoodSearchItem?
+    @State private var hydratingFoodID: FoodID?
+    @State private var failedFoodID: FoodID?
     @State private var isLoading = false
     @State private var error: Error?
 
@@ -448,22 +452,33 @@ struct FoodPickerView: View {
             ScrollView {
                 ScreenShell {
                     VStack(alignment: .leading, spacing: 16) {
-                            SearchField(prompt: "Search foods", text: $query) {
+                            SearchField(prompt: "Search foods", text: queryBinding) {
                                 Task { await search() }
                             }
-                            .onChange(of: query) { _, value in
-                                if value.isEmpty {
-                                    results = []
-                                    error = nil
+
+                            if !suggestions.isEmpty {
+                                FoodSuggestionList(items: suggestions) { suggestion in
+                                    autocompleteSuppressedQuery = suggestion.name
+                                    query = suggestion.name
+                                    suggestions = []
+                                    Task { await search() }
                                 }
                             }
 
                             if let error {
-                                ErrorNotice(error: error) { Task { await search() } }
-                            } else if results.isEmpty && !isLoading {
+                                ErrorNotice(error: error) {
+                                    Task {
+                                        if let failedFoodID {
+                                            await hydrate(failedFoodID)
+                                        } else {
+                                            await search()
+                                        }
+                                    }
+                                }
+                            } else if suggestions.isEmpty && results.isEmpty && !isLoading {
                                 EmptyStateCard(
                                     title: "Find a food",
-                                    message: "Search January’s food database, then choose a serving and quantity.",
+                                    message: "Start typing for suggestions, or search January’s food database.",
                                     symbol: "fork.knife"
                                 )
                             } else if !results.isEmpty {
@@ -471,11 +486,12 @@ struct FoodPickerView: View {
                                     SectionLabel("Results · January food database")
                                     VStack(spacing: 0) {
                                         ForEach(Array(results.enumerated()), id: \.element.id) { index, food in
-                                            Button { chosenFood = food } label: {
-                                                FoodRow(food: food)
+                                            Button { Task { await choose(food) } } label: {
+                                                FoodRow(food: food, isLoading: hydratingFoodID == food.id)
                                                     .padding(.vertical, 12)
                                             }
                                             .buttonStyle(.plain)
+                                            .disabled(hydratingFoodID != nil)
                                             if index < results.count - 1 { Divider().overlay(AppPalette.divider) }
                                         }
                                     }
@@ -497,7 +513,7 @@ struct FoodPickerView: View {
             }
             .appBackground()
             .appNavigationBar("Add food") {
-                AppNavigationButton(.cancel) { dismiss() }
+                AppNavigationButton(.close, title: "Close add food") { dismiss() }
             } trailing: {
                 EmptyView()
             }
@@ -507,15 +523,80 @@ struct FoodPickerView: View {
             )) {
                 if let chosenFood { ServingSelectionSheet(food: chosenFood, onSelect: onSelect) }
             }
+            .task(id: query) {
+                await loadAutocomplete()
+            }
         }
+    }
+
+    private var queryBinding: Binding<String> {
+        Binding(
+            get: { query },
+            set: { value in
+                query = value
+                if value != autocompleteSuppressedQuery {
+                    autocompleteSuppressedQuery = nil
+                    results = []
+                    error = nil
+                }
+                if value.isEmpty {
+                    suggestions = []
+                }
+            }
+        )
     }
 
     @MainActor private func search() async {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines); guard !value.isEmpty else { return }
-        isLoading = true; error = nil
+        autocompleteSuppressedQuery = value
+        suggestions = []
+        isLoading = true; error = nil; failedFoodID = nil
         do { results = try await client.foods.search(.init(query: value, endUserID: endUserID)).items }
         catch { self.error = error }
         isLoading = false
+    }
+
+    @MainActor private func choose(_ food: FoodSearchItem) async {
+        await hydrate(food.id)
+    }
+
+    @MainActor private func hydrate(_ foodID: FoodID) async {
+        guard hydratingFoodID == nil else { return }
+        hydratingFoodID = foodID
+        error = nil
+        failedFoodID = nil
+        do {
+            chosenFood = try await client.foods.getFood(.init(foodID: foodID, endUserID: endUserID))
+        } catch {
+            self.error = error
+            failedFoodID = foodID
+        }
+        hydratingFoodID = nil
+    }
+
+    @MainActor private func loadAutocomplete() async {
+        let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.count >= 2,
+              value.count <= 64,
+              value != autocompleteSuppressedQuery else {
+            suggestions = []
+            return
+        }
+
+        do {
+            try await Task.sleep(for: .milliseconds(300))
+            try Task.checkCancellation()
+            let response = try await client.foods.autocomplete(
+                .init(query: value, limit: 8, endUserID: endUserID)
+            )
+            try Task.checkCancellation()
+            guard query.trimmingCharacters(in: .whitespacesAndNewlines) == value else { return }
+            suggestions = response.items
+        } catch is CancellationError {
+            return
+        } catch {
+            suggestions = []
+        }
     }
 }
 
@@ -533,9 +614,8 @@ private struct ServingSelectionSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                ScreenShell {
-                    VStack(alignment: .leading, spacing: 14) {
+            ScreenShell {
+                VStack(alignment: .leading, spacing: 14) {
                             Text(food.name)
                                 .font(AppTypography.sheetTitle)
                                 .foregroundStyle(AppPalette.ink)
@@ -602,19 +682,19 @@ private struct ServingSelectionSheet: View {
                                 onSelect(.init(food: food, serving: serving, quantity: quantity))
                                 dismiss()
                             }
-                    }
                 }
-                .padding(.top, AppSpacing.sheetTop)
-                .padding(.bottom, 12)
             }
+            .padding(.top, AppSpacing.sheetTop)
+            .padding(.bottom, 12)
             .appBackground()
             .appNavigationBar("Choose serving") {
-                AppNavigationButton(.cancel) { dismiss() }
+                AppNavigationButton(.close, title: "Close serving picker") { dismiss() }
             } trailing: {
                 EmptyView()
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.height(400)])
+        .presentationCornerRadius(18)
         .presentationDragIndicator(.visible)
     }
 
