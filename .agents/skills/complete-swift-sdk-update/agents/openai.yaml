@@ -1,4 +1,0 @@
-interface:
-  display_name: "Complete Swift SDK Update"
-  short_description: "Finish contract-driven Swift SDK changes"
-  default_prompt: "Use $complete-swift-sdk-update to finish the generated contract update PR, validate it, and run the Swift SDK live development flow."

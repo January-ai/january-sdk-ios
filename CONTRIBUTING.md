@@ -17,9 +17,7 @@ Before opening a pull request, run:
 
 ```sh
 node scripts/check-no-committed-secrets.mjs
-node scripts/check-public-api-vocabulary.mjs
 node scripts/check-public-authentication.mjs
-node scripts/test-sdk-vocabulary-projection.mjs
 node scripts/check-coverage.mjs
 xcodebuild -scheme JanuarySDK -destination 'generic/platform=iOS' \
   CODE_SIGNING_ALLOWED=NO build

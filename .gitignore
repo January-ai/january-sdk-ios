@@ -1,4 +1,7 @@
 .DS_Store
+.agents/
+.claude/
+.githooks/
 .build/
 .artifacts/
 .swiftpm/
@@ -8,5 +11,10 @@ xcuserdata/
 .env.*
 Secrets.xcconfig
 *.xcresult
-Tools/ContractGenerator/Sources/JanuaryPartnerTransport/GeneratedSources/
-Tools/ContractGenerator/Sources/JanuaryPartnerTransport/openapi.yaml
+Documentation/HANDOFF_*.md
+Documentation/*.png
+Documentation/*.jpg
+Examples/*/DESIGN_SPEC.md
+Examples/*/VisualQA/
+Contract/
+Tools/

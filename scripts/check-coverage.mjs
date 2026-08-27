@@ -29,7 +29,7 @@ rmSync(resultBundle, { recursive: true, force: true });
 execFileSync(
   "xcodebuild",
   [
-    "-scheme", "JanuarySDK-Package",
+    "-scheme", "JanuarySDK",
     "-destination", `platform=iOS Simulator,id=${simulator.udid}`,
     "-enableCodeCoverage", "YES",
     "-resultBundlePath", resultBundle,

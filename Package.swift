@@ -25,10 +25,6 @@ let package = Package(
                 "JanuaryPartnerTransport",
             ]
         ),
-        .executableTarget(
-            name: "JanuaryPartnerTokenSmoke",
-            dependencies: ["JanuarySDK"]
-        ),
         .testTarget(
             name: "JanuarySDKTests",
             dependencies: [
