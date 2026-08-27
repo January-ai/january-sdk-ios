@@ -9,8 +9,8 @@ const clientSource = await readFile(
   "utf8",
 );
 
-if (!/@_spi\(JanuaryDevelopment\)\s+public init\(developmentAPIKey:/.test(clientSource)) {
-  throw new Error("The development API-key initializer must remain behind JanuaryDevelopment SPI.");
+if (!/@available\(\*, deprecated, message: "[^"]*Local development only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(developmentAPIKey:/.test(clientSource)) {
+  throw new Error("The API-key initializer must remain public with an explicit local-development deprecation warning that directs production users to JanuaryTokenProvider.");
 }
 
 async function markdownFiles(directory) {
@@ -29,12 +29,23 @@ const publicDocs = [
   ...await markdownFiles(path.join(root, "Sources/JanuarySDK/JanuarySDK.docc")),
 ];
 
-for (const file of publicDocs) {
-  const contents = await readFile(file, "utf8");
-  if (/developmentAPIKey|JANUARY_DEMO_API_KEY/.test(contents)) {
-    throw new Error(`${path.relative(root, file)} exposes private API-key authentication.`);
+const combinedDocs = (await Promise.all(
+  publicDocs.map((file) => readFile(file, "utf8")),
+)).join("\n");
+
+for (const phrase of [
+  "JanuaryTokenProvider",
+  "developmentAPIKey",
+  "local development",
+  "Do not use it in production",
+]) {
+  if (!combinedDocs.includes(phrase)) {
+    throw new Error(`Public documentation must include authentication guidance containing: ${phrase}`);
   }
 }
 
-console.log("Public documentation exposes client-token authentication only.");
+if (!/URLSession\.shared\.data\(for: request\)/.test(combinedDocs)) {
+  throw new Error("Public documentation must show a token provider calling the partner backend with URLSession.");
+}
 
+console.log("Public authentication documents production token providers and local-only API keys.");

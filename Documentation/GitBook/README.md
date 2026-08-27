@@ -56,4 +56,4 @@ The generated OpenAPI transport is an implementation detail. Integrate through t
 
 ## Security boundary
 
-Public SDK authentication uses client tokens only. Your backend authenticates the user, completes January's private server-side token exchange, and returns a short-lived client token to the app. See [Backend token endpoint](getting-started/backend-token-endpoint.md).
+Production SDK authentication uses client tokens. Your backend authenticates the user, completes January's private server-side token exchange, and returns a short-lived client token to the app. A deprecated API-key initializer is available strictly for local development and must never be shipped. See [Authentication](getting-started/authentication.md) and [Backend token endpoint](getting-started/backend-token-endpoint.md).

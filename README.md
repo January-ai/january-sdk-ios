@@ -47,11 +47,12 @@ targets: [
 Preview releases use exact prerelease versions. After the stable `0.1.0`
 release, applications can adopt a compatible version requirement.
 
-## Authenticate with client tokens
+## Production authentication: client tokens
 
-Never put a January server API key in an iOS app. Your authenticated backend
-exchanges its server-side credential for a short-lived client token. The app
-provides that response to the SDK:
+Never put a January server API key in a production iOS app. Your authenticated
+backend exchanges its server-side credential for a short-lived client token.
+When the SDK needs a token, your provider makes an authenticated API call to
+your server and returns your server's response to the SDK:
 
 ```swift
 import Foundation
@@ -93,6 +94,26 @@ The endpoint is app configuration with no SDK default. Its stable response is:
 `JanuaryClientToken` also accepts `expires_in`. The SDK caches tokens in memory,
 refreshes before expiry, single-flights concurrent refreshes, and retries token
 provider failures with bounded exponential backoff.
+
+## Local development with an API key
+
+> **Warning:** `developmentAPIKey` is only for local development. Do not use it
+> in production, ship an API key in an app binary, or commit one to source
+> control. Production apps must use `JanuaryTokenProvider` as shown above.
+
+The initializer remains available for local experiments and displays a
+deprecation warning in Xcode so it cannot be mistaken for production setup:
+
+```swift
+import Foundation
+import JanuarySDK
+
+guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
+    fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
+}
+
+let january = try JanuaryClient(developmentAPIKey: apiKey)
+```
 
 ## Make a request
 

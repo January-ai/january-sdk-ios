@@ -1,9 +1,9 @@
 # Authentication
 
-Use a `JanuaryTokenProvider` in every distributed application. It calls your authenticated backend and returns the backend response directly as `JanuaryClientToken`.
+Use a `JanuaryTokenProvider` in every production or distributed application. Its `fetchClientToken()` method makes an authenticated API call to your backend and returns that backend response directly as `JanuaryClientToken`.
 
 {% hint style="danger" %}
-The public SDK accepts only short-lived client tokens. Server-side token issuance and its credentials stay outside the app and SDK integration.
+Production apps must use short-lived client tokens. Server-side token issuance and its credentials stay outside the app and SDK integration. API-key authentication is available only for local development and must never be shipped.
 {% endhint %}
 
 ## Implement a URLSession provider
@@ -125,3 +125,24 @@ let client = try JanuaryClient(clientToken: clientTokenValue)
 ```
 
 The SDK cannot refresh this fixed-token client.
+
+## Local development API-key authentication
+
+{% hint style="danger" %}
+`developmentAPIKey` is only for local development. Do not use it in production, include an API key in a distributed app, or commit one to source control. Use `JanuaryTokenProvider` for production.
+{% endhint %}
+
+Load the key from local Xcode scheme configuration instead of putting it in Swift source:
+
+```swift
+import Foundation
+import JanuarySDK
+
+guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
+    fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
+}
+
+let client = try JanuaryClient(developmentAPIKey: apiKey)
+```
+
+Xcode intentionally marks this initializer as deprecated so every call site displays the local-development warning.

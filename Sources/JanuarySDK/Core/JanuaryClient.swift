@@ -13,11 +13,12 @@ public struct JanuaryClient: Sendable {
     public let foodLogs: FoodLogsResource
     public let glucose: GlucoseResource
 
-    /// Creates a client for non-distributable development integration tests.
+    /// Creates a client using API-key authentication for local development only.
     ///
-    /// The API key is held by this client and added to requests at runtime. Never
-    /// embed it in an application, source file, example, or distributed binary.
-    @_spi(JanuaryDevelopment)
+    /// - Warning: Do not use API-key authentication in a production or
+    ///   distributed app. Never embed an API key in an app binary or commit it to
+    ///   source control. Use ``JanuaryTokenProvider`` in production.
+    @available(*, deprecated, message: "Local development only. Do not use API-key authentication in production; use JanuaryTokenProvider.")
     public init(developmentAPIKey: String) throws {
         try self.init(
             developmentAPIKey: developmentAPIKey,

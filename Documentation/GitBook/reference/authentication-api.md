@@ -19,10 +19,15 @@ public struct JanuaryClient: Sendable {
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws
     public init(clientToken: String) throws
+
+    @available(*, deprecated, message: "Local development only. Do not use API-key authentication in production; use JanuaryTokenProvider.")
+    public init(developmentAPIKey: String) throws
 }
 ```
 
-The documented client-token initializers target January production. `clientToken` rejects an empty value and cannot refresh itself.
+The client-token initializers target January production. `clientToken` rejects an empty value and cannot refresh itself.
+
+`developmentAPIKey` is available only for local development and intentionally emits an Xcode warning. Never ship an API key in a production or distributed app; use `JanuaryTokenProvider` instead.
 
 ## Token provider
 
