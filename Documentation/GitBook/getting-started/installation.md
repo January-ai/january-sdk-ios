@@ -3,7 +3,7 @@
 The package product and importable module are both named `JanuaryPartnerSDK`.
 
 {% hint style="warning" %}
-**Controlled Preview:** `January-ai/partner-sdk-ios` is currently private and has no version tags. You need repository access from January before Xcode or Swift Package Manager can resolve it.
+**Controlled Preview:** `January-ai/january-sdk-ios` is currently private and has no version tags. You need repository access from January before Xcode or Swift Package Manager can resolve it.
 {% endhint %}
 
 ## Requirements
@@ -19,7 +19,7 @@ The example app has separate requirements: Xcode 26 and iOS 26. Those do not rai
 1. Sign in to the authorized GitHub account in Xcode.
 2. Open your app project.
 3. Choose **File → Add Package Dependencies**.
-4. Enter `https://github.com/January-ai/partner-sdk-ios.git`.
+4. Enter `https://github.com/January-ai/january-sdk-ios.git`.
 5. Select **Revision** and enter the verified preview revision:
 
 ```text
@@ -41,7 +41,7 @@ let package = Package(
     platforms: [.iOS(.v15)],
     dependencies: [
         .package(
-            url: "https://github.com/January-ai/partner-sdk-ios.git",
+            url: "https://github.com/January-ai/january-sdk-ios.git",
             revision: "c5e4725503eae7bdda85e7ad3786222c42f57d14"
         ),
     ],
@@ -51,7 +51,7 @@ let package = Package(
             dependencies: [
                 .product(
                     name: "JanuaryPartnerSDK",
-                    package: "partner-sdk-ios"
+                    package: "january-sdk-ios"
                 ),
             ]
         ),
@@ -77,7 +77,7 @@ Do not use a version-based declaration yet: no compatible tag exists. After Janu
 
 ```text
 Future only — currently unavailable:
-.package(url: "https://github.com/January-ai/partner-sdk-ios.git", from: "<published-version>")
+.package(url: "https://github.com/January-ai/january-sdk-ios.git", from: "<published-version>")
 ```
 
 Continue to [Backend token endpoint](backend-token-endpoint.md).

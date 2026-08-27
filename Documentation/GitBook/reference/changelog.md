@@ -1,6 +1,6 @@
 # Changelog
 
-The January Partner SDK for iOS is in Controlled Preview. It has no semantic-version tags or public releases. See [Versioning and support](versioning-and-support.md) before installing or updating.
+The January SDK for iOS is in Controlled Preview. It has no semantic-version tags or public releases. See [Versioning and support](versioning-and-support.md) before installing or updating.
 
 ## Unreleased
 

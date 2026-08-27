@@ -18,7 +18,7 @@ struct SettingsView: View {
                                 .font(.title2)
                                 .foregroundStyle(AppPalette.green)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("January Partner SDK")
+                                Text("January SDK")
                                     .font(AppTypography.bodyStrong)
                                 Text(authenticationMode)
                                     .font(.subheadline)

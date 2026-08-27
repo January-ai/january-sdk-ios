@@ -13,7 +13,7 @@ public enum ErrorCategory: String, Codable, Hashable, Sendable, CaseIterable {
     case decoding
 }
 
-/// An error returned by the January Partner SDK.
+/// An error returned by the January SDK.
 public struct JanuaryError: Error, LocalizedError, Sendable {
     public let category: ErrorCategory
     /// Stable machine-readable API error code when provided by the server.

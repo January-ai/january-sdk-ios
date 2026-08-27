@@ -13,7 +13,7 @@ The SDK repository is private during Controlled Preview. Xcode must use a GitHub
 3. Name it `JanuaryQuickstart`, choose **SwiftUI** for Interface and **Swift** for Language.
 4. Set the deployment target to iOS 15 or later.
 5. Choose **File → Add Package Dependencies**.
-6. Enter `https://github.com/January-ai/partner-sdk-ios.git`.
+6. Enter `https://github.com/January-ai/january-sdk-ios.git`.
 7. Select **Revision** and enter `c5e4725503eae7bdda85e7ad3786222c42f57d14`.
 8. Add the `JanuaryPartnerSDK` product to the `JanuaryQuickstart` target.
 
@@ -160,7 +160,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("January Partner SDK")
+            Text("January SDK")
                 .font(.title.bold())
 
             switch model.state {
@@ -206,7 +206,7 @@ Scheme environment variables are injected when Xcode runs the app. The command a
 The screen first shows **Connecting…**. A successful request then shows:
 
 ```text
-January Partner SDK
+January SDK
 <hydrated food name>
 <one or more> serving options
 <numeric value> calories

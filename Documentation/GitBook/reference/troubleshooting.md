@@ -6,11 +6,17 @@ The repository is private during Controlled Preview. Confirm that:
 
 1. January granted your GitHub account access;
 2. Xcode is authenticated to that account;
-3. the package URL is exactly `https://github.com/January-ai/partner-sdk-ios.git`;
+3. the package URL is exactly `https://github.com/January-ai/january-sdk-ios.git`;
 4. the revision matches [Installation](../getting-started/installation.md); and
 5. the `JanuaryPartnerSDK` product is linked to the correct target.
 
 There is no public version tag to select today.
+
+If Xcode resolves the package but says **Unable to load the Read Me**, check the
+warning indicator beside the GitHub account in the Add Package window. Sign out
+and back in under **Xcode → Settings → Accounts**, using the GitHub account that
+January authorized. The repository contains a root `README.md`; this message is
+an authenticated preview failure, not a missing package README.
 
 ## Authentication or authorization errors
 

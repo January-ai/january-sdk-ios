@@ -1,4 +1,4 @@
-# January Partner SDK for iOS
+# January SDK for iOS
 
 Build food discovery, nutrition, meal logging, and glucose-prediction experiences with native Swift models and `async`/`await` APIs.
 

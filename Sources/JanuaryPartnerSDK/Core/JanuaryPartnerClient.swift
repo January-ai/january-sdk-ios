@@ -3,7 +3,7 @@ import JanuaryPartnerTransport
 import OpenAPIRuntime
 import OpenAPIURLSession
 
-/// The entry point for the January Partner SDK.
+/// The entry point for the January SDK.
 public struct JanuaryPartnerClient: Sendable {
     private static let productionServerURL = URL(string: "https://partners.january.ai")!
     /// Food search operations.
