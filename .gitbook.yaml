@@ -1,6 +1,5 @@
-root: ./
+root: ./Documentation/GitBook/
 
 structure:
   readme: README.md
   summary: SUMMARY.md
-

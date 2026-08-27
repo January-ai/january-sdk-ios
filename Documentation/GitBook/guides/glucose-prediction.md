@@ -20,7 +20,7 @@ let request = PredictGlucoseRequest(
     ),
     foods: [selectedFood],
     startTime: Date(),
-    endUserID: userID,
+    endUserID: PartnerUserID(rawValue: partnerUserID),
     timezone: "America/New_York"
 )
 
@@ -43,3 +43,5 @@ to the typed request value. Do not present a single raw-inch field to users.
 {% hint style="info" %}
 Predictions are informational and must not be presented as diagnosis or medical treatment guidance.
 {% endhint %}
+
+With client-token authentication, January derives identity from the token even if the request model contains an end-user ID. Prefer `client.forUser(...).glucose.predict(request)` when you also need to reuse timezone context.

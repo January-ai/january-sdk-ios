@@ -12,8 +12,10 @@ let suggestions = try await client.foods.autocomplete(
 
 Autocomplete returns lightweight query suggestions for type-ahead interfaces.
 Selecting one should place its name in the search field and run `search`. Search
-results are also lightweight; call ``FoodsResource/getFood(_:)`` before opening
+results are discovery records; call `getFood(_:)` before opening
 a serving picker so the selected food contains every available serving.
+
+Autocomplete accepts only `.general` and `.branded`. Name search additionally supports `.recipe`.
 
 ## Search by name
 
@@ -32,19 +34,17 @@ Filter with `.general`, `.branded`, or `.recipe` through the request's `category
 ## Get servings and calculate a portion
 
 ```swift
-let food = try await client.foods.getFood(
-    .init(foodID: results.items[0].id, endUserID: userID)
-)
+guard let match = results.items.first else { return }
 
-let portion = try food.portion(
-    servingID: food.servings[1].id,
-    quantity: 1.5
+let food = try await client.foods.getFood(
+    .init(foodID: match.id, endUserID: userID)
 )
+let portion = try food.portion(quantity: 1.5)
 
 print(portion.nutrition.calories?.value ?? 0)
 ```
 
-The full food record contains every available serving. ``FoodPortion`` validates
+The full food record contains every available serving. `FoodPortion` validates
 the selected serving and quantity, scales every nutrient, weight, and glycemic
 load locally, and exposes `selection` for food-log and glucose-prediction
 requests. Macronutrients do not require another network request when the user
@@ -87,3 +87,5 @@ let response = try await client.foods.suggestAlternatives(
 ```
 
 When no restrictions or preferences apply, omit them or pass empty arrays.
+
+See [Validation limits](../reference/validation.md) for query and barcode constraints.

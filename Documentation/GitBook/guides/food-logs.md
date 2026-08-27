@@ -14,6 +14,8 @@ let user = client.forUser(
 let logs = try await user.foodLogs.list(start: "2026-08-01", end: "2026-08-31")
 ```
 
+With client-token authentication, the token supplies the end-user identity and the SDK removes the `x-end-user-id` header. The context still carries the timezone. With development-key authentication, both ID and timezone are sent.
+
 ## Build user context
 
 Food-log operations require an end-user ID. Provide an IANA timezone when available.
@@ -66,7 +68,7 @@ let logs = try await client.foodLogs.list(
 )
 ```
 
-The start and end dates are inclusive calendar dates in the supplied timezone.
+The start and end dates are inclusive calendar dates in the supplied timezone. Timestamps use ISO 8601.
 
 ## Update
 

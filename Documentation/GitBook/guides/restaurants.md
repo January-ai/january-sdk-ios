@@ -15,6 +15,10 @@ let restaurants = try await client.restaurants.search(
         endUserID: userID
     )
 )
+
+for restaurant in restaurants.items {
+    print(restaurant.name, restaurant.distance as Any)
+}
 ```
 
 ## Search menu items
@@ -40,3 +44,4 @@ Menu-item results may include nutrition, serving choices, photos, restaurant nam
 * Radius: 1–17,000
 * Limit: 1–100
 
+Coordinate values are decimal degrees, and radius is expressed in meters.

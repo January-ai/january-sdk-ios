@@ -1,90 +1,109 @@
-# Authentication and security
+# Authentication
 
-The SDK supports three mutually exclusive authentication modes:
-
-1. a development API key for current non-distributable integration work; and
-2. an app-managed short-lived client token; or
-3. short-lived client tokens fetched from the integrating app's backend through
-   a callback or `JanuaryTokenProvider` implementation.
-
-Use the provider mode in distributed applications. Fixed client tokens are useful
-when the app owns the lifecycle. Development keys are only for January-approved,
-non-distributable integration work.
+Use a `JanuaryTokenProvider` in every distributed application. It calls your authenticated backend and returns the backend response directly as `JanuaryClientToken`.
 
 {% hint style="danger" %}
-Do not hard-code a January API key in Swift source, commit it to Git, include it in an example, or ship it inside a distributed application. A key embedded in an app binary can be extracted.
+Never embed, bundle, or log a long-lived January partner key. A key inside an app binary is extractable. The app receives only short-lived `ct-` client tokens.
 {% endhint %}
 
-## Development setup
+## Implement a URLSession provider
 
-Inject the key at runtime from a local development mechanism, then create the client:
+This implementation keeps the endpoint and the app's session authentication injected. It accepts both `expiresIn` and `expires_in` because `JanuaryClientToken` decodes both forms.
 
 ```swift
+import Foundation
 import JanuaryPartnerSDK
 
-let january = try JanuaryPartnerClient(
-    developmentAPIKey: apiKey
-)
-```
+enum PartnerTokenEndpointError: LocalizedError {
+    case invalidResponse
+    case rejected(status: Int)
 
-The initializer rejects empty or whitespace-only keys with an authentication-category `JanuaryError`.
-
-## End-user attribution
-
-Use a stable identifier from your own system when an operation accepts `PartnerUserID`:
-
-```swift
-let userID = PartnerUserID(rawValue: partnerOwnedUserID)
-```
-
-Do not pass email addresses, names, or other directly identifying information as the raw value. Keep the mapping inside your system.
-
-## Short-lived client tokens
-
-If the app already owns the complete token lifecycle, pass the token directly
-and recreate the client when it changes:
-
-```swift
-let january = try JanuaryPartnerClient(clientToken: accessToken)
-let user = january.forUser(PartnerUserID(rawValue: partnerOwnedUserID))
-```
-
-In a distributable application, provide an asynchronous closure that calls your
-own authenticated backend. Your backend derives the current user from its
-session and requests a short-lived token from January using its server-side
-partner secret.
-
-```swift
-let january = try JanuaryPartnerClient(clientTokenProvider: {
-    try await partnerBackend.createJanuaryToken()
-})
-```
-
-The same integration can use a named provider object when that fits the app's
-dependency-injection architecture:
-
-```swift
-struct AppJanuaryTokenProvider: JanuaryTokenProvider {
-    let partnerBackend: PartnerBackend
-
-    func fetchClientToken() async throws -> JanuaryClientToken {
-        try await partnerBackend.createJanuaryToken()
+    var errorDescription: String? {
+        switch self {
+        case .invalidResponse:
+            return "The partner token endpoint returned an invalid response."
+        case .rejected(let status):
+            return "The partner token endpoint returned HTTP \(status)."
+        }
     }
 }
 
-let january = try JanuaryPartnerClient(
-    clientTokenProvider: AppJanuaryTokenProvider(partnerBackend: partnerBackend)
-)
+struct PartnerBackendTokenProvider: JanuaryTokenProvider {
+    let endpoint: URL
+    let session: URLSession
+    let authorizationHeader: @Sendable () async throws -> String
+
+    init(
+        endpoint: URL,
+        session: URLSession = .shared,
+        authorizationHeader: @escaping @Sendable () async throws -> String
+    ) {
+        self.endpoint = endpoint
+        self.session = session
+        self.authorizationHeader = authorizationHeader
+    }
+
+    func fetchClientToken() async throws -> JanuaryClientToken {
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "GET" // Match your backend contract.
+        request.setValue(
+            try await authorizationHeader(),
+            forHTTPHeaderField: "Authorization"
+        )
+
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw PartnerTokenEndpointError.invalidResponse
+        }
+        guard (200..<300).contains(http.statusCode) else {
+            throw PartnerTokenEndpointError.rejected(status: http.statusCode)
+        }
+
+        return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
+    }
+}
 ```
 
-By default, a failed provider fetch gets nine total attempts (eight retries) with
-exponential backoff and ±20% jitter. Nominal delays are 1, 2, 4, 8, 8, 8, 8,
-and 8 seconds. The policy is configurable and can be disabled with
-`.none`:
+`authorizationHeader` is an app hook. Return whatever your backend expects, such as `Bearer <your-app-session-token>`. Do not return a January partner key.
+
+## Inject configuration and create the client
+
+Resolve the endpoint from required app configuration. Do not provide a guessed or localhost default in production code.
 
 ```swift
-let january = try JanuaryPartnerClient(
-    clientTokenProvider: AppJanuaryTokenProvider(partnerBackend: partnerBackend),
+func makeJanuaryClient(
+    tokenEndpoint: URL,
+    appAuthorizationHeader: @escaping @Sendable () async throws -> String
+) throws -> JanuaryPartnerClient {
+    let provider = PartnerBackendTokenProvider(
+        endpoint: tokenEndpoint,
+        authorizationHeader: appAuthorizationHeader
+    )
+    return try JanuaryPartnerClient(clientTokenProvider: provider)
+}
+```
+
+`JanuaryPartnerClient` always targets January's production Partner API through its public initializers. API-origin overrides are restricted to January-owned development tooling.
+
+## Token lifecycle
+
+The provider response must contain a non-empty token and an `expiresIn` value greater than 60 seconds. The SDK then:
+
+* stores the token in memory only;
+* refreshes it 60 seconds before its reported expiration;
+* shares one in-flight refresh across concurrent requests;
+* retries provider transport failures with the configured bounded policy; and
+* invalidates and replaces a token after January returns `401` with `code: "token_expired"`.
+
+After `token_expired`, the original January operation is replayed at most once. Other January authentication errors are returned immediately. See [Retries and concurrency](../reference/retries-and-concurrency.md).
+
+## Customize provider retries
+
+The default is nine total provider calls: one initial attempt and eight retries. Nominal delays are 1, 2, 4, 8, 8, 8, 8, and 8 seconds with ±20% jitter and an 8-second cap.
+
+```swift
+let client = try JanuaryPartnerClient(
+    clientTokenProvider: provider,
     tokenRetryPolicy: JanuaryTokenRetryPolicy(
         maximumAttempts: 9,
         initialDelay: 1,
@@ -95,27 +114,18 @@ let january = try JanuaryPartnerClient(
 )
 ```
 
-Have the backend client decode the response as `JanuaryClientToken`. Its stable
-shape is `{ token, expiresIn }`; the decoder also accepts `{ token, expires_in }`
-when a backend relays January's response without changing the casing.
+Pass `.none` as `tokenRetryPolicy` to make a single provider attempt.
 
-The SDK caches the token in memory, refreshes it one minute before expiration,
-coalesces concurrent refreshes, and retries failed provider fetches using the
-configured bounded policy. Only an HTTP 401 whose JSON body contains
-`code: "token_expired"` causes invalidation and one replay of the January API
-operation. Other authentication errors stop immediately and surface to the app.
-It never persists or logs the token, and client-token requests omit
-`x-end-user-id` because the token already
-identifies the user.
+## App-managed fixed token
 
-The provider must call the partner's backend, not January's token-issuance
-endpoint. It owns the endpoint URL, HTTP method, session authentication, and
-headers. The SDK intentionally has no default token endpoint, so missing app
-configuration fails where the app constructs its provider. A partner API key
-must never enter the app process.
+If your app deliberately owns the entire token lifecycle, it may create a client from one short-lived token and recreate the client when the token changes:
 
-## Production applications
+```swift
+let client = try JanuaryPartnerClient(clientToken: clientTokenValue)
+```
 
-The development-key initializer remains available while January rolls out the
-token service, but it is intended only for non-distributable development
-integration. Do not invent a client-side key-storage scheme as a substitute.
+The SDK cannot refresh this fixed-token client.
+
+## Development-key mode
+
+`JanuaryPartnerClient(developmentAPIKey:)` exists only for January-approved, non-distributable integration work. Never ship that mode. The public initializer uses the production API origin and offers no public environment override.

@@ -1,56 +1,83 @@
 # Installation
 
-Add `JanuaryPartnerSDK` to an iOS or macOS project with Swift Package Manager.
+The package product and importable module are both named `JanuaryPartnerSDK`.
+
+{% hint style="warning" %}
+**Controlled Preview:** `January-ai/partner-sdk-ios` is currently private and has no version tags. You need repository access from January before Xcode or Swift Package Manager can resolve it.
+{% endhint %}
+
+## Requirements
+
+* Swift 6.1 or later
+* iOS 15 or later
+* A GitHub account authorized for the private repository
+
+The example app has separate requirements: Xcode 26 and iOS 26. Those do not raise the SDK library's deployment targets.
 
 ## Xcode
 
-1. Open your project in Xcode.
-2. Choose **File → Add Package Dependencies**.
-3. Enter the package URL:
+1. Sign in to the authorized GitHub account in Xcode.
+2. Open your app project.
+3. Choose **File → Add Package Dependencies**.
+4. Enter `https://github.com/January-ai/partner-sdk-ios.git`.
+5. Select **Revision** and enter the verified preview revision:
 
 ```text
-https://github.com/January-ai/partner-sdk-ios.git
+c5e4725503eae7bdda85e7ad3786222c42f57d14
 ```
 
-4. Select the version or branch provided by January.
-5. Add the `JanuaryPartnerSDK` product to your application target.
-
-The repository is private, so Xcode must be authenticated to a GitHub account with access.
+6. Add the `JanuaryPartnerSDK` product to your app target.
 
 ## Package.swift
 
-Add the package dependency and library product:
+Use the same pinned revision while the SDK is in Controlled Preview:
 
 ```swift
-dependencies: [
-    .package(
-        url: "https://github.com/January-ai/partner-sdk-ios.git",
-        revision: "<commit-sha-provided-by-january>"
-    ),
-],
-targets: [
-    .target(
-        name: "YourApp",
-        dependencies: [
-            .product(
-                name: "JanuaryPartnerSDK",
-                package: "partner-sdk-ios"
-            ),
-        ]
-    ),
-]
+// swift-tools-version: 6.1
+import PackageDescription
+
+let package = Package(
+    name: "YourApp",
+    platforms: [.iOS(.v15)],
+    dependencies: [
+        .package(
+            url: "https://github.com/January-ai/partner-sdk-ios.git",
+            revision: "c5e4725503eae7bdda85e7ad3786222c42f57d14"
+        ),
+    ],
+    targets: [
+        .target(
+            name: "YourApp",
+            dependencies: [
+                .product(
+                    name: "JanuaryPartnerSDK",
+                    package: "partner-sdk-ios"
+                ),
+            ]
+        ),
+    ]
+)
 ```
 
-{% hint style="info" %}
-The SDK is currently pre-release and has no published version tag. During development, use the branch or revision supplied by January. Switch to a released semantic version when one becomes available.
-{% endhint %}
+Pinning prevents an unreviewed preview update from changing your build. January will provide a new verified revision when you should update.
 
-## Verify the installation
+## Verify the package
 
-Import the module from your application target:
+Add this import to an application source file and build the target:
 
 ```swift
 import JanuaryPartnerSDK
 ```
 
-If the project builds, continue to [Authentication and security](authentication.md).
+If resolution fails, follow [Xcode cannot resolve the package](../reference/troubleshooting.md#xcode-cannot-resolve-the-package).
+
+## Future public release — not available today
+
+Do not use a version-based declaration yet: no compatible tag exists. After January publishes the repository and creates a semantic-version release, this page will replace the preview instructions with a real version requirement.
+
+```text
+Future only — currently unavailable:
+.package(url: "https://github.com/January-ai/partner-sdk-ios.git", from: "<published-version>")
+```
+
+Continue to [Backend token endpoint](backend-token-endpoint.md).

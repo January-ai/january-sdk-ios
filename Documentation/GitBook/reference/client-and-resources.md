@@ -8,6 +8,17 @@
 let client = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
 ```
 
+## Public initializers
+
+| Initializer | Use |
+| --- | --- |
+| `clientTokenProvider: JanuaryClientTokenProvider` | Automatic refresh through an async closure |
+| `clientTokenProvider: JanuaryTokenProvider` | Automatic refresh through a named provider |
+| `clientToken: String` | App-managed fixed client token; recreate the client to replace it |
+| `developmentAPIKey: String` | January-approved, non-distributable development only |
+
+Public initializers target `https://partners.january.ai`. There is no public base-URL or token-endpoint override.
+
 ## Resource methods
 
 | Resource | Method | Purpose |
@@ -28,7 +39,7 @@ let client = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
 | `foodLogs` | `delete(_:)` | Delete a food log |
 | `glucose` | `predict(_:)` | Predict glucose impact |
 
-All resource calls use Swift concurrency and can throw `JanuaryError`.
+All resource calls use Swift concurrency, are `async throws`, and may throw `JanuaryError` or preserve `CancellationError`.
 
 `client.forUser(...)` returns a lightweight `JanuaryPartnerUserClient` whose
 `foodLogs` and `glucose` resources automatically reuse one `PartnerUserContext`.
@@ -42,3 +53,17 @@ The SDK uses typed wrappers to prevent identifier mixups:
 * `PartnerUserID`
 * `FoodID`
 * `ServingID`
+
+## Principal response types
+
+| Operation | Response |
+| --- | --- |
+| Food autocomplete | `AutocompleteFoodsResponse` |
+| Food search or barcode | `FoodSearchResults` |
+| Food hydration | `FoodSearchItem` |
+| Natural-language meal or photo scan | `FoodScan` |
+| Restaurant search | `SearchRestaurantsResponse` |
+| Menu-item search | `SearchRestaurantMenuItemsResponse` |
+| Food-log create/update | `FoodLog` |
+| Food-log list | `ListFoodLogsResponse` |
+| Glucose prediction | `GlucosePrediction` |

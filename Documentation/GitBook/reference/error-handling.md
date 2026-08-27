@@ -26,6 +26,18 @@ do {
 }
 ```
 
+Handle `CancellationError` separately when your UI starts requests from cancellable tasks:
+
+```swift
+do {
+    try await loadFoods()
+} catch is CancellationError {
+    return
+} catch let error as JanuaryError {
+    show(error)
+}
+```
+
 ## Available metadata
 
 | Property | Description |
@@ -42,3 +54,5 @@ Avoid displaying raw server messages without considering the surrounding user ex
 The SDK itself handles `401 token_expired` by invalidating the cached token,
 calling the provider, and replaying the API operation once. Do not add another
 unbounded request-retry loop around SDK calls.
+
+Malformed provider tokens produce authentication errors with `invalid_client_token` or `invalid_client_token_expiration`. Exhausted provider fetches produce `client_token_provider_failed` without exposing the provider's underlying error text.
