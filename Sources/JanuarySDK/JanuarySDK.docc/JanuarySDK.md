@@ -47,7 +47,7 @@ concurrent refreshes.
 
 ### Local development only
 
-> Warning: ``JanuaryClient/init(developmentAPIKey:)`` is only for local testing
+> Warning: ``JanuaryClient/init(developmentAPIKey:endUserID:)`` is only for local testing
 > and intentionally emits Xcode and runtime console warnings. The warning never
 > contains the key. Never ship an API key in a production app or commit one to
 > source control. Production apps must use ``JanuaryTokenProvider``.
@@ -56,7 +56,13 @@ concurrent refreshes.
 guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
     fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
 }
-let january = try JanuaryClient(developmentAPIKey: apiKey)
+guard let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
+    fatalError("Set JANUARY_END_USER_ID in the local Xcode scheme.")
+}
+let january = try JanuaryClient(
+    developmentAPIKey: apiKey,
+    endUserID: PartnerUserID(rawValue: rawUserID)
+)
 ```
 
 Search results are intentionally lightweight. Hydrate a selected result before

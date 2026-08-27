@@ -32,7 +32,10 @@ private enum AppConfiguration {
                 appSessionToken: appSessionToken
             )
         }
-        return .developmentAPIKey(environment["JANUARY_DEMO_API_KEY"] ?? "")
+        return .developmentAPIKey(
+            environment["JANUARY_DEMO_API_KEY"] ?? "",
+            endUserID: endUserID
+        )
     }
 
     static var authenticationLabel: String {

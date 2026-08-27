@@ -27,15 +27,20 @@ public struct JanuaryClient: Sendable {
     ///   distributed app. Never embed an API key in an app binary or commit it to
     ///   source control. Use ``JanuaryTokenProvider`` in production.
     @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
-    public init(developmentAPIKey: String) throws {
+    public init(
+        developmentAPIKey: String,
+        endUserID: PartnerUserID
+    ) throws {
         let normalizedAPIKey = try Self.validateDevelopmentAPIKey(
             developmentAPIKey,
             warningHandler: { message in
                 Self.authenticationLogger.warning("\(message, privacy: .public)")
             }
         )
+        let normalizedEndUserID = try Self.validateDevelopmentEndUserID(endUserID)
         try self.init(
             developmentAPIKey: normalizedAPIKey,
+            endUserID: normalizedEndUserID,
             serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
             userAgent: SDKUserAgent.current
@@ -142,6 +147,7 @@ public struct JanuaryClient: Sendable {
 
     internal init(
         developmentAPIKey: String,
+        endUserID: PartnerUserID? = nil,
         serverURL: URL,
         transport: any ClientTransport,
         userAgent: String = SDKUserAgent.current
@@ -156,7 +162,10 @@ public struct JanuaryClient: Sendable {
         self.init(
             serverURL: serverURL,
             transport: transport,
-            authenticationSource: .developmentAPIKey(developmentAPIKey),
+            authenticationSource: .developmentAPIKey(
+                developmentAPIKey,
+                endUserID: endUserID
+            ),
             userAgent: userAgent
         )
     }
@@ -174,6 +183,20 @@ public struct JanuaryClient: Sendable {
         }
         warningHandler(developmentAPIKeyWarning)
         return normalizedAPIKey
+    }
+
+    internal static func validateDevelopmentEndUserID(
+        _ endUserID: PartnerUserID
+    ) throws -> PartnerUserID {
+        let normalizedValue = endUserID.rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedValue.isEmpty else {
+            throw JanuaryError(
+                category: .authentication,
+                code: "invalid_end_user_id",
+                message: "A stable partner end-user ID is required for development API-key authentication."
+            )
+        }
+        return PartnerUserID(rawValue: normalizedValue)
     }
 
     internal init(

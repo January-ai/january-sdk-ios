@@ -9,7 +9,7 @@ const clientSource = await readFile(
   "utf8",
 );
 
-if (!/@available\(\*, deprecated, message: "[^"]*Local testing only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(developmentAPIKey:/.test(clientSource)) {
+if (!/@available\(\*, deprecated, message: "[^"]*Local testing only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(\s*developmentAPIKey:\s*String,\s*endUserID:\s*PartnerUserID/.test(clientSource)) {
   throw new Error("The API-key initializer must remain public with an explicit local-testing deprecation warning that directs production users to JanuaryTokenProvider.");
 }
 

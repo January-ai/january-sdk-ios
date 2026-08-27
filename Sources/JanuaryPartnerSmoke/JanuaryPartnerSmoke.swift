@@ -15,8 +15,11 @@ struct JanuaryPartnerSmoke {
         }
 
         let query = environment["JANUARY_FOOD_QUERY"] ?? "banana"
-        let client = try JanuaryClient(developmentAPIKey: apiKey)
         let userID = PartnerUserID(rawValue: endUserID)
+        let client = try JanuaryClient(
+            developmentAPIKey: apiKey,
+            endUserID: userID
+        )
         let suggestions = try await client.foods.autocomplete(
             .init(query: "ban", limit: 5, endUserID: userID)
         )

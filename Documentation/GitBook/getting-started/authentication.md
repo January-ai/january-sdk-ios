@@ -141,8 +141,16 @@ import JanuarySDK
 guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
     fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
 }
+guard let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
+    fatalError("Set JANUARY_END_USER_ID in the local Xcode scheme.")
+}
 
-let client = try JanuaryClient(developmentAPIKey: apiKey)
+let client = try JanuaryClient(
+    developmentAPIKey: apiKey,
+    endUserID: PartnerUserID(rawValue: rawUserID)
+)
 ```
 
 Xcode intentionally marks this initializer as deprecated so every call site displays the warning. Supplying a nonempty key also writes the same warning to the Xcode console at runtime without logging the key itself. An empty or whitespace-only value fails validation without logging a warning.
+
+The required end-user ID is your own stable, non-identifying ID for the user exercising the SDK. Development API-key mode binds the client to that ID and applies it to every request, overriding a conflicting request value. Do not use the SDK developer's personal ID, an email address, or a display name.

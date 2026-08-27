@@ -3,7 +3,7 @@ import Foundation
 import Observation
 
 enum AuthenticationConfiguration: Sendable {
-    case developmentAPIKey(String)
+    case developmentAPIKey(String, endUserID: String)
     case clientToken(
         partnerTokenURL: URL,
         apiBaseURL: URL,
@@ -46,7 +46,7 @@ final class AppModel {
 
         do {
             switch authentication {
-            case .developmentAPIKey(let apiKey):
+            case .developmentAPIKey(let apiKey, let endUserID):
                 let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !normalizedAPIKey.isEmpty else {
                     state = .failed(
@@ -54,7 +54,10 @@ final class AppModel {
                     )
                     return
                 }
-                client = try JanuaryClient(developmentAPIKey: normalizedAPIKey)
+                client = try JanuaryClient(
+                    developmentAPIKey: normalizedAPIKey,
+                    endUserID: PartnerUserID(rawValue: endUserID)
+                )
             case .clientToken(
                 let partnerTokenURL,
                 let apiBaseURL,

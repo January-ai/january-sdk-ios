@@ -112,9 +112,19 @@ import JanuarySDK
 guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
     fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
 }
+guard let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
+    fatalError("Set JANUARY_END_USER_ID in the local Xcode scheme.")
+}
 
-let january = try JanuaryClient(developmentAPIKey: apiKey)
+let january = try JanuaryClient(
+    developmentAPIKey: apiKey,
+    endUserID: PartnerUserID(rawValue: rawUserID)
+)
 ```
+
+The end-user ID is the stable, non-identifying ID from your own user system. In
+development API-key mode the client applies it to every request. It is not the
+SDK developer's personal ID, an email address, or a display name.
 
 ## Make a request
 

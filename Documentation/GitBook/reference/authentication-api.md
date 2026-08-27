@@ -21,13 +21,16 @@ public struct JanuaryClient: Sendable {
     public init(clientToken: String) throws
 
     @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
-    public init(developmentAPIKey: String) throws
+    public init(
+        developmentAPIKey: String,
+        endUserID: PartnerUserID
+    ) throws
 }
 ```
 
 The client-token initializers target January production. `clientToken` rejects an empty value and cannot refresh itself.
 
-`developmentAPIKey` is available only for local testing and intentionally emits both an Xcode warning and a runtime console warning for a nonempty key. The SDK never includes the key in that warning. Never ship an API key in a production or distributed app; use `JanuaryTokenProvider` instead.
+`developmentAPIKey` is available only for local testing and intentionally emits both an Xcode warning and a runtime console warning for a nonempty key. The SDK never includes the key in that warning. Its required `endUserID` binds every request to one stable partner-owned test user. Never ship an API key in a production or distributed app; use `JanuaryTokenProvider` instead.
 
 ## Token provider
 

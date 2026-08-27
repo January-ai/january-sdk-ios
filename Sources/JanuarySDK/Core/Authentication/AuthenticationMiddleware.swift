@@ -3,7 +3,7 @@ import HTTPTypes
 import OpenAPIRuntime
 
 enum AuthenticationSource: Sendable {
-    case developmentAPIKey(String)
+    case developmentAPIKey(String, endUserID: PartnerUserID?)
     case fixedClientToken(String)
     case clientToken(ClientTokenManager)
 }
@@ -25,9 +25,13 @@ struct AuthenticationMiddleware: ClientMiddleware {
         next: @Sendable (HTTPRequest, HTTPBody?, URL) async throws -> (HTTPResponse, HTTPBody?)
     ) async throws -> (HTTPResponse, HTTPBody?) {
         switch source {
-        case .developmentAPIKey(let apiKey):
+        case .developmentAPIKey(let apiKey, let endUserID):
             return try await next(
-                authenticatedRequest(request, bearerToken: apiKey),
+                authenticatedRequest(
+                    request,
+                    bearerToken: apiKey,
+                    forcedEndUserID: endUserID
+                ),
                 body,
                 baseURL
             )
@@ -80,11 +84,16 @@ struct AuthenticationMiddleware: ClientMiddleware {
     private func authenticatedRequest(
         _ original: HTTPRequest,
         bearerToken: String,
+        forcedEndUserID: PartnerUserID? = nil,
         omitEndUserID: Bool = false
     ) -> HTTPRequest {
         var request = original
         request.headerFields[.authorization] = "Bearer \(bearerToken)"
         request.headerFields[.userAgent] = userAgent
+
+        if let forcedEndUserID, let name = HTTPField.Name("x-end-user-id") {
+            request.headerFields[name] = forcedEndUserID.rawValue
+        }
 
         if omitEndUserID, let name = HTTPField.Name("x-end-user-id") {
             request.headerFields[name] = nil

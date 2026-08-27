@@ -346,9 +346,15 @@ func foodSearchMapsCancellationDecodingTimeoutAndTransportFailures() async throw
 
 @Test
 func publicClientAndCoreUtilitiesCoverValidAndInvalidConstruction() throws {
-    _ = try JanuaryClient(developmentAPIKey: "fixture-key")
+    _ = try JanuaryClient(
+        developmentAPIKey: "fixture-key",
+        endUserID: PartnerUserID(rawValue: "fixture-user")
+    )
     #expect(throws: JanuaryError.self) {
-        _ = try JanuaryClient(developmentAPIKey: " \n ")
+        _ = try JanuaryClient(
+            developmentAPIKey: " \n ",
+            endUserID: PartnerUserID(rawValue: "fixture-user")
+        )
     }
 
     let foodID = try JSONDecoder().decode(FoodID.self, from: Data("42".utf8))
@@ -389,6 +395,14 @@ func developmentAPIKeyWarningIsEmittedOnlyForANonemptyKey() throws {
         }
     }
     #expect(warnings.isEmpty)
+
+    #expect(throws: JanuaryError.self) {
+        _ = try JanuaryClient.validateDevelopmentEndUserID(.init(rawValue: " \n "))
+    }
+    #expect(
+        try JanuaryClient.validateDevelopmentEndUserID(.init(rawValue: "  fixture-user  "))
+            == PartnerUserID(rawValue: "fixture-user")
+    )
 }
 
 @Test

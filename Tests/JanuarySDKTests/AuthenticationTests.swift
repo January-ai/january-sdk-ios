@@ -156,6 +156,27 @@ func fixedClientTokenIsInjected() async throws {
 }
 
 @Test
+func developmentAPIKeyClientBindsEveryRequestToItsConfiguredEndUser() async throws {
+    let transport = AuthenticationTransport()
+    let configuredUserID = PartnerUserID(rawValue: "configured-user")
+    let client = try JanuaryClient(
+        developmentAPIKey: "fixture-api-key",
+        endUserID: configuredUserID,
+        serverURL: URL(string: "https://example.invalid")!,
+        transport: transport,
+        userAgent: "test"
+    )
+
+    _ = try await client.foods.search(.init(
+        query: "banana",
+        endUserID: PartnerUserID(rawValue: "conflicting-request-user")
+    ))
+
+    #expect(await transport.requests().map(\.authorization) == ["Bearer fixture-api-key"])
+    #expect(await transport.requests().map(\.endUserID) == ["configured-user"])
+}
+
+@Test
 func concurrentRequestsShareOneTokenRefresh() async throws {
     let now = Date(timeIntervalSince1970: 2_000)
     let provider = TokenProviderProbe(

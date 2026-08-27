@@ -12,13 +12,17 @@ struct JanuaryPartnerFullSmoke {
             guard let rawUserID = environment["JANUARY_END_USER_ID"], !rawUserID.isEmpty else {
                 throw SmokeError("JANUARY_END_USER_ID is not configured.")
             }
-            let client = try JanuaryClient(developmentAPIKey: apiKey)
+            let userID = PartnerUserID(rawValue: rawUserID)
+            let client = try JanuaryClient(
+                developmentAPIKey: apiKey,
+                endUserID: userID
+            )
             if environment["JANUARY_FOOD_LOG_DATE_SMOKE"] == "1" {
-                try await runFoodLogDateSmoke(client: client, userID: PartnerUserID(rawValue: rawUserID))
+                try await runFoodLogDateSmoke(client: client, userID: userID)
                 writeLine("PASS food logs created and queried across day, week, month, and year ranges")
                 return
             }
-            try await run(client: client, userID: PartnerUserID(rawValue: rawUserID))
+            try await run(client: client, userID: userID)
             writeLine("PASS all independently runnable Partner API v1.2 checks through the public Swift SDK")
         } catch {
             writeLine("FAIL live Partner API v1.2 smoke:\n\(error)")
