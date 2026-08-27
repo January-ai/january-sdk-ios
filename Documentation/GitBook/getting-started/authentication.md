@@ -3,7 +3,7 @@
 Use a `JanuaryTokenProvider` in every distributed application. It calls your authenticated backend and returns the backend response directly as `JanuaryClientToken`.
 
 {% hint style="danger" %}
-Never embed, bundle, or log a long-lived January partner key. A key inside an app binary is extractable. The app receives only short-lived `ct-` client tokens.
+The public SDK accepts only short-lived client tokens. Server-side token issuance and its credentials stay outside the app and SDK integration.
 {% endhint %}
 
 ## Implement a URLSession provider
@@ -64,7 +64,7 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
 }
 ```
 
-`authorizationHeader` is an app hook. Return whatever your backend expects, such as `Bearer <your-app-session-token>`. Do not return a January partner key.
+`authorizationHeader` is an app hook. Return whatever your backend expects, such as `Bearer <your-app-session-token>`.
 
 ## Inject configuration and create the client
 
@@ -83,7 +83,7 @@ func makeJanuaryClient(
 }
 ```
 
-`JanuaryPartnerClient` always targets January's production Partner API through its public initializers. API-origin overrides are restricted to January-owned development tooling.
+`JanuaryPartnerClient` always targets January's production Partner API through its documented client-token initializers. It exposes no API-origin override.
 
 ## Token lifecycle
 
@@ -125,7 +125,3 @@ let client = try JanuaryPartnerClient(clientToken: clientTokenValue)
 ```
 
 The SDK cannot refresh this fixed-token client.
-
-## Development-key mode
-
-`JanuaryPartnerClient(developmentAPIKey:)` exists only for January-approved, non-distributable integration work. Never ship that mode. The public initializer uses the production API origin and offers no public environment override.

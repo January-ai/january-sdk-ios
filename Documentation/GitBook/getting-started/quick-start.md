@@ -26,7 +26,7 @@ PARTNER_TOKEN_URL=https://your-backend.example.com/january-token
 PARTNER_APP_SESSION_TOKEN=your-app-session-token
 ```
 
-`PARTNER_TOKEN_URL` has no default. Replace both values with your configured backend endpoint and a valid session credential for that backend. Never put a January `sk-` key in either variable.
+`PARTNER_TOKEN_URL` has no default. Replace both values with your configured backend endpoint and a valid session credential for that backend. January's private server-side token-issuance credentials never belong in the app.
 
 ## 3. Add the app source
 

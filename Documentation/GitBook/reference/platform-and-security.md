@@ -13,7 +13,7 @@ The repository demo targets iOS 26 and Xcode 26 independently of the SDK deploym
 
 ## Credential handling
 
-* Keep long-lived partner keys on a server.
+* Keep January's server-side token-issuance credentials outside the app and SDK integration.
 * Keep client tokens in memory and out of logs and persistent storage.
 * Inject the partner-backend URL; do not ship a fallback endpoint.
 * Authenticate the app to the partner backend with the app's existing session.

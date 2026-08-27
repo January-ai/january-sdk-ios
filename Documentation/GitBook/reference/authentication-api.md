@@ -10,7 +10,6 @@ public struct JanuaryPartnerClient: Sendable {
     public let foodLogs: FoodLogsResource
     public let glucose: GlucoseResource
 
-    public init(developmentAPIKey: String) throws
     public init(
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
@@ -23,7 +22,7 @@ public struct JanuaryPartnerClient: Sendable {
 }
 ```
 
-All public initializers target January production. `developmentAPIKey` rejects empty or whitespace-only values and must never ship in a distributed app. `clientToken` rejects an empty value and cannot refresh itself.
+The documented client-token initializers target January production. `clientToken` rejects an empty value and cannot refresh itself.
 
 ## Token provider
 

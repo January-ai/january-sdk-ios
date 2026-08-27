@@ -15,7 +15,6 @@ let client = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
 | `clientTokenProvider: JanuaryClientTokenProvider` | Automatic refresh through an async closure |
 | `clientTokenProvider: JanuaryTokenProvider` | Automatic refresh through a named provider |
 | `clientToken: String` | App-managed fixed client token; recreate the client to replace it |
-| `developmentAPIKey: String` | January-approved, non-distributable development only |
 
 Public initializers target `https://partners.january.ai`. There is no public base-URL or token-endpoint override.
 
@@ -43,8 +42,7 @@ All resource calls use Swift concurrency, are `async throws`, and may throw `Jan
 
 `client.forUser(...)` returns a lightweight `JanuaryPartnerUserClient` whose
 `foodLogs` and `glucose` resources automatically reuse one `PartnerUserContext`.
-The public client always targets January production; API-origin overrides are
-restricted to January-owned development tooling.
+The public client always targets January production and exposes no API-origin override.
 
 ## Identifiers
 

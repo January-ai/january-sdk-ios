@@ -35,4 +35,4 @@ Include:
 * `JanuaryError.category`, `code`, `httpStatus`, and `requestID`; and
 * minimal reproduction steps.
 
-Never include partner keys, client tokens, meal photos, user health profiles, or complete food-log payloads. Use the support channel supplied by your January partner contact.
+Never include server-side credentials, client tokens, meal photos, user health profiles, or complete food-log payloads. Use the support channel supplied by your January partner contact.

@@ -12,10 +12,6 @@ The repository is private during Controlled Preview. Confirm that:
 
 There is no public version tag to select today.
 
-## “A development API key is required”
-
-The value passed to `JanuaryPartnerClient(developmentAPIKey:)` is empty or whitespace-only. Check the runtime injection mechanism. Do not replace it with a hard-coded fallback.
-
 ## Authentication or authorization errors
 
 Inspect `JanuaryError.category`, `code`, `httpStatus`, and `requestID` without logging credentials.
@@ -52,7 +48,7 @@ Add a nonempty `NSCameraUsageDescription` string to the host app's `Info.plist`.
 
 ## Demo refuses to start
 
-Choose exactly one documented demo path. Development-key mode needs `JANUARY_DEMO_API_KEY`. Token mode needs `PARTNER_TOKEN_URL`, `JANUARY_INTERNAL_API_BASE_URL`, and optionally `JANUARY_END_USER_ID`. These variables are for the January-owned demo, not public SDK configuration.
+The documented demo path needs `PARTNER_TOKEN_URL` and optionally `JANUARY_END_USER_ID`. The token endpoint must authenticate the demo user and return the documented client-token response.
 
 ## Requests are rate limited
 
@@ -60,6 +56,6 @@ Read `retryAfterSeconds` from `JanuaryError` when available and delay the retry.
 
 ## Support diagnostics
 
-Capture the failing operation, SDK revision, platform version, `JanuaryError.category`, `code`, `httpStatus`, and `requestID`. Do not include the API key or user health data.
+Capture the failing operation, SDK revision, platform version, `JanuaryError.category`, `code`, `httpStatus`, and `requestID`. Do not include client tokens or user health data.
 
 Send those diagnostics through your January partner support channel. See [Versioning and support](versioning-and-support.md).

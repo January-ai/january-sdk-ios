@@ -30,13 +30,8 @@ let logs = try await user.foodLogs.list(
 
 Use an IANA timezone identifier such as `America/New_York`.
 
-## Authentication-mode behavior
+## Client-token behavior
 
-| Mode | End-user identity sent to January | Timezone |
-| --- | --- | --- |
-| Client token | Comes from the token; `x-end-user-id` is removed | Sent when the request supports it |
-| Development API key | `PartnerUserID` is sent as `x-end-user-id` | Sent when the request supports it |
-
-The development-key behavior exists for non-distributable integration only. Production apps should let the backend derive the user before minting the client token.
+The end-user identity comes from the client token, so `x-end-user-id` is removed. The timezone is sent when the request supports it. Your backend should derive the user before requesting the client token.
 
 The SDK does not persist `PartnerUserContext`. Rebuild the scoped client when the active app account changes.

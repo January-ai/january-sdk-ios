@@ -1,9 +1,9 @@
 # Backend token endpoint
 
-Your app must never contain January's long-lived partner key. Put token exchange behind your own authenticated backend.
+Public SDK authentication begins with a short-lived client token. Put January's private token-issuance integration behind your own authenticated backend.
 
 ```text
-iOS app ── app session ──▶ your backend ── sk- partner key ──▶ January
+iOS app ── app session ──▶ your backend ── private server exchange ──▶ January
       ▲                                │
       └──── { token: "ct-…", expiresIn: 1800 } ───────────────────┘
 
@@ -16,7 +16,7 @@ Your backend must:
 
 1. Authenticate the caller using your existing app session.
 2. Derive the partner-owned user ID on the server; do not trust an arbitrary user ID from the device.
-3. Authenticate to January with the server-side partner key.
+3. Complete the private server-side January token exchange.
 4. Request a short-lived token scoped to that user.
 5. Return the stable token response to the app.
 
@@ -37,8 +37,8 @@ Fail during app configuration when the endpoint is absent. A fallback URL turns 
 
 ## Security rules
 
-* Never return the partner key to the app.
-* Never log the partner key or client token.
+* Never return server-side token-issuance credentials to the app.
+* Never log server-side credentials or client tokens.
 * Use HTTPS outside local simulator development.
 * Authenticate and authorize every token request.
 * Keep token responses out of analytics and crash-report breadcrumbs.

@@ -56,4 +56,4 @@ The generated OpenAPI transport is an implementation detail. Integrate through t
 
 ## Security boundary
 
-Never put a long-lived `sk-` partner key in an iOS app. Your backend holds that key, authenticates your user, obtains a short-lived `ct-` token, and returns only that client token to the app. See [Backend token endpoint](getting-started/backend-token-endpoint.md).
+Public SDK authentication uses client tokens only. Your backend authenticates the user, completes January's private server-side token exchange, and returns a short-lived client token to the app. See [Backend token endpoint](getting-started/backend-token-endpoint.md).
