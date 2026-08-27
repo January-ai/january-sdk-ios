@@ -23,7 +23,7 @@ The example app has separate requirements: Xcode 26 and iOS 26. Those do not rai
 5. Select **Revision** and enter the verified preview revision:
 
 ```text
-c5e4725503eae7bdda85e7ad3786222c42f57d14
+9dca0d5523ab8a0898922e80645ef15bd5fea98e
 ```
 
 6. Add the `JanuaryPartnerSDK` product to your app target.
@@ -42,7 +42,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/January-ai/january-sdk-ios.git",
-            revision: "c5e4725503eae7bdda85e7ad3786222c42f57d14"
+            revision: "9dca0d5523ab8a0898922e80645ef15bd5fea98e"
         ),
     ],
     targets: [

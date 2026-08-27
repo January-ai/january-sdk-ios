@@ -20,7 +20,7 @@ troubleshooting.
 ```bash
 git clone https://github.com/January-ai/january-sdk-ios.git
 cd january-sdk-ios
-git checkout c5e4725503eae7bdda85e7ad3786222c42f57d14
+git checkout 9dca0d5523ab8a0898922e80645ef15bd5fea98e
 swift test
 ```
 
