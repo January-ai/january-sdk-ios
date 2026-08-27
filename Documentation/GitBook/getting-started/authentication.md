@@ -1,13 +1,15 @@
 # Authentication and security
 
-The SDK supports three additive authentication modes:
+The SDK supports three mutually exclusive authentication modes:
 
 1. a development API key for current non-distributable integration work; and
 2. an app-managed short-lived client token; or
 3. short-lived client tokens fetched from the integrating app's backend through
    a callback or `JanuaryTokenProvider` implementation.
 
-The current SDK accepts a development API key when creating `JanuaryPartnerClient`.
+Use the provider mode in distributed applications. Fixed client tokens are useful
+when the app owns the lifecycle. Development keys are only for January-approved,
+non-distributable integration work.
 
 {% hint style="danger" %}
 Do not hard-code a January API key in Swift source, commit it to Git, include it in an example, or ship it inside a distributed application. A key embedded in an app binary can be extracted.
@@ -75,8 +77,9 @@ let january = try JanuaryPartnerClient(
 )
 ```
 
-By default, a failed provider fetch gets nine total attempts (eight retries) with exponential
-backoff and jitter. The policy is configurable and can be disabled with
+By default, a failed provider fetch gets nine total attempts (eight retries) with
+exponential backoff and ±20% jitter. Nominal delays are 1, 2, 4, 8, 8, 8, 8,
+and 8 seconds. The policy is configurable and can be disabled with
 `.none`:
 
 ```swift
@@ -101,8 +104,8 @@ coalesces concurrent refreshes, and retries failed provider fetches using the
 configured bounded policy. Only an HTTP 401 whose JSON body contains
 `code: "token_expired"` causes invalidation and one replay of the January API
 operation. Other authentication errors stop immediately and surface to the app.
-It never persists or logs the
-token, and client-token requests omit `x-end-user-id` because the token already
+It never persists or logs the token, and client-token requests omit
+`x-end-user-id` because the token already
 identifies the user.
 
 The provider must call the partner's backend, not January's token-issuance

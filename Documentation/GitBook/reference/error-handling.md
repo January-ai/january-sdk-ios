@@ -11,7 +11,7 @@ do {
 } catch let error as JanuaryError {
     switch error.category {
     case .authentication, .authorization:
-        requestCredentialRefresh()
+        showSignInOrConnectionError()
     case .validation:
         showInputError(error.message)
     case .rateLimited:
@@ -39,3 +39,6 @@ do {
 
 Avoid displaying raw server messages without considering the surrounding user experience. Never log credentials, photo contents, nutrition details, or health-profile data while diagnosing an error.
 
+The SDK itself handles `401 token_expired` by invalidating the cached token,
+calling the provider, and replaying the API operation once. Do not add another
+unbounded request-retry loop around SDK calls.

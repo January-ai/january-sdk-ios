@@ -10,9 +10,10 @@ let suggestions = try await client.foods.autocomplete(
 )
 ```
 
-Autocomplete returns lightweight suggestions for type-ahead interfaces. Use
-``FoodsResource/getFood(_:)`` after the user selects a suggestion or search
-result.
+Autocomplete returns lightweight query suggestions for type-ahead interfaces.
+Selecting one should place its name in the search field and run `search`. Search
+results are also lightweight; call ``FoodsResource/getFood(_:)`` before opening
+a serving picker so the selected food contains every available serving.
 
 ## Search by name
 

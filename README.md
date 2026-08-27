@@ -192,10 +192,12 @@ server rollout.
 
 ## Documentation
 
-See the [January Partner API documentation](https://docs.january.ai/nutrition/apis/v1.2/).
+Start with the [Swift SDK GitBook](Documentation/GitBook/README.md), or see the
+[January Partner API documentation](https://docs.january.ai/nutrition/apis/v1.2/)
+for the underlying HTTP contract.
 
 ## Example app
 
-The repository includes an iOS 26 SwiftUI example app that demonstrates local
-API-key setup and the starting navigation for each SDK resource. Open
+The repository includes an iOS 26 SwiftUI example app covering token-provider
+authentication, discovery, scanning, food logs, and glucose prediction. Open
 `Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj` in Xcode to run it.

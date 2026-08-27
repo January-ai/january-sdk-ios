@@ -11,7 +11,7 @@ The January Partner SDK provides typed models and modern `async`/`await` APIs fo
 * Glucose-impact prediction
 
 {% hint style="warning" %}
-The current Swift SDK is a pre-release development integration. Never embed a long-lived January API key in source code or a distributed application binary.
+Never embed a long-lived January partner key in source code or a distributed application. Production apps obtain short-lived client tokens from their own authenticated backend.
 {% endhint %}
 
 ## Requirements
@@ -20,12 +20,12 @@ The current Swift SDK is a pre-release development integration. Never embed a lo
 * iOS 16 or later
 * macOS 13 or later
 * Access to the private `January-ai/partner-sdk-ios` repository
-* A January development API key
+* A partner backend that can issue short-lived January client tokens
 
 ## Quick integration path
 
 1. [Install the SDK](getting-started/installation.md) with Swift Package Manager.
-2. [Provide credentials securely](getting-started/authentication.md) at runtime.
+2. [Implement a client-token provider](getting-started/authentication.md).
 3. Create a `JanuaryPartnerClient`.
 4. Make your first [food search](getting-started/quick-start.md).
 5. Explore the task-focused [guides](guides/foods.md).
@@ -33,7 +33,9 @@ The current Swift SDK is a pre-release development integration. Never embed a lo
 ```swift
 import JanuaryPartnerSDK
 
-let january = try JanuaryPartnerClient(developmentAPIKey: apiKey)
+let january = try JanuaryPartnerClient(clientTokenProvider: {
+    try await partnerBackend.createJanuaryToken()
+})
 let results = try await january.foods.search(
     SearchFoodsRequest(query: "greek yogurt")
 )
@@ -57,4 +59,3 @@ let results = try await january.foods.search(
 * [Read the credential-security requirements](getting-started/authentication.md)
 * [Run the quick start](getting-started/quick-start.md)
 * [Open the example app](getting-started/example-app.md)
-

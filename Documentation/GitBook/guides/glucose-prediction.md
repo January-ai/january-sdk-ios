@@ -12,11 +12,11 @@ Glucose predictions and profile inputs are health data. Do not place request or 
 let request = PredictGlucoseRequest(
     userProfile: GlucosePredictionProfile(
         age: 35,
-        gender: .male,
-        height: 70,
-        weight: 175,
+        sex: .male,
+        height: Height(value: 70, unit: .inches),
+        weight: Weight(value: 175, unit: .pounds),
         activityLevel: .moderatelyActive,
-        healthConditions: [.noneOfTheAbove]
+        healthConditions: []
     ),
     foods: [selectedFood],
     startTime: Date(),
@@ -36,7 +36,10 @@ The result contains:
 
 You can optionally provide recent `CgmReading` values and `ConsumedHistoricalFood` entries when available.
 
+`Height` accepts inches or centimeters; `Weight` accepts pounds or kilograms.
+The demo presents imperial height as feet plus inches and converts that display
+to the typed request value. Do not present a single raw-inch field to users.
+
 {% hint style="info" %}
 Predictions are informational and must not be presented as diagnosis or medical treatment guidance.
 {% endhint %}
-

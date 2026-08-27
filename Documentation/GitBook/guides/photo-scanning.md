@@ -16,16 +16,19 @@ let scan = try await client.photoScanning.scan(
 
 ## Scan image data
 
-Encode image bytes as a data URI:
+Use `PhotoScanImage` to normalize orientation, preserve aspect ratio, limit the
+longest edge to 1,000 pixels, compress to JPEG, and create a data URI:
 
 ```swift
-let encoded = imageData.base64EncodedString()
-let dataURI = "data:image/jpeg;base64,\(encoded)"
+let dataURI = try PhotoScanImage.dataURI(from: imageData)
 
 let scan = try await client.photoScanning.scan(
     .init(image: dataURI, endUserID: userID)
 )
 ```
+
+For a ready-made native SwiftUI flow, present `JanuaryMealScannerView`. It
+supports photo and barcode modes and returns hydrated scan or food results.
 
 The response can contain a meal name, detected foods, total nutrients, confidence values, and glucose impact.
 
@@ -46,4 +49,3 @@ let corrected = try await client.photoScanning.correct(
     )
 )
 ```
-

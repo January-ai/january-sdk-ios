@@ -2,6 +2,18 @@
 
 Use `client.foodLogs` to create, list, update, and delete entries for a partner-owned user.
 
+For repeated operations, prefer a scoped client so identity and timezone cannot
+drift between requests:
+
+```swift
+let user = client.forUser(
+    PartnerUserID(rawValue: userID),
+    timezone: "America/New_York"
+)
+
+let logs = try await user.foodLogs.list(start: "2026-08-01", end: "2026-08-31")
+```
+
 ## Build user context
 
 Food-log operations require an end-user ID. Provide an IANA timezone when available.
@@ -54,6 +66,8 @@ let logs = try await client.foodLogs.list(
 )
 ```
 
+The start and end dates are inclusive calendar dates in the supplied timezone.
+
 ## Update
 
 Only fields supplied in the request are changed.
@@ -71,4 +85,3 @@ let result = try await client.foodLogs.delete(
     .init(id: log.id, user: user)
 )
 ```
-

@@ -12,6 +12,18 @@ The value passed to `JanuaryPartnerClient(developmentAPIKey:)` is empty or white
 
 Inspect the `JanuaryError` category and HTTP status. Confirm that the development key is active and authorized for the requested Partner API environment.
 
+For client-token integrations, confirm that the app configured its own partner
+backend URL, that the response contains a non-empty `token` and an `expiresIn`
+greater than 60 seconds, and that the backend authenticates the current app user.
+There is intentionally no default token endpoint in the SDK.
+
+## Token provider is called repeatedly
+
+The SDK refreshes one minute before expiration. A token whose reported lifetime
+is 60 seconds or less is rejected as already or nearly expired. Concurrent calls
+share one refresh, and only `401` with `code: "token_expired"` triggers a refresh
+and one API replay.
+
 ## Food search validation errors
 
 Name searches require 1–256 characters and a limit from 1–40. Natural-language searches allow up to 512 characters.
@@ -31,4 +43,3 @@ Read `retryAfterSeconds` from `JanuaryError` when available and delay the retry.
 ## Support diagnostics
 
 Capture the failing operation, SDK revision, platform version, `JanuaryError.category`, `code`, `httpStatus`, and `requestID`. Do not include the API key or user health data.
-

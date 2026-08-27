@@ -5,7 +5,7 @@
 ## Create a client
 
 ```swift
-let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
+let client = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
 ```
 
 ## Resource methods
@@ -13,6 +13,8 @@ let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
 | Resource | Method | Purpose |
 | --- | --- | --- |
 | `foods` | `search(_:)` | Search foods by name |
+| `foods` | `autocomplete(_:)` | Return type-ahead suggestions |
+| `foods` | `getFood(_:)` | Hydrate a food with all servings |
 | `foods` | `lookupByBarcode(_:)` | Look up UPC/EAN/GTIN codes |
 | `foods` | `searchByNaturalLanguage(_:)` | Parse meal descriptions |
 | `foods` | `suggestAlternatives(_:)` | Find dietary alternatives |
@@ -28,6 +30,11 @@ let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
 
 All resource calls use Swift concurrency and can throw `JanuaryError`.
 
+`client.forUser(...)` returns a lightweight `JanuaryPartnerUserClient` whose
+`foodLogs` and `glucose` resources automatically reuse one `PartnerUserContext`.
+The public client always targets January production; API-origin overrides are
+restricted to January-owned development tooling.
+
 ## Identifiers
 
 The SDK uses typed wrappers to prevent identifier mixups:
@@ -35,4 +42,3 @@ The SDK uses typed wrappers to prevent identifier mixups:
 * `PartnerUserID`
 * `FoodID`
 * `ServingID`
-
