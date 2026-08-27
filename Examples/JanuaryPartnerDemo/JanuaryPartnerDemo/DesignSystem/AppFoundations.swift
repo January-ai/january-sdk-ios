@@ -1,4 +1,4 @@
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 enum AppPalette {

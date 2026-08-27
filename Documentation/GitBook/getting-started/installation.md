@@ -1,9 +1,9 @@
 # Installation
 
-The package product and importable module are both named `JanuaryPartnerSDK`.
+The package product and importable module are both named `JanuarySDK`.
 
 {% hint style="warning" %}
-**Controlled Preview:** `January-ai/january-sdk-ios` is currently private and has no version tags. You need repository access from January before Xcode or Swift Package Manager can resolve it.
+**Controlled Preview:** `January-ai/january-sdk-ios` is currently private. You need repository access from January before Xcode or Swift Package Manager can resolve it.
 {% endhint %}
 
 ## Requirements
@@ -12,7 +12,7 @@ The package product and importable module are both named `JanuaryPartnerSDK`.
 * iOS 15 or later
 * A GitHub account authorized for the private repository
 
-The example app has separate requirements: Xcode 26 and iOS 26. Those do not raise the SDK library's deployment targets.
+The example app uses the latest tab-bar APIs and targets iOS 26 independently of the SDK.
 
 ## Xcode
 
@@ -20,17 +20,17 @@ The example app has separate requirements: Xcode 26 and iOS 26. Those do not rai
 2. Open your app project.
 3. Choose **File → Add Package Dependencies**.
 4. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-5. Select **Revision** and enter the verified preview revision:
+5. Select **Exact Version** and enter the preview release:
 
 ```text
-9dca0d5523ab8a0898922e80645ef15bd5fea98e
+0.1.0-beta.1
 ```
 
-6. Add the `JanuaryPartnerSDK` product to your app target.
+6. Add the `JanuarySDK` product to your app target.
 
 ## Package.swift
 
-Use the same pinned revision while the SDK is in Controlled Preview:
+Use the same exact prerelease while the SDK is in Controlled Preview:
 
 ```swift
 // swift-tools-version: 6.1
@@ -42,7 +42,7 @@ let package = Package(
     dependencies: [
         .package(
             url: "https://github.com/January-ai/january-sdk-ios.git",
-            revision: "9dca0d5523ab8a0898922e80645ef15bd5fea98e"
+            exact: "0.1.0-beta.1"
         ),
     ],
     targets: [
@@ -50,7 +50,7 @@ let package = Package(
             name: "YourApp",
             dependencies: [
                 .product(
-                    name: "JanuaryPartnerSDK",
+                    name: "JanuarySDK",
                     package: "january-sdk-ios"
                 ),
             ]
@@ -59,25 +59,24 @@ let package = Package(
 )
 ```
 
-Pinning prevents an unreviewed preview update from changing your build. January will provide a new verified revision when you should update.
+Pinning prevents an unreviewed preview update from changing your build. January will publish a new prerelease when you should update.
 
 ## Verify the package
 
 Add this import to an application source file and build the target:
 
 ```swift
-import JanuaryPartnerSDK
+import JanuarySDK
 ```
 
 If resolution fails, follow [Xcode cannot resolve the package](../reference/troubleshooting.md#xcode-cannot-resolve-the-package).
 
-## Future public release — not available today
+## Stable releases
 
-Do not use a version-based declaration yet: no compatible tag exists. After January publishes the repository and creates a semantic-version release, this page will replace the preview instructions with a real version requirement.
+After January publishes `0.1.0`, use a compatible version requirement so your app can receive non-breaking updates:
 
 ```text
-Future only — currently unavailable:
-.package(url: "https://github.com/January-ai/january-sdk-ios.git", from: "<published-version>")
+.package(url: "https://github.com/January-ai/january-sdk-ios.git", from: "0.1.0")
 ```
 
 Continue to [Backend token endpoint](backend-token-endpoint.md).

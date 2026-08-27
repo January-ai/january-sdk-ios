@@ -9,7 +9,7 @@
 | `JanuaryMealScannerView` | Yes |
 | `JanuaryMealScanner.makeViewController` | Yes |
 
-The repository demo targets iOS 26 and Xcode 26 independently of the SDK deployment target.
+The repository demo uses the latest tab-bar APIs and targets iOS 26 independently of the SDK deployment target.
 
 ## Credential handling
 

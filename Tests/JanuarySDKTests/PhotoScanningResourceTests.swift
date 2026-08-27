@@ -3,7 +3,7 @@ import HTTPTypes
 import ImageIO
 import OpenAPIRuntime
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private let burgerImageURL = "https://friendlysrestaurants.com/assets/live/img/production/detail/menu/lunch-dinner_999-combohs_all-american-burger-fries.jpg"
 
@@ -45,7 +45,7 @@ func photoScanSendsPublicURLAndPNGDataURIThroughPublicClient() async throws {
     let fixture = try Data(contentsOf: fixtureURL)
     let dataURI = "data:image/png;base64,\(fixture.base64EncodedString())"
     let transport = PhotoFixtureTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport

@@ -1,11 +1,11 @@
 # Client and resources
 
-`JanuaryPartnerClient` is the public SDK entry point. Its generated OpenAPI transport remains package-private.
+`JanuaryClient` is the public SDK entry point. Its generated OpenAPI transport remains package-private.
 
 ## Create a client
 
 ```swift
-let client = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
+let client = try JanuaryClient(clientTokenProvider: tokenProvider)
 ```
 
 ## Public initializers
@@ -40,7 +40,7 @@ Public initializers target `https://partners.january.ai`. There is no public bas
 
 All resource calls use Swift concurrency, are `async throws`, and may throw `JanuaryError` or preserve `CancellationError`.
 
-`client.forUser(...)` returns a lightweight `JanuaryPartnerUserClient` whose
+`client.forUser(...)` returns a lightweight `JanuaryUserClient` whose
 `foodLogs` and `glucose` resources automatically reuse one `PartnerUserContext`.
 The public client always targets January production and exposes no API-origin override.
 

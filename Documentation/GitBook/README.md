@@ -33,9 +33,9 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 5. Learn the [search → hydrate → portion](concepts/food-hydration-and-portions.md) workflow.
 
 ```swift
-import JanuaryPartnerSDK
+import JanuarySDK
 
-let january = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
+let january = try JanuaryClient(clientTokenProvider: tokenProvider)
 let results = try await january.foods.search(.init(query: "greek yogurt"))
 ```
 
@@ -43,7 +43,7 @@ let results = try await january.foods.search(.init(query: "greek yogurt"))
 
 | API | Purpose |
 | --- | --- |
-| `JanuaryPartnerClient` | Configures authentication and exposes resources |
+| `JanuaryClient` | Configures authentication and exposes resources |
 | `foods` | Food discovery, hydration, barcode lookup, meal parsing, and alternatives |
 | `restaurants` | Nearby restaurant and menu-item search |
 | `photoScanning` | Meal-photo analysis and corrections |
@@ -52,7 +52,7 @@ let results = try await january.foods.search(.init(query: "greek yogurt"))
 | `JanuaryMealScannerView` | iOS-only ready-made camera and barcode flow |
 | `JanuaryError` | Stable error categories and request metadata |
 
-The generated OpenAPI transport is an implementation detail. Integrate through the public types in `JanuaryPartnerSDK`.
+The generated OpenAPI transport is an implementation detail. Integrate through the public types in `JanuarySDK`.
 
 ## Security boundary
 

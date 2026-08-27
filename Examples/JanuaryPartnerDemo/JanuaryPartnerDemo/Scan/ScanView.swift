@@ -1,10 +1,10 @@
-import JanuaryPartnerSDK
+import JanuarySDK
 import PhotosUI
 import SwiftUI
 import UIKit
 
 struct ScanView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let settingsAction: () -> Void
 
     @Environment(UserSession.self) private var userSession
@@ -224,7 +224,7 @@ private struct ScanResultPresentation: Identifiable {
 }
 
 private struct ScanResultSheet: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let presentation: ScanResultPresentation
     let endUserID: PartnerUserID?
     let onScanAnother: () -> Void
@@ -234,7 +234,7 @@ private struct ScanResultSheet: View {
     @State private var isShowingCorrection = false
 
     init(
-        client: JanuaryPartnerClient,
+        client: JanuaryClient,
         presentation: ScanResultPresentation,
         endUserID: PartnerUserID?,
         onScanAnother: @escaping () -> Void
@@ -369,7 +369,7 @@ private struct ScanResultContent: View {
 }
 
 private struct CorrectScanView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let scan: FoodScan
     let endUserID: PartnerUserID?
     let onSuccess: (FoodScan) -> Void
@@ -380,7 +380,7 @@ private struct CorrectScanView: View {
     @State private var isLoading = false
     @State private var error: Error?
 
-    init(client: JanuaryPartnerClient, scan: FoodScan, endUserID: PartnerUserID?, onSuccess: @escaping (FoodScan) -> Void) {
+    init(client: JanuaryClient, scan: FoodScan, endUserID: PartnerUserID?, onSuccess: @escaping (FoodScan) -> Void) {
         self.client = client; self.scan = scan; self.endUserID = endUserID; self.onSuccess = onSuccess
         _mealName = State(initialValue: scan.mealName ?? "Meal")
     }

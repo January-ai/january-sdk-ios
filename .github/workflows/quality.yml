@@ -17,15 +17,19 @@ concurrency:
 jobs:
   quality:
     name: Build and test Swift SDK
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 20
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Show Swift toolchain
-        run: swift --version
+        run: |
+          xcodebuild -version
+          swift --version
 
       - name: Reject committed Partner API keys
         run: node scripts/check-no-committed-secrets.mjs
@@ -36,20 +40,26 @@ jobs:
       - name: Verify public vocabulary
         run: |
           node scripts/check-public-api-vocabulary.mjs
+          node scripts/check-public-authentication.mjs
 
-      - name: Run package tests with 100% handwritten SDK coverage
+      - name: Run package tests and enforce coverage
         run: node scripts/check-coverage.mjs
 
       - name: Build for iOS
         run: >-
           xcodebuild
-          -scheme JanuaryPartnerSDK
+          -scheme JanuarySDK
           -destination 'generic/platform=iOS'
           -configuration Release
           -disableAutomaticPackageResolution
           -onlyUsePackageVersionsFromResolvedFile
           CODE_SIGNING_ALLOWED=NO
           build
+
+      - name: Verify iOS 15 deployment target
+        run: |
+          test "$(swift package dump-package | jq -r '.platforms[] | select(.platformName == "ios") | .version')" = "15.0"
+          test "$(swift package dump-package | jq '[.platforms[] | select(.platformName == "macos")] | length')" = "0"
 
       - name: Build the example app
         run: >-
@@ -58,5 +68,16 @@ jobs:
           -scheme JanuaryPartnerDemo
           -destination 'generic/platform=iOS Simulator'
           -configuration Release
+          IPHONEOS_DEPLOYMENT_TARGET=26.0
           CODE_SIGNING_ALLOWED=NO
           build
+
+      - name: Check API compatibility with latest release
+        shell: bash
+        run: |
+          latest_tag="$(git tag --list --sort=-version:refname | head -n 1)"
+          if [[ -n "$latest_tag" ]]; then
+            swift package diagnose-api-breaking-changes "$latest_tag"
+          else
+            echo "No release tag exists yet; skipping compatibility comparison."
+          fi

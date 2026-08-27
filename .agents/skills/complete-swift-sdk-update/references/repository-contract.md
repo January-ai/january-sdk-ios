@@ -19,15 +19,15 @@ Do not edit generated files or vocabulary by hand. If they are wrong, correct th
 
 ## Public implementation layout
 
-- `Sources/JanuaryPartnerSDK/Core/JanuaryPartnerClient.swift`: public client and immutable domain resources.
-- `Sources/JanuaryPartnerSDK/Core/`: identifiers, authentication middleware, user agent, shared nutrition, transport support, and public errors.
-- `Sources/JanuaryPartnerSDK/Foods/`
-- `Sources/JanuaryPartnerSDK/Restaurants/`
-- `Sources/JanuaryPartnerSDK/PhotoScanning/`
-- `Sources/JanuaryPartnerSDK/FoodLogs/`
-- `Sources/JanuaryPartnerSDK/Glucose/`
-- `Tests/JanuaryPartnerSDKTests/PublicSurfaceTests.swift`: contract-wide public-operation routing proof.
-- `Tests/JanuaryPartnerSDKTests/<Domain>/` or domain test files: focused public behavior tests.
+- `Sources/JanuarySDK/Core/JanuaryClient.swift`: public client and immutable domain resources.
+- `Sources/JanuarySDK/Core/`: identifiers, authentication middleware, user agent, shared nutrition, transport support, and public errors.
+- `Sources/JanuarySDK/Foods/`
+- `Sources/JanuarySDK/Restaurants/`
+- `Sources/JanuarySDK/PhotoScanning/`
+- `Sources/JanuarySDK/FoodLogs/`
+- `Sources/JanuarySDK/Glucose/`
+- `Tests/JanuarySDKTests/PublicSurfaceTests.swift`: contract-wide public-operation routing proof.
+- `Tests/JanuarySDKTests/<Domain>/` or domain test files: focused public behavior tests.
 - `Sources/JanuaryPartnerFullSmoke/JanuaryPartnerFullSmoke.swift`: live development execution through the public SDK.
 
 Follow the closest resource and model files instead of introducing a new pattern. Keep the generated target package-private and the public product organized by domain.
@@ -35,7 +35,7 @@ Follow the closest resource and model files instead of introducing a new pattern
 ## Required public behavior
 
 - Use native `async throws` for network operations.
-- Route calls through `JanuaryPartnerClient` domain resources.
+- Route calls through `JanuaryClient` domain resources.
 - Construct the exact generated input and invoke the exact contract `operationId`.
 - Convert successful generated outputs into stable public result models.
 - Convert documented API and transport failures through the existing `JanuaryError` path.
@@ -51,7 +51,7 @@ Follow the closest resource and model files instead of introducing a new pattern
 - `missing public method`: add the exact governed method name.
 - `public method is not mapped`: invoke the exact generated operation ID.
 - `missing public type`: add the governed request or result type.
-- `JanuaryPartnerClient does not expose`: add the immutable resource property.
+- `JanuaryClient does not expose`: add the immutable resource property.
 - `generated transport operation is missing`: regenerate or fix the upstream contract; do not fabricate it.
 - `public surface test coverage is missing`: call it from `PublicSurfaceTests.swift` and record the operation ID.
 

@@ -89,7 +89,7 @@ public enum JanuaryMealScanner {
     /// Creates the UIKit presentation of the same scanner used by SwiftUI clients.
     @MainActor
     public static func makeViewController(
-        client: JanuaryPartnerClient,
+        client: JanuaryClient,
         endUserID: PartnerUserID? = nil,
         configuration: JanuaryMealScannerConfiguration = .init(),
         onResult: @escaping @MainActor (JanuaryMealScannerResult) -> Void,
@@ -112,7 +112,7 @@ public enum JanuaryMealScanner {
 /// A full-screen, native camera that captures meal photos and scans food barcodes.
 @MainActor
 public struct JanuaryMealScannerView: View {
-    private let client: JanuaryPartnerClient
+    private let client: JanuaryClient
     private let endUserID: PartnerUserID?
     private let configuration: JanuaryMealScannerConfiguration
     private let onResult: @MainActor (JanuaryMealScannerResult) -> Void
@@ -123,7 +123,7 @@ public struct JanuaryMealScannerView: View {
     @State private var cameraIdentity = UUID()
 
     public init(
-        client: JanuaryPartnerClient,
+        client: JanuaryClient,
         endUserID: PartnerUserID? = nil,
         configuration: JanuaryMealScannerConfiguration = .init(),
         onResult: @escaping @MainActor (JanuaryMealScannerResult) -> Void,

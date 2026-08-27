@@ -1,7 +1,7 @@
 import Foundation
 import JanuaryPartnerTransport
 
-/// Food operations exposed by ``JanuaryPartnerClient``.
+/// Food operations exposed by ``JanuaryClient``.
 public struct FoodsResource: Sendable {
     private let client: Client
 

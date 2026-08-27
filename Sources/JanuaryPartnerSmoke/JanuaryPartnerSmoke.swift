@@ -1,5 +1,5 @@
 import Foundation
-import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) import JanuarySDK
 
 @main
 struct JanuaryPartnerSmoke {
@@ -15,7 +15,7 @@ struct JanuaryPartnerSmoke {
         }
 
         let query = environment["JANUARY_FOOD_QUERY"] ?? "banana"
-        let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
+        let client = try JanuaryClient(developmentAPIKey: apiKey)
         let userID = PartnerUserID(rawValue: endUserID)
         let suggestions = try await client.foods.autocomplete(
             .init(query: "ban", limit: 5, endUserID: userID)

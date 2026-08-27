@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 import OpenAPIRuntime
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private actor AuthenticationTransport: ClientTransport {
     struct Captured: Sendable {
@@ -63,15 +63,15 @@ private actor TokenProviderProbe {
     private var outcomes: [TokenProviderOutcome]
     private(set) var calls = 0
     private let expiresIn: TimeInterval
-    private let delay: Duration?
+    private let delay: TimeInterval?
 
-    init(values: [String], expiresIn: TimeInterval = 3_600, delay: Duration? = nil) {
+    init(values: [String], expiresIn: TimeInterval = 3_600, delay: TimeInterval? = nil) {
         self.outcomes = values.map(TokenProviderOutcome.token)
         self.expiresIn = expiresIn
         self.delay = delay
     }
 
-    init(outcomes: [TokenProviderOutcome], expiresIn: TimeInterval = 3_600, delay: Duration? = nil) {
+    init(outcomes: [TokenProviderOutcome], expiresIn: TimeInterval = 3_600, delay: TimeInterval? = nil) {
         self.outcomes = outcomes
         self.expiresIn = expiresIn
         self.delay = delay
@@ -79,7 +79,7 @@ private actor TokenProviderProbe {
 
     func token() async throws -> JanuaryClientToken {
         calls += 1
-        if let delay { try await Task.sleep(for: delay) }
+        if let delay { try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000)) }
         switch outcomes[min(calls - 1, outcomes.count - 1)] {
         case .token(let value):
             return JanuaryClientToken(token: value, expiresIn: expiresIn)
@@ -126,7 +126,7 @@ func clientTokenIsInjectedAndCachedInMemory() async throws {
     let now = Date(timeIntervalSince1970: 1_000)
     let provider = TokenProviderProbe(values: ["ct-one"])
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -143,7 +143,7 @@ func clientTokenIsInjectedAndCachedInMemory() async throws {
 @Test
 func fixedClientTokenIsInjected() async throws {
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         clientToken: "ct-fixed",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
@@ -160,10 +160,10 @@ func concurrentRequestsShareOneTokenRefresh() async throws {
     let now = Date(timeIntervalSince1970: 2_000)
     let provider = TokenProviderProbe(
         values: ["ct-shared"],
-        delay: .milliseconds(25)
+        delay: 0.025
     )
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -192,7 +192,7 @@ func providerFetchRetriesWithBoundedExponentialBackoff() async throws {
     ])
     let sleeper = SleepProbe()
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -218,7 +218,7 @@ func providerFetchStopsAfterMaximumAttempts() async throws {
     let provider = TokenProviderProbe(outcomes: [.failure])
     let sleeper = SleepProbe()
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -256,7 +256,7 @@ func tokenExpiredRefreshUsesBackoffBeforeSingleReplay() async throws {
     ])
     let sleeper = SleepProbe()
     let transport = AuthenticationTransport(statuses: [.unauthorized, .ok])
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -307,7 +307,7 @@ func tokenExpiredCodeRefreshesAndRetriesExactlyOnce() async throws {
         statuses: [.unauthorized, .ok],
         challenges: [#"Bearer error="invalid_token""#, nil]
     )
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -325,7 +325,7 @@ func tokenExpiredCodeRefreshesAndRetriesExactlyOnce() async throws {
 @Test
 func clientTokenDoesNotSendEndUserHeader() async throws {
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { JanuaryClientToken(token: "ct-user", expiresIn: 1_800) }
@@ -348,7 +348,7 @@ func tokenInvalidDoesNotRefresh() async throws {
         challenges: [#"Bearer error="invalid_token""#],
         errorCodes: ["token_invalid"]
     )
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },
@@ -371,7 +371,7 @@ func providerFailuresMapToSafeAuthenticationErrors() async throws {
     let now = Date(timeIntervalSince1970: 4_000)
     let provider = TokenProviderProbe(outcomes: [.failure])
     let sleeper = SleepProbe()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: AuthenticationTransport(),
         clientTokenProvider: { try await provider.token() },
@@ -404,7 +404,7 @@ func nearlyExpiredProviderTokensFailBeforeTransport() async throws {
     let provider = TokenProviderProbe(values: ["ct-too-short"], expiresIn: 30)
     let sleeper = SleepProbe()
     let transport = AuthenticationTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport,
         clientTokenProvider: { try await provider.token() },

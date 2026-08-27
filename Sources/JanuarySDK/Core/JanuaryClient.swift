@@ -4,7 +4,7 @@ import OpenAPIRuntime
 import OpenAPIURLSession
 
 /// The entry point for the January SDK.
-public struct JanuaryPartnerClient: Sendable {
+public struct JanuaryClient: Sendable {
     private static let productionServerURL = URL(string: "https://partners.january.ai")!
     /// Food search operations.
     public let foods: FoodsResource
@@ -17,6 +17,7 @@ public struct JanuaryPartnerClient: Sendable {
     ///
     /// The API key is held by this client and added to requests at runtime. Never
     /// embed it in an application, source file, example, or distributed binary.
+    @_spi(JanuaryDevelopment)
     public init(developmentAPIKey: String) throws {
         try self.init(
             developmentAPIKey: developmentAPIKey,

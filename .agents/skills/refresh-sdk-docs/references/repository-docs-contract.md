@@ -4,9 +4,9 @@
 
 Use evidence in this order:
 
-1. `Sources/JanuaryPartnerSDK/` for the public API partners can call.
+1. `Sources/JanuarySDK/` for the public API partners can call.
 2. `Package.swift` for package identity, Swift tools version, and supported platforms.
-3. `Tests/JanuaryPartnerSDKTests/` for validation, mapping, defaults, errors, and response behavior.
+3. `Tests/JanuarySDKTests/` for validation, mapping, defaults, errors, and response behavior.
 4. `Examples/JanuaryPartnerDemo/` for the runnable integration path.
 5. `Contract/sdk-vocabulary.json` for intended public operation vocabulary.
 6. Repository tags and release commits for install revisions, versions, and changelog entries.
@@ -28,7 +28,7 @@ All Markdown links must resolve relative to their containing page. Every partner
 
 | Changed source | Primary documentation |
 | --- | --- |
-| `Core/JanuaryPartnerClient.swift` | Landing page, Quick start, Client and resources |
+| `Core/JanuaryClient.swift` | Landing page, Quick start, Client and resources |
 | `Core/Authentication/` | Authentication and security, Quick start, Troubleshooting |
 | `Core/JanuaryError.swift` or transport error mapping | Error handling, Troubleshooting |
 | `Core/Identifiers.swift` or shared nutrition models | Client and resources plus every affected guide |
@@ -62,7 +62,7 @@ Do not update partner documentation for generated transport churn, internal refa
 ## Writing and security boundaries
 
 - Address an application developer integrating the SDK; avoid internal automation and contract terminology.
-- Use `JanuaryPartnerClient` and its resource properties as the entry point.
+- Use `JanuaryClient` and its resource properties as the entry point.
 - Prefer one focused, compilable Swift sample over exhaustive model dumps.
 - State only constraints established by public code, tests, the locked contract, or an observed development response.
 - Never include API keys, tokens, customer identifiers, private response payloads, or unsanitized logs.

@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 import OpenAPIRuntime
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private actor SurfaceTransport: ClientTransport {
     private var operations: [String] = []
@@ -54,7 +54,7 @@ private actor SurfaceTransport: ClientTransport {
 @Test
 func allContractOperationsAreExposedThroughThePublicClient() async throws {
     let transport = SurfaceTransport()
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport

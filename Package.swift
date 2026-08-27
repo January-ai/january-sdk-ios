@@ -3,29 +3,28 @@
 import PackageDescription
 
 let package = Package(
-    name: "JanuaryPartnerSDK",
+    name: "JanuarySDK",
     platforms: [
-        .macOS(.v13),
         .iOS(.v15),
     ],
     products: [
         .library(
-            name: "JanuaryPartnerSDK",
-            targets: ["JanuaryPartnerSDK"]
+            name: "JanuarySDK",
+            targets: ["JanuarySDK"]
         ),
     ],
     dependencies: [
         .package(
             url: "https://github.com/apple/swift-openapi-runtime",
-            exact: "1.12.0"
+            from: "1.12.0"
         ),
         .package(
             url: "https://github.com/apple/swift-openapi-urlsession",
-            exact: "1.3.1"
+            from: "1.3.1"
         ),
         .package(
             url: "https://github.com/apple/swift-http-types",
-            exact: "1.6.0"
+            from: "1.6.0"
         ),
     ],
     targets: [
@@ -37,7 +36,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "JanuaryPartnerSDK",
+            name: "JanuarySDK",
             dependencies: [
                 "JanuaryPartnerTransport",
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
@@ -46,21 +45,13 @@ let package = Package(
             ]
         ),
         .executableTarget(
-            name: "JanuaryPartnerSmoke",
-            dependencies: ["JanuaryPartnerSDK"]
-        ),
-        .executableTarget(
-            name: "JanuaryPartnerFullSmoke",
-            dependencies: ["JanuaryPartnerSDK"]
-        ),
-        .executableTarget(
             name: "JanuaryPartnerTokenSmoke",
-            dependencies: ["JanuaryPartnerSDK"]
+            dependencies: ["JanuarySDK"]
         ),
         .testTarget(
-            name: "JanuaryPartnerSDKTests",
+            name: "JanuarySDKTests",
             dependencies: [
-                "JanuaryPartnerSDK",
+                "JanuarySDK",
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "HTTPTypes", package: "swift-http-types"),
             ],

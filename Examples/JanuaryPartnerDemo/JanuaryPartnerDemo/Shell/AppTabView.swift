@@ -1,8 +1,8 @@
 import SwiftUI
-import JanuaryPartnerSDK
+import JanuarySDK
 
 struct AppTabView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     @State private var isShowingSettings = false
 
     var body: some View {

@@ -32,7 +32,7 @@ public func predict(
 ) async throws -> GlucosePrediction
 ```
 
-`JanuaryPartnerUserClient.glucose` replaces the request's identity and timezone with its stored context.
+`JanuaryUserClient.glucose` replaces the request's identity and timezone with its stored context.
 
 ## Profile
 

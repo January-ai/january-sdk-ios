@@ -12,7 +12,7 @@ This implementation keeps the endpoint and the app's session authentication inje
 
 ```swift
 import Foundation
-import JanuaryPartnerSDK
+import JanuarySDK
 
 enum PartnerTokenEndpointError: LocalizedError {
     case invalidResponse
@@ -74,16 +74,16 @@ Resolve the endpoint from required app configuration. Do not provide a guessed o
 func makeJanuaryClient(
     tokenEndpoint: URL,
     appAuthorizationHeader: @escaping @Sendable () async throws -> String
-) throws -> JanuaryPartnerClient {
+) throws -> JanuaryClient {
     let provider = PartnerBackendTokenProvider(
         endpoint: tokenEndpoint,
         authorizationHeader: appAuthorizationHeader
     )
-    return try JanuaryPartnerClient(clientTokenProvider: provider)
+    return try JanuaryClient(clientTokenProvider: provider)
 }
 ```
 
-`JanuaryPartnerClient` always targets January's production Partner API through its documented client-token initializers. It exposes no API-origin override.
+`JanuaryClient` always targets January's production Partner API through its documented client-token initializers. It exposes no API-origin override.
 
 ## Token lifecycle
 
@@ -102,7 +102,7 @@ After `token_expired`, the original January operation is replayed at most once. 
 The default is nine total provider calls: one initial attempt and eight retries. Nominal delays are 1, 2, 4, 8, 8, 8, 8, and 8 seconds with ±20% jitter and an 8-second cap.
 
 ```swift
-let client = try JanuaryPartnerClient(
+let client = try JanuaryClient(
     clientTokenProvider: provider,
     tokenRetryPolicy: JanuaryTokenRetryPolicy(
         maximumAttempts: 9,
@@ -121,7 +121,7 @@ Pass `.none` as `tokenRetryPolicy` to make a single provider attempt.
 If your app deliberately owns the entire token lifecycle, it may create a client from one short-lived token and recreate the client when the token changes:
 
 ```swift
-let client = try JanuaryPartnerClient(clientToken: clientTokenValue)
+let client = try JanuaryClient(clientToken: clientTokenValue)
 ```
 
 The SDK cannot refresh this fixed-token client.

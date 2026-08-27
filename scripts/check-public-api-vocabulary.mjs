@@ -26,10 +26,10 @@ function escaped(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-const publicSources = await swiftSources(path.join(root, "Sources/JanuaryPartnerSDK"));
+const publicSources = await swiftSources(path.join(root, "Sources/JanuarySDK"));
 const generatedSources = await swiftSources(path.join(root, "Sources/JanuaryPartnerTransport/Generated"));
 const surfaceTest = await readFile(
-  path.join(root, "Tests/JanuaryPartnerSDKTests/PublicSurfaceTests.swift"),
+  path.join(root, "Tests/JanuarySDKTests/PublicSurfaceTests.swift"),
   "utf8",
 );
 const errors = [];
@@ -63,7 +63,7 @@ for (const operation of vocabulary.operations) {
   }
   if (!new RegExp(`public\\s+let\\s+${escaped(operation.resource)}\\s*:\\s*${escaped(operation.resourceType)}\\b`)
     .test(publicSources.map((file) => file.source).join("\n"))) {
-    errors.push(`${operation.operationId}: JanuaryPartnerClient does not expose ${operation.resource}`);
+    errors.push(`${operation.operationId}: JanuaryClient does not expose ${operation.resource}`);
   }
   if (!generatedSources.some((file) => new RegExp(`package\\s+func\\s+${escaped(operation.operationId)}\\s*\\(`).test(file.source))) {
     errors.push(`${operation.operationId}: generated transport operation is missing`);

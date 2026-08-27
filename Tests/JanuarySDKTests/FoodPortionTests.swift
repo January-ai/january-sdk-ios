@@ -1,5 +1,5 @@
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private let banana = FoodSearchItem(
     id: FoodID(rawValue: 70_381_819),

@@ -1,9 +1,9 @@
 # Authentication API
 
-## JanuaryPartnerClient
+## JanuaryClient
 
 ```swift
-public struct JanuaryPartnerClient: Sendable {
+public struct JanuaryClient: Sendable {
     public let foods: FoodsResource
     public let restaurants: RestaurantsResource
     public let photoScanning: PhotoScanningResource
@@ -71,12 +71,12 @@ Invalid policy values fail a precondition. See [Retries and concurrency](retries
 ## User-scoped client
 
 ```swift
-public extension JanuaryPartnerClient {
-    func forUser(_ context: PartnerUserContext) -> JanuaryPartnerUserClient
+public extension JanuaryClient {
+    func forUser(_ context: PartnerUserContext) -> JanuaryUserClient
     func forUser(
         _ endUserID: PartnerUserID,
         timezone: String? = nil
-    ) -> JanuaryPartnerUserClient
+    ) -> JanuaryUserClient
 }
 
 public struct PartnerUserContext: Hashable, Sendable {
@@ -86,4 +86,4 @@ public struct PartnerUserContext: Hashable, Sendable {
 }
 ```
 
-`JanuaryPartnerUserClient` exposes `context`, `foodLogs`, and `glucose`. Client-token authentication removes the end-user header because the token already carries identity.
+`JanuaryUserClient` exposes `context`, `foodLogs`, and `glucose`. Client-token authentication removes the end-user header because the token already carries identity.

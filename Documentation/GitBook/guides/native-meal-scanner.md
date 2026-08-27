@@ -18,11 +18,11 @@ The scanner validates this entry before presenting. Missing configuration throws
 ## SwiftUI
 
 ```swift
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 struct ScannerHost: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -51,11 +51,11 @@ The meal result includes the orientation-normalized, aspect-preserving JPEG sent
 ## UIKit
 
 ```swift
-import JanuaryPartnerSDK
+import JanuarySDK
 import UIKit
 
 extension UIViewController {
-    func presentJanuaryScanner(client: JanuaryPartnerClient) {
+    func presentJanuaryScanner(client: JanuaryClient) {
         let scanner = JanuaryMealScanner.makeViewController(
             client: client,
             onResult: { result in

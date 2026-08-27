@@ -1,8 +1,8 @@
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 struct FoodLogsView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let settingsAction: () -> Void
 
     @Environment(UserSession.self) private var userSession
@@ -174,7 +174,7 @@ private struct FoodLogRow: View {
 }
 
 private struct FoodLogEditorView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let context: FoodLogUserContext
     let existing: FoodLog?
     let onSaved: () -> Void
@@ -187,7 +187,7 @@ private struct FoodLogEditorView: View {
     @State private var isSaving = false
     @State private var error: Error?
 
-    init(client: JanuaryPartnerClient, context: FoodLogUserContext, existing: FoodLog?, onSaved: @escaping () -> Void) {
+    init(client: JanuaryClient, context: FoodLogUserContext, existing: FoodLog?, onSaved: @escaping () -> Void) {
         self.client = client; self.context = context; self.existing = existing; self.onSaved = onSaved
         _name = State(initialValue: existing?.name ?? "")
         _timestamp = State(initialValue: existing.flatMap { AppFormatting.apiDate.date(from: $0.timestampUTC) } ?? .now)
@@ -357,7 +357,7 @@ private struct FoodLogEditorView: View {
 }
 
 private struct FoodLogDetailView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let log: FoodLog
     let context: FoodLogUserContext
     let onChanged: () -> Void
@@ -433,7 +433,7 @@ private struct FoodLogDetailView: View {
 }
 
 struct FoodPickerView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let endUserID: PartnerUserID?
     let onSelect: (SelectedFood) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -584,7 +584,7 @@ struct FoodPickerView: View {
         }
 
         do {
-            try await Task.sleep(for: .milliseconds(300))
+            try await Task.sleep(nanoseconds: 300_000_000)
             try Task.checkCancellation()
             let response = try await client.foods.autocomplete(
                 .init(query: value, limit: 8, endUserID: endUserID)

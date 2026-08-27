@@ -1,0 +1,75 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Validate and publish Swift package release
+    runs-on: macos-26
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag and repository metadata
+        shell: bash
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          test -f README.md
+          test -f LICENSE
+          test -f CHANGELOG.md
+          test -f SECURITY.md
+
+      - name: Reject committed Partner API keys
+        run: node scripts/check-no-committed-secrets.mjs
+
+      - name: Verify SDK contracts
+        run: |
+          node scripts/test-sdk-vocabulary-projection.mjs
+          node scripts/check-public-api-vocabulary.mjs
+          node scripts/check-public-authentication.mjs
+
+      - name: Run tests and enforce coverage
+        run: node scripts/check-coverage.mjs
+
+      - name: Build SDK for iOS 15+
+        run: >-
+          xcodebuild
+          -scheme JanuarySDK
+          -destination 'generic/platform=iOS'
+          -configuration Release
+          -disableAutomaticPackageResolution
+          -onlyUsePackageVersionsFromResolvedFile
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Build example app
+        run: >-
+          xcodebuild
+          -project Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj
+          -scheme JanuaryPartnerDemo
+          -destination 'generic/platform=iOS Simulator'
+          -configuration Release
+          IPHONEOS_DEPLOYMENT_TARGET=26.0
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          args=(release create "$GITHUB_REF_NAME" --verify-tag --generate-notes --title "$GITHUB_REF_NAME")
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease)
+          fi
+          gh "${args[@]}"

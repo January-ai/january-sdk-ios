@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 import OpenAPIRuntime
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private struct ProbeRequest: Sendable {
     let operationID: String
@@ -68,8 +68,8 @@ private actor ContractProbeTransport: ClientTransport {
     }
 }
 
-private func probeClient(_ transport: any ClientTransport) throws -> JanuaryPartnerClient {
-    try JanuaryPartnerClient(
+private func probeClient(_ transport: any ClientTransport) throws -> JanuaryClient {
+    try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport
@@ -346,9 +346,9 @@ func foodSearchMapsCancellationDecodingTimeoutAndTransportFailures() async throw
 
 @Test
 func publicClientAndCoreUtilitiesCoverValidAndInvalidConstruction() throws {
-    _ = try JanuaryPartnerClient(developmentAPIKey: "fixture-key")
+    _ = try JanuaryClient(developmentAPIKey: "fixture-key")
     #expect(throws: JanuaryError.self) {
-        _ = try JanuaryPartnerClient(developmentAPIKey: " \n ")
+        _ = try JanuaryClient(developmentAPIKey: " \n ")
     }
 
     let foodID = try JSONDecoder().decode(FoodID.self, from: Data("42".utf8))
@@ -440,7 +440,7 @@ func userAgentIsSanitizedBoundedAndIncludesAvailableAppMetadata() {
     #expect(!minimal.contains("App/"))
     #expect(!minimal.contains("AppVersion/"))
     #expect(!minimal.contains("AppBuild/"))
-    #expect(SDKUserAgent.current.contains("JanuaryPartnerSDK/"))
+    #expect(SDKUserAgent.current.contains("JanuarySDK/"))
 }
 
 @Test
@@ -669,7 +669,7 @@ func userScopedClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
 private func expectEndpointError<Value: Sendable>(
     status: Int,
     category: ErrorCategory,
-    operation: (JanuaryPartnerClient) async throws -> Value
+    operation: (JanuaryClient) async throws -> Value
 ) async throws {
     let body = #"{"code":"fixture_code","message":"fixture message","docs_url":"https://docs.january.ai/nutrition/apis/v1.2/"}"#
     let client = try probeClient(FailureTransport(.status(status, body)))

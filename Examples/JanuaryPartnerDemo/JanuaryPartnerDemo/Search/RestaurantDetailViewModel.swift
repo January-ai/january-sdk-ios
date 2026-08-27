@@ -1,4 +1,4 @@
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 @MainActor
@@ -7,7 +7,7 @@ final class RestaurantDetailViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: Error?
 
-    private let client: JanuaryPartnerClient
+    private let client: JanuaryClient
     private let restaurant: Restaurant
     private let latitude: Double
     private let longitude: Double
@@ -18,7 +18,7 @@ final class RestaurantDetailViewModel: ObservableObject {
     private var hasLoaded = false
 
     init(
-        client: JanuaryPartnerClient,
+        client: JanuaryClient,
         restaurant: Restaurant,
         latitude: Double,
         longitude: Double,

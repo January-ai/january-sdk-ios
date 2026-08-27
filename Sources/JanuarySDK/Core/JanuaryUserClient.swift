@@ -2,32 +2,32 @@ import Foundation
 
 /// A January client scoped to one partner-owned end-user identity.
 ///
-/// Create this lightweight value from ``JanuaryPartnerClient/forUser(_:)``.
+/// Create this lightweight value from ``JanuaryClient/forUser(_:)``.
 /// It reuses the underlying client and automatically applies the user ID and
 /// timezone to Food Logs and Glucose requests.
-public struct JanuaryPartnerUserClient: Sendable {
+public struct JanuaryUserClient: Sendable {
     public let context: PartnerUserContext
     public let foodLogs: UserFoodLogsResource
     public let glucose: UserGlucoseResource
 
-    internal init(client: JanuaryPartnerClient, context: PartnerUserContext) {
+    internal init(client: JanuaryClient, context: PartnerUserContext) {
         self.context = context
         self.foodLogs = UserFoodLogsResource(resource: client.foodLogs, context: context)
         self.glucose = UserGlucoseResource(resource: client.glucose, context: context)
     }
 }
 
-public extension JanuaryPartnerClient {
+public extension JanuaryClient {
     /// Returns a lightweight client that reuses the supplied user context.
-    func forUser(_ context: PartnerUserContext) -> JanuaryPartnerUserClient {
-        JanuaryPartnerUserClient(client: self, context: context)
+    func forUser(_ context: PartnerUserContext) -> JanuaryUserClient {
+        JanuaryUserClient(client: self, context: context)
     }
 
     /// Returns a lightweight client scoped to an end user and optional timezone.
     func forUser(
         _ endUserID: PartnerUserID,
         timezone: String? = nil
-    ) -> JanuaryPartnerUserClient {
+    ) -> JanuaryUserClient {
         forUser(PartnerUserContext(endUserID: endUserID, timezone: timezone))
     }
 }

@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 import OpenAPIRuntime
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private struct RestaurantFixtureTransport: ClientTransport {
     func send(
@@ -25,7 +25,7 @@ private struct RestaurantFixtureTransport: ClientTransport {
 
 @Test
 func menuServingDefaultsMissingScalingFactorToOne() async throws {
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: RestaurantFixtureTransport()

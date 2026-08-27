@@ -31,7 +31,7 @@ Read both references completely before editing:
 - Never hand-edit `Sources/JanuaryPartnerTransport/Generated/`.
 - Never invent an operation, field, enum value, validation rule, header, retry rule, or server behavior absent from the locked contract or observed live response.
 - Keep Partner API version 1.2 unless the contract lock explicitly changes it.
-- Keep the public product API in `Sources/JanuaryPartnerSDK/`; do not expose the generated transport target.
+- Keep the public product API in `Sources/JanuarySDK/`; do not expose the generated transport target.
 - Preserve native Swift structured concurrency. Every public network operation must be `async throws`, nonblocking, and free of callback-only alternatives.
 - Keep credentials client-scoped. Do not add globals, singletons, hardcoded keys, committed `.env` files, or credential logging.
 
@@ -41,9 +41,9 @@ For every new or changed vocabulary operation:
 
 1. Use `resource`, `resourceType`, `publicMethod`, `publicInput`, and `publicResult` exactly as recorded in `Contract/sdk-vocabulary.json`.
 2. Add the method to the matching domain resource. If the resource is new:
-   - Create `Sources/JanuaryPartnerSDK/<Domain>/`.
+   - Create `Sources/JanuarySDK/<Domain>/`.
    - Create the public resource and its public models there.
-   - Expose one immutable resource property from `JanuaryPartnerClient`.
+   - Expose one immutable resource property from `JanuaryClient`.
 3. Copy the closest existing domain pattern for request construction, generated response handling, error conversion, headers, and public model mapping.
 4. Map the public method to the exact generated `operationId`.
 5. Make public request, result, model, and identifier types `Sendable` where the surrounding API does.
@@ -52,10 +52,10 @@ For every new or changed vocabulary operation:
 
 ## Add verification
 
-1. Add the operation to `Tests/JanuaryPartnerSDKTests/PublicSurfaceTests.swift` so the test calls the public method and observes the generated operation ID.
+1. Add the operation to `Tests/JanuarySDKTests/PublicSurfaceTests.swift` so the test calls the public method and observes the generated operation ID.
 2. Add focused domain tests for request mapping, response decoding, error mapping, and any changed public behavior.
 3. Add or update sanitized fixtures under the matching test domain when needed.
-4. Update `JanuaryPartnerFullSmoke` so every new operation executes through `JanuaryPartnerClient`, validates meaningful response fields, and safely cleans up mutations.
+4. Update `JanuaryPartnerFullSmoke` so every new operation executes through `JanuaryClient`, validates meaningful response fields, and safely cleans up mutations.
 5. Keep photo scanning coverage for both the committed base64 fixture and the governed image URL whenever photo input is affected.
 
 ## Verify once in this order
@@ -67,7 +67,7 @@ Run the existing repository checks, diagnosing only the first failing check befo
 node scripts/check-public-api-vocabulary.mjs
 swift test --disable-automatic-resolution
 xcodebuild \
-  -scheme JanuaryPartnerSDK \
+  -scheme JanuarySDK \
   -destination 'generic/platform=iOS' \
   -configuration Release \
   -disableAutomaticPackageResolution \

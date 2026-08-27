@@ -1,4 +1,4 @@
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 private struct SearchCity: Identifiable, Hashable {
@@ -23,7 +23,7 @@ struct SearchView: View {
     enum FoodMode: String, CaseIterable { case name = "Name"; case meal = "Meal description"; case barcode = "Barcode" }
     enum RestaurantMode: String, CaseIterable { case restaurants = "Restaurants"; case menuItems = "Menu items" }
 
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let settingsAction: () -> Void
 
     @Environment(UserSession.self) private var userSession
@@ -388,7 +388,7 @@ struct SearchView: View {
         }
 
         do {
-            try await Task.sleep(for: .milliseconds(300))
+            try await Task.sleep(nanoseconds: 300_000_000)
             try Task.checkCancellation()
             let response = try await client.foods.autocomplete(
                 .init(
@@ -513,7 +513,7 @@ private struct NaturalMealResultView: View {
 }
 
 struct FoodDetailView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let food: FoodSearchItem
     let endUserID: PartnerUserID?
     @State private var detailFood: FoodSearchItem
@@ -523,7 +523,7 @@ struct FoodDetailView: View {
     @State private var isShowingGlucose = false
     @State private var detailLoadError: Error?
 
-    init(client: JanuaryPartnerClient, food: FoodSearchItem, endUserID: PartnerUserID?) {
+    init(client: JanuaryClient, food: FoodSearchItem, endUserID: PartnerUserID?) {
         self.client = client; self.food = food; self.endUserID = endUserID
         let initialServing = food.servings.first(where: \.isPrimary) ?? food.servings.first
         _detailFood = State(initialValue: food)
@@ -696,7 +696,7 @@ struct FoodDetailView: View {
 }
 
 private struct FoodGlucoseSheet: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let foodID: FoodID
     let foodName: String
     let serving: ServingOption
@@ -896,7 +896,7 @@ private struct FoodGlucoseSheet: View {
 }
 
 private struct AlternativesView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let food: FoodSearchItem
     let endUserID: PartnerUserID?
     @Environment(\.dismiss) private var dismiss
@@ -1189,13 +1189,13 @@ private struct MenuItemRow: View {
 }
 
 private struct RestaurantDetailView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let restaurant: Restaurant
     let endUserID: PartnerUserID?
     @StateObject private var model: RestaurantDetailViewModel
 
     init(
-        client: JanuaryPartnerClient,
+        client: JanuaryClient,
         restaurant: Restaurant,
         latitude: Double,
         longitude: Double,
@@ -1299,7 +1299,7 @@ private struct RestaurantDetailView: View {
 }
 
 private struct RestaurantMenuItemDetailView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let item: RestaurantMenuItem
     let endUserID: PartnerUserID?
 
@@ -1307,7 +1307,7 @@ private struct RestaurantMenuItemDetailView: View {
     @State private var quantity: Double
     @State private var isShowingGlucoseImpact = false
 
-    init(client: JanuaryPartnerClient, item: RestaurantMenuItem, endUserID: PartnerUserID?) {
+    init(client: JanuaryClient, item: RestaurantMenuItem, endUserID: PartnerUserID?) {
         self.client = client
         self.item = item
         self.endUserID = endUserID

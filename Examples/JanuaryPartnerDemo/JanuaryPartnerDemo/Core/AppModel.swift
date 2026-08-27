@@ -1,5 +1,5 @@
 import Foundation
-@_spi(JanuaryDevelopment) import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) import JanuarySDK
 import Observation
 
 enum AuthenticationConfiguration: Sendable {
@@ -19,7 +19,7 @@ final class AppModel {
     }
 
     private(set) var state: State = .loading
-    private(set) var client: JanuaryPartnerClient?
+    private(set) var client: JanuaryClient?
     let userSession = UserSession()
 
     private let authentication: AuthenticationConfiguration
@@ -49,9 +49,9 @@ final class AppModel {
                     )
                     return
                 }
-                client = try JanuaryPartnerClient(developmentAPIKey: normalizedAPIKey)
+                client = try JanuaryClient(developmentAPIKey: normalizedAPIKey)
             case .clientToken(let partnerTokenURL, let apiBaseURL, let endUserID):
-                client = try JanuaryPartnerClient(
+                client = try JanuaryClient(
                     clientTokenProvider: {
                         try await Self.fetchClientToken(
                             from: partnerTokenURL,

@@ -1,5 +1,5 @@
 import Foundation
-import JanuaryPartnerSDK
+import JanuarySDK
 import Observation
 
 /// App-owned user identity persisted across launches and reused by every tab.
@@ -38,7 +38,7 @@ final class UserSession {
         partnerUserID.map { PartnerUserContext(endUserID: $0, timezone: timezone) }
     }
 
-    func client(for client: JanuaryPartnerClient) -> JanuaryPartnerUserClient? {
+    func client(for client: JanuaryClient) -> JanuaryUserClient? {
         partnerContext.map { client.forUser($0) }
     }
 

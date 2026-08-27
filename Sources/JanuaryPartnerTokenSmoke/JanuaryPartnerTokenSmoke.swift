@@ -1,5 +1,5 @@
 import Foundation
-@_spi(JanuaryDevelopment) import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) import JanuarySDK
 
 @main
 enum JanuaryPartnerTokenSmoke {
@@ -22,7 +22,7 @@ enum JanuaryPartnerTokenSmoke {
             .flatMap(Int.init) ?? 0
         let providerCalls = ProviderCallCounter()
 
-        let client = try JanuaryPartnerClient(
+        let client = try JanuaryClient(
             clientTokenProvider: {
                 let call = await providerCalls.incrementAndValue()
                 if call <= simulatedProviderFailures {
@@ -59,7 +59,7 @@ enum JanuaryPartnerTokenSmoke {
         }
 
         if let secondRequestDelay {
-            try await Task.sleep(for: .seconds(secondRequestDelay))
+            try await Task.sleep(nanoseconds: UInt64(secondRequestDelay * 1_000_000_000))
             _ = try await client.foods.search(
                 SearchFoodsRequest(
                     query: "apple",

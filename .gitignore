@@ -1,9 +1,12 @@
 .DS_Store
 .build/
+.artifacts/
 .swiftpm/
 DerivedData/
 xcuserdata/
 .env
+.env.*
 Secrets.xcconfig
+*.xcresult
 Tools/ContractGenerator/Sources/JanuaryPartnerTransport/GeneratedSources/
 Tools/ContractGenerator/Sources/JanuaryPartnerTransport/openapi.yaml

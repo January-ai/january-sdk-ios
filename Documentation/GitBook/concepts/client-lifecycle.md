@@ -1,9 +1,9 @@
 # Client lifecycle
 
-Create one `JanuaryPartnerClient` for an authenticated app session and reuse it. The client is a `Sendable` value whose resources share the same transport and authentication source.
+Create one `JanuaryClient` for an authenticated app session and reuse it. The client is a `Sendable` value whose resources share the same transport and authentication source.
 
 ```swift
-let client = try JanuaryPartnerClient(clientTokenProvider: tokenProvider)
+let client = try JanuaryClient(clientTokenProvider: tokenProvider)
 
 async let foods = client.foods.search(.init(query: "oatmeal"))
 async let restaurants = client.restaurants.search(

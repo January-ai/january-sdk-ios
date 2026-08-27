@@ -1,8 +1,8 @@
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 struct GlucoseView: View {
-    let client: JanuaryPartnerClient
+    let client: JanuaryClient
     let settingsAction: () -> Void
 
     @Environment(UserSession.self) private var userSession

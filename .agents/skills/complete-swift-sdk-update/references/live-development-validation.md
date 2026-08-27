@@ -1,6 +1,6 @@
 # Live development validation
 
-Use the public `JanuaryPartnerSDK` API for all live calls. Do not use `curl`, direct `URLSession` requests, generated transport calls, or copied JSON as a substitute.
+Use the public `JanuarySDK` API for all live calls. Do not use `curl`, direct `URLSession` requests, generated transport calls, or copied JSON as a substitute.
 
 ## Credentials
 
@@ -18,7 +18,7 @@ Run from the repository root:
 ./scripts/run-full-smoke.sh development
 ```
 
-The program must execute through `JanuaryPartnerClient` and fail with a nonzero exit when an operation or assertion fails. A skipped run is not a pass.
+The program must execute through `JanuaryClient` and fail with a nonzero exit when an operation or assertion fails. A skipped run is not a pass.
 
 ## Coverage requirements
 

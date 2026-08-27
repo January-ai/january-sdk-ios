@@ -28,7 +28,7 @@ Pass `--base-ref <ref>` when the requested comparison point is known.
 ## Investigate documentation impact
 
 1. Start with changed public files reported by the audit packet.
-2. Inspect the complete current declaration or behavior in `Sources/JanuaryPartnerSDK/`; never document a diff in isolation.
+2. Inspect the complete current declaration or behavior in `Sources/JanuarySDK/`; never document a diff in isolation.
 3. Use tests to confirm validation, defaults, optionality, error behavior, and response semantics.
 4. Use `Examples/JanuaryPartnerDemo` to confirm the runnable integration flow.
 5. Use `Package.swift`, repository tags, and release history for installation and compatibility claims.
@@ -44,7 +44,7 @@ Do not infer undocumented server behavior or invent examples that the public SDK
 
 1. Update the smallest set of pages identified by the repository mapping.
 2. Copy established terminology and page structure before adding new sections.
-3. Use only public `JanuaryPartnerSDK` types and methods in code samples.
+3. Use only public `JanuarySDK` types and methods in code samples.
 4. Keep examples concise, compilable in context, and based on tested request shapes.
 5. Update `SUMMARY.md` whenever pages are added, removed, renamed, or moved.
 6. Update the changelog only for an actual partner-facing release or when the user explicitly requests release notes.

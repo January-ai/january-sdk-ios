@@ -2,7 +2,7 @@ import Foundation
 import HTTPTypes
 import OpenAPIRuntime
 import Testing
-@testable import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) @testable import JanuarySDK
 
 private struct CapturedRequest: Sendable {
     let operationID: String
@@ -69,7 +69,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     let transport = FixtureTransport(
         responseData: try fixture("Foods/search-foods-response.json")
     )
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport
@@ -96,7 +96,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     #expect(request.operationID == "searchFoods")
     #expect(request.authorization == "Bearer fixture-api-key")
     #expect(request.endUserID == "test-user-123")
-    #expect(request.userAgent?.hasPrefix("JanuaryPartnerSDK/0.1.0 ") == true)
+    #expect(request.userAgent?.hasPrefix("JanuarySDK/0.1.0-beta.1 ") == true)
     #expect(request.userAgent?.contains("Swift/6") == true)
     #expect(request.userAgent?.contains("Platform/") == true)
     #expect(request.userAgent?.contains("OS/") == true)
@@ -117,7 +117,7 @@ func foodSearchMapsAuthenticationErrors() async throws {
         status: .unauthorized,
         responseData: try fixture("Foods/missing-end-user.json")
     )
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport
@@ -137,7 +137,7 @@ func foodSearchMapsAuthenticationErrors() async throws {
 @Test
 func foodSearchValidatesInputsBeforeTransport() async throws {
     let transport = FixtureTransport(responseData: Data())
-    let client = try JanuaryPartnerClient(
+    let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport
@@ -156,7 +156,7 @@ func foodSearchValidatesInputsBeforeTransport() async throws {
 @Test
 func publicConcurrencyTypesAreSendable() {
     func requireSendable<T: Sendable>(_: T.Type) {}
-    requireSendable(JanuaryPartnerClient.self)
+    requireSendable(JanuaryClient.self)
     requireSendable(FoodsResource.self)
     requireSendable(FoodSearchResults.self)
     requireSendable(JanuaryError.self)

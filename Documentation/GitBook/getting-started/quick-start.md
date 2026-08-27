@@ -14,8 +14,8 @@ The SDK repository is private during Controlled Preview. Xcode must use a GitHub
 4. Set the deployment target to iOS 15 or later.
 5. Choose **File → Add Package Dependencies**.
 6. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-7. Select **Revision** and enter `9dca0d5523ab8a0898922e80645ef15bd5fea98e`.
-8. Add the `JanuaryPartnerSDK` product to the `JanuaryQuickstart` target.
+7. Select **Exact Version** and enter `0.1.0-beta.1`.
+8. Add the `JanuarySDK` product to the `JanuaryQuickstart` target.
 
 ## 2. Add required scheme configuration
 
@@ -49,7 +49,7 @@ Replace `ContentView.swift` with:
 
 ```swift
 import Foundation
-import JanuaryPartnerSDK
+import JanuarySDK
 import SwiftUI
 
 enum QuickstartError: LocalizedError {
@@ -126,7 +126,7 @@ final class QuickstartViewModel: ObservableObject {
                 endpoint: endpoint,
                 appSessionToken: appSessionToken
             )
-            let january = try JanuaryPartnerClient(
+            let january = try JanuaryClient(
                 clientTokenProvider: provider
             )
 

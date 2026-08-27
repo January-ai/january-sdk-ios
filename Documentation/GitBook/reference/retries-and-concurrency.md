@@ -15,7 +15,7 @@ The default adds ±20% jitter and caps the result at 8 seconds. `maximumAttempts
 Provider-thrown errors are retried. `CancellationError` stops immediately. A successfully returned but empty or nearly expired token fails validation without retrying.
 
 ```swift
-let noProviderRetry = try JanuaryPartnerClient(
+let noProviderRetry = try JanuaryClient(
     clientTokenProvider: tokenProvider,
     tokenRetryPolicy: .none
 )

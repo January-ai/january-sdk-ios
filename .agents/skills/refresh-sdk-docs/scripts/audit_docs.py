@@ -12,10 +12,10 @@ from urllib.parse import unquote
 
 
 DOCS_REL = Path("Documentation/GitBook")
-PUBLIC_SOURCE_REL = Path("Sources/JanuaryPartnerSDK")
+PUBLIC_SOURCE_REL = Path("Sources/JanuarySDK")
 RELEVANT_PREFIXES = (
-    "Sources/JanuaryPartnerSDK/",
-    "Tests/JanuaryPartnerSDKTests/",
+    "Sources/JanuarySDK/",
+    "Tests/JanuarySDKTests/",
     "Examples/JanuaryPartnerDemo/",
     "Documentation/GitBook/",
     "Contract/sdk-vocabulary.json",
@@ -111,7 +111,7 @@ def resource_methods(repo: Path, docs_text: str) -> list[str]:
     findings: list[str] = []
     source_root = repo / PUBLIC_SOURCE_REL
     candidates = sorted(source_root.rglob("*Resource.swift"))
-    client = source_root / "Core/JanuaryPartnerClient.swift"
+    client = source_root / "Core/JanuaryClient.swift"
     if client.is_file():
         candidates.append(client)
 

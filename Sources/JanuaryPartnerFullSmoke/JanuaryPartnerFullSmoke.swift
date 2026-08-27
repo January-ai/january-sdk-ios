@@ -1,5 +1,5 @@
 import Foundation
-import JanuaryPartnerSDK
+@_spi(JanuaryDevelopment) import JanuarySDK
 
 @main
 struct JanuaryPartnerFullSmoke {
@@ -12,7 +12,7 @@ struct JanuaryPartnerFullSmoke {
             guard let rawUserID = environment["JANUARY_END_USER_ID"], !rawUserID.isEmpty else {
                 throw SmokeError("JANUARY_END_USER_ID is not configured.")
             }
-            let client = try JanuaryPartnerClient(developmentAPIKey: apiKey)
+            let client = try JanuaryClient(developmentAPIKey: apiKey)
             if environment["JANUARY_FOOD_LOG_DATE_SMOKE"] == "1" {
                 try await runFoodLogDateSmoke(client: client, userID: PartnerUserID(rawValue: rawUserID))
                 writeLine("PASS food logs created and queried across day, week, month, and year ranges")
@@ -27,7 +27,7 @@ struct JanuaryPartnerFullSmoke {
     }
 
     private static func runFoodLogDateSmoke(
-        client: JanuaryPartnerClient,
+        client: JanuaryClient,
         userID: PartnerUserID
     ) async throws {
         let search = try await client.foods.search(.init(query: "banana", limit: 3, endUserID: userID))
@@ -74,7 +74,7 @@ struct JanuaryPartnerFullSmoke {
         }
     }
 
-    private static func run(client: JanuaryPartnerClient, userID: PartnerUserID) async throws {
+    private static func run(client: JanuaryClient, userID: PartnerUserID) async throws {
         let report = SmokeReport()
         let results = await report.attempt("foods.search") {
             let value = try await client.foods.search(.init(query: "banana", limit: 3, endUserID: userID))
@@ -123,7 +123,7 @@ struct JanuaryPartnerFullSmoke {
         }
 
         let fixtureURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-            .appendingPathComponent("Tests/JanuaryPartnerSDKTests/Fixtures/PhotoScanning/burger-and-fries.png")
+            .appendingPathComponent("Tests/JanuarySDKTests/Fixtures/PhotoScanning/burger-and-fries.png")
         _ = await report.attempt("photoScanning.scan base64") {
             let fixture = try Data(contentsOf: fixtureURL)
             let value = try await client.photoScanning.scan(

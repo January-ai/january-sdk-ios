@@ -63,7 +63,7 @@ public func update(
 public func delete(id: String) async throws -> DeleteFoodLogResponse
 ```
 
-These methods are on `JanuaryPartnerUserClient.foodLogs` and automatically reuse its context.
+These methods are on `JanuaryUserClient.foodLogs` and automatically reuse its context.
 
 ## Responses
 

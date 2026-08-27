@@ -8,7 +8,7 @@ The repository is private during Controlled Preview. Confirm that:
 2. Xcode is authenticated to that account;
 3. the package URL is exactly `https://github.com/January-ai/january-sdk-ios.git`;
 4. the revision matches [Installation](../getting-started/installation.md); and
-5. the `JanuaryPartnerSDK` product is linked to the correct target.
+5. the `JanuarySDK` product is linked to the correct target.
 
 There is no public version tag to select today.
 

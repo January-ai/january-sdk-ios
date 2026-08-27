@@ -29,13 +29,13 @@ In an integration environment, use a short-lived server token or a controlled cl
 From an authorized checkout:
 
 ```sh
-swift test
+node scripts/check-coverage.mjs
 ```
 
-The SDK repository's tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
+This runs the SDK tests on an iPhone Simulator with code coverage enabled. The tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
 
 ## Consumer build
 
-Keep a minimal app or package that depends on the same pinned preview revision as production. Its build should import `JanuaryPartnerSDK`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
+Keep a minimal app or package that depends on the same pinned preview revision as production. Its build should import `JanuarySDK`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
 
 When a public release exists, repeat this check from a clean machine without organization credentials.
