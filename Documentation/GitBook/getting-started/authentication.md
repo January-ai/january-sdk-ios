@@ -75,7 +75,7 @@ let january = try JanuaryPartnerClient(
 )
 ```
 
-By default, a failed provider fetch gets four total attempts with exponential
+By default, a failed provider fetch gets nine total attempts (eight retries) with exponential
 backoff and jitter. The policy is configurable and can be disabled with
 `.none`:
 
@@ -83,10 +83,10 @@ backoff and jitter. The policy is configurable and can be disabled with
 let january = try JanuaryPartnerClient(
     clientTokenProvider: AppJanuaryTokenProvider(partnerBackend: partnerBackend),
     tokenRetryPolicy: JanuaryTokenRetryPolicy(
-        maximumAttempts: 5,
-        initialDelay: 0.25,
+        maximumAttempts: 9,
+        initialDelay: 1,
         multiplier: 2,
-        maximumDelay: 2,
+        maximumDelay: 8,
         jitterRatio: 0.2
     )
 )

@@ -3,7 +3,7 @@ import Foundation
 /// Controls bounded retries when the app's token provider fails to fetch a credential.
 ///
 /// `maximumAttempts` includes the initial attempt. The default performs the initial
-/// request plus up to three retries with exponential backoff and jitter. This policy
+/// request plus up to eight retries with exponential backoff and jitter. This policy
 /// applies only to fetching a token from the app's backend; a January API operation
 /// is still replayed at most once after `token_expired`.
 public struct JanuaryTokenRetryPolicy: Hashable, Sendable {
@@ -17,10 +17,10 @@ public struct JanuaryTokenRetryPolicy: Hashable, Sendable {
     public let jitterRatio: Double
 
     public init(
-        maximumAttempts: Int = 4,
-        initialDelay: TimeInterval = 0.25,
+        maximumAttempts: Int = 9,
+        initialDelay: TimeInterval = 1,
         multiplier: Double = 2,
-        maximumDelay: TimeInterval = 2,
+        maximumDelay: TimeInterval = 8,
         jitterRatio: Double = 0.2
     ) {
         precondition(maximumAttempts >= 1, "maximumAttempts must be at least 1.")

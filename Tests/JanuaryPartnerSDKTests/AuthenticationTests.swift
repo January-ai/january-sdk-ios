@@ -197,10 +197,10 @@ func providerFetchRetriesWithBoundedExponentialBackoff() async throws {
         transport: transport,
         clientTokenProvider: { try await provider.token() },
         tokenRetryPolicy: .init(
-            maximumAttempts: 4,
-            initialDelay: 0.1,
+            maximumAttempts: 9,
+            initialDelay: 1,
             multiplier: 2,
-            maximumDelay: 1,
+            maximumDelay: 8,
             jitterRatio: 0
         ),
         sleep: { await sleeper.sleep(for: $0) }
@@ -209,7 +209,7 @@ func providerFetchRetriesWithBoundedExponentialBackoff() async throws {
     _ = try await client.foods.search(.init(query: "banana"))
 
     #expect(await provider.callCount() == 3)
-    #expect(await sleeper.delays() == [0.1, 0.2])
+    #expect(await sleeper.delays() == [1, 2])
     #expect(await transport.requests().map(\.authorization) == ["Bearer ct-recovered"])
 }
 
@@ -223,10 +223,10 @@ func providerFetchStopsAfterMaximumAttempts() async throws {
         transport: transport,
         clientTokenProvider: { try await provider.token() },
         tokenRetryPolicy: .init(
-            maximumAttempts: 4,
-            initialDelay: 0.1,
+            maximumAttempts: 9,
+            initialDelay: 1,
             multiplier: 2,
-            maximumDelay: 1,
+            maximumDelay: 8,
             jitterRatio: 0
         ),
         sleep: { await sleeper.sleep(for: $0) }
@@ -238,11 +238,11 @@ func providerFetchStopsAfterMaximumAttempts() async throws {
     } catch let error as JanuaryError {
         #expect(error.category == .authentication)
         #expect(error.code == "client_token_provider_failed")
-        #expect(error.message.contains("after 4 attempts"))
+        #expect(error.message.contains("after 9 attempts"))
     }
 
-    #expect(await provider.callCount() == 4)
-    #expect(await sleeper.delays() == [0.1, 0.2, 0.4])
+    #expect(await provider.callCount() == 9)
+    #expect(await sleeper.delays() == [1, 2, 4, 8, 8, 8, 8, 8])
     #expect(await transport.requests().isEmpty)
 }
 
@@ -261,10 +261,10 @@ func tokenExpiredRefreshUsesBackoffBeforeSingleReplay() async throws {
         transport: transport,
         clientTokenProvider: { try await provider.token() },
         tokenRetryPolicy: .init(
-            maximumAttempts: 4,
-            initialDelay: 0.1,
+            maximumAttempts: 9,
+            initialDelay: 1,
             multiplier: 2,
-            maximumDelay: 1,
+            maximumDelay: 8,
             jitterRatio: 0
         ),
         sleep: { await sleeper.sleep(for: $0) }
@@ -273,7 +273,7 @@ func tokenExpiredRefreshUsesBackoffBeforeSingleReplay() async throws {
     _ = try await client.foods.search(.init(query: "banana"))
 
     #expect(await provider.callCount() == 4)
-    #expect(await sleeper.delays() == [0.1, 0.2])
+    #expect(await sleeper.delays() == [1, 2])
     #expect(await transport.requests().map(\.authorization) == [
         "Bearer ct-expired", "Bearer ct-refreshed",
     ])
@@ -282,7 +282,7 @@ func tokenExpiredRefreshUsesBackoffBeforeSingleReplay() async throws {
 @Test
 func retryPolicyAddsBoundedJitter() {
     let policy = JanuaryTokenRetryPolicy(
-        maximumAttempts: 4,
+        maximumAttempts: 9,
         initialDelay: 1,
         multiplier: 3,
         maximumDelay: 5,
@@ -376,10 +376,10 @@ func providerFailuresMapToSafeAuthenticationErrors() async throws {
         transport: AuthenticationTransport(),
         clientTokenProvider: { try await provider.token() },
         tokenRetryPolicy: .init(
-            maximumAttempts: 4,
-            initialDelay: 0.1,
+            maximumAttempts: 9,
+            initialDelay: 1,
             multiplier: 2,
-            maximumDelay: 1,
+            maximumDelay: 8,
             jitterRatio: 0
         ),
         now: { now },
@@ -394,8 +394,8 @@ func providerFailuresMapToSafeAuthenticationErrors() async throws {
         #expect(error.code == "client_token_provider_failed")
         #expect(!error.message.contains("ProviderFailure"))
     }
-    #expect(await provider.callCount() == 4)
-    #expect(await sleeper.delays() == [0.1, 0.2, 0.4])
+    #expect(await provider.callCount() == 9)
+    #expect(await sleeper.delays() == [1, 2, 4, 8, 8, 8, 8, 8])
 }
 
 @Test

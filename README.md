@@ -146,15 +146,15 @@ let january = try JanuaryPartnerClient(clientTokenProvider: {
 ```
 
 Token-provider failures are retried with bounded exponential backoff and jitter.
-The default makes four total attempts (the initial fetch plus three retries).
+The default makes nine total attempts (the initial fetch plus eight retries).
 Customize or disable this behavior explicitly when constructing the client:
 
 ```swift
 let retryPolicy = JanuaryTokenRetryPolicy(
-    maximumAttempts: 5,
-    initialDelay: 0.25,
+    maximumAttempts: 9,
+    initialDelay: 1,
     multiplier: 2,
-    maximumDelay: 2,
+    maximumDelay: 8,
     jitterRatio: 0.2
 )
 
