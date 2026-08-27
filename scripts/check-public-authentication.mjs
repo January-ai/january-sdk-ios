@@ -9,8 +9,12 @@ const clientSource = await readFile(
   "utf8",
 );
 
-if (!/@available\(\*, deprecated, message: "[^"]*Local development only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(developmentAPIKey:/.test(clientSource)) {
-  throw new Error("The API-key initializer must remain public with an explicit local-development deprecation warning that directs production users to JanuaryTokenProvider.");
+if (!/@available\(\*, deprecated, message: "[^"]*Local testing only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(developmentAPIKey:/.test(clientSource)) {
+  throw new Error("The API-key initializer must remain public with an explicit local-testing deprecation warning that directs production users to JanuaryTokenProvider.");
+}
+
+if (!/authenticationLogger\.warning/.test(clientSource) || !/developmentAPIKeyWarning/.test(clientSource)) {
+  throw new Error("A nonempty development API key must emit a runtime warning without logging the key.");
 }
 
 async function markdownFiles(directory) {

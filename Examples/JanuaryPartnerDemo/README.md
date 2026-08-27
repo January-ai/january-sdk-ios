@@ -19,10 +19,16 @@ Set these environment variables in the `JanuaryPartnerDemo` Run scheme:
 PARTNER_TOKEN_URL=https://your-backend.example.com/january-token
 JANUARY_INTERNAL_API_BASE_URL=https://partners.dev.january.ai
 JANUARY_END_USER_ID=your-test-user-id
+PARTNER_APP_SESSION_TOKEN=your-app-session-token
 ```
 
 For local January development, `PARTNER_TOKEN_URL` may point to the stand-in
-backend at `http://127.0.0.1:8787/january-token`. The endpoint must return:
+backend at `http://127.0.0.1:8787/january-token`; omit
+`PARTNER_APP_SESSION_TOKEN` because that deliberately development-only server
+does not authenticate callers. A real partner backend must authenticate the
+app session before minting a token and derive the end-user identity from that
+session; the provider sends the `user` query only to the localhost stand-in.
+The endpoint must return:
 
 ```json
 { "token": "ct-…", "expiresIn": 1800 }
@@ -47,6 +53,9 @@ capture is available on a physical device.
 The project links the repository's `JanuarySDK` product through a local Swift
 Package dependency. The SDK caches the returned client token in memory,
 refreshes it before expiration, and single-flights concurrent refreshes.
+`PartnerBackendTokenProvider` is the production-shaped demo implementation: it
+calls the configured partner endpoint, supplies the app-session authorization
+header when configured, and decodes the server response for the SDK.
 
 The visual tokens, reusable SwiftUI components, layout rules, and screen
 requirements are documented in [DESIGN_SPEC.md](DESIGN_SPEC.md).

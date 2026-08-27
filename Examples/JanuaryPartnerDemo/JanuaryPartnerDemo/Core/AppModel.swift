@@ -4,7 +4,12 @@ import Observation
 
 enum AuthenticationConfiguration: Sendable {
     case developmentAPIKey(String)
-    case clientToken(partnerTokenURL: URL, apiBaseURL: URL, endUserID: String)
+    case clientToken(
+        partnerTokenURL: URL,
+        apiBaseURL: URL,
+        developmentEndUserID: String?,
+        appSessionToken: String?
+    )
     case invalid(String)
 }
 
@@ -50,14 +55,19 @@ final class AppModel {
                     return
                 }
                 client = try JanuaryClient(developmentAPIKey: normalizedAPIKey)
-            case .clientToken(let partnerTokenURL, let apiBaseURL, let endUserID):
+            case .clientToken(
+                let partnerTokenURL,
+                let apiBaseURL,
+                let developmentEndUserID,
+                let appSessionToken
+            ):
+                let provider = PartnerBackendTokenProvider(
+                    endpoint: partnerTokenURL,
+                    developmentEndUserID: developmentEndUserID,
+                    appSessionToken: appSessionToken
+                )
                 client = try JanuaryClient(
-                    clientTokenProvider: {
-                        try await Self.fetchClientToken(
-                            from: partnerTokenURL,
-                            endUserID: endUserID
-                        )
-                    },
+                    clientTokenProvider: provider,
                     apiBaseURL: apiBaseURL
                 )
             case .invalid(let message):
@@ -71,30 +81,4 @@ final class AppModel {
         }
     }
 
-    private static func fetchClientToken(
-        from url: URL,
-        endUserID: String
-    ) async throws -> JanuaryClientToken {
-        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
-            throw TokenError.invalidURL
-        }
-        components.queryItems = (components.queryItems ?? []) + [
-            URLQueryItem(name: "user", value: endUserID),
-        ]
-        guard let requestURL = components.url else { throw TokenError.invalidURL }
-        var request = URLRequest(url: requestURL)
-        request.httpMethod = "GET"
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let response = response as? HTTPURLResponse, response.statusCode == 200 else {
-            throw TokenError.requestFailed
-        }
-        let token = try JSONDecoder().decode(JanuaryClientToken.self, from: data)
-        print("January demo fetched a short-lived token valid for \(token.expiresIn) seconds.")
-        return token
-    }
-}
-
-private enum TokenError: Error {
-    case requestFailed
-    case invalidURL
 }

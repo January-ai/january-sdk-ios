@@ -373,6 +373,25 @@ func publicClientAndCoreUtilitiesCoverValidAndInvalidConstruction() throws {
 }
 
 @Test
+func developmentAPIKeyWarningIsEmittedOnlyForANonemptyKey() throws {
+    var warnings: [String] = []
+    let normalizedAPIKey = try JanuaryClient.validateDevelopmentAPIKey("  fixture-key  ") {
+        warnings.append($0)
+    }
+
+    #expect(normalizedAPIKey == "fixture-key")
+    #expect(warnings == [JanuaryClient.developmentAPIKeyWarning])
+
+    warnings.removeAll()
+    #expect(throws: JanuaryError.self) {
+        _ = try JanuaryClient.validateDevelopmentAPIKey(" \n ") {
+            warnings.append($0)
+        }
+    }
+    #expect(warnings.isEmpty)
+}
+
+@Test
 func transportBoundaryPreservesDirectStructuredFailures() async throws {
     await #expect(throws: CancellationError.self) {
         _ = try await performTransportRequest { () async throws -> Int in throw CancellationError() }

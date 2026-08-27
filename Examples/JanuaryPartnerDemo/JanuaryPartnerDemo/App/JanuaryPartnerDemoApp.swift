@@ -18,10 +18,18 @@ private enum AppConfiguration {
                     "Set JANUARY_INTERNAL_API_BASE_URL when PARTNER_TOKEN_URL is configured."
                 )
             }
+            let usesDevelopmentStandIn = url.host == "127.0.0.1" || url.host == "localhost"
+            let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"]
+            if !usesDevelopmentStandIn && (appSessionToken?.isEmpty ?? true) {
+                return .invalid(
+                    "Set PARTNER_APP_SESSION_TOKEN for a non-local partner token endpoint."
+                )
+            }
             return .clientToken(
                 partnerTokenURL: url,
                 apiBaseURL: apiBaseURL,
-                endUserID: endUserID
+                developmentEndUserID: usesDevelopmentStandIn ? endUserID : nil,
+                appSessionToken: appSessionToken
             )
         }
         return .developmentAPIKey(environment["JANUARY_DEMO_API_KEY"] ?? "")

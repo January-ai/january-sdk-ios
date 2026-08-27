@@ -34,6 +34,27 @@ node scripts/check-coverage.mjs
 
 This runs the SDK tests on an iPhone Simulator with code coverage enabled. The tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
 
+## Live client-token integration
+
+With the development stand-in partner backend running, execute the live iOS
+integration test by supplying its endpoint and January's development API origin:
+
+```sh
+PARTNER_TOKEN_URL=http://127.0.0.1:8787/january-token \
+JANUARY_INTERNAL_API_BASE_URL=https://partners.dev.january.ai \
+JANUARY_END_USER_ID=local-ios-e2e-user \
+xcodebuild -scheme JanuarySDK-Package \
+  -destination 'platform=iOS Simulator,name=iPhone Air' \
+  -only-testing:JanuarySDKTests \
+  test
+```
+
+The test calls the partner backend, decodes its short-lived token response, and
+uses that token through `JanuaryClient` for a real food search. It returns
+immediately during ordinary test runs when the two required URLs are absent.
+Swift Testing top-level test names are not reliable `xcodebuild` filters, so the
+documented command deliberately selects the complete `JanuarySDKTests` target.
+
 ## Consumer build
 
 Keep a minimal app or package that depends on the same pinned preview revision as production. Its build should import `JanuarySDK`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.

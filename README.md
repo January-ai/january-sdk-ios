@@ -97,12 +97,13 @@ provider failures with bounded exponential backoff.
 
 ## Local development with an API key
 
-> **Warning:** `developmentAPIKey` is only for local development. Do not use it
-> in production, ship an API key in an app binary, or commit one to source
-> control. Production apps must use `JanuaryTokenProvider` as shown above.
+> **Warning:** `developmentAPIKey` is only for local testing. Do not ship an app
+> with this key or commit one to source control. Production apps must use
+> `JanuaryTokenProvider` as shown above.
 
-The initializer remains available for local experiments and displays a
-deprecation warning in Xcode so it cannot be mistaken for production setup:
+The initializer remains available for local experiments and displays both an
+Xcode warning and a runtime warning in the Xcode console. Neither warning ever
+contains the key:
 
 ```swift
 import Foundation

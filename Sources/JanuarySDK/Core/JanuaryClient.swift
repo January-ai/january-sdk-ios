@@ -1,11 +1,19 @@
 import Foundation
 import JanuaryPartnerTransport
+import OSLog
 import OpenAPIRuntime
 import OpenAPIURLSession
 
 /// The entry point for the January SDK.
 public struct JanuaryClient: Sendable {
     private static let productionServerURL = URL(string: "https://partners.january.ai")!
+    private static let authenticationLogger = Logger(
+        subsystem: "ai.january.sdk",
+        category: "authentication"
+    )
+    internal static let developmentAPIKeyWarning =
+        "This development API key is for local testing only. Do not ship your app with this key. " +
+        "Use JanuaryTokenProvider for production authentication."
     /// Food search operations.
     public let foods: FoodsResource
     public let restaurants: RestaurantsResource
@@ -18,10 +26,16 @@ public struct JanuaryClient: Sendable {
     /// - Warning: Do not use API-key authentication in a production or
     ///   distributed app. Never embed an API key in an app binary or commit it to
     ///   source control. Use ``JanuaryTokenProvider`` in production.
-    @available(*, deprecated, message: "Local development only. Do not use API-key authentication in production; use JanuaryTokenProvider.")
+    @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
     public init(developmentAPIKey: String) throws {
+        let normalizedAPIKey = try Self.validateDevelopmentAPIKey(
+            developmentAPIKey,
+            warningHandler: { message in
+                Self.authenticationLogger.warning("\(message, privacy: .public)")
+            }
+        )
         try self.init(
-            developmentAPIKey: developmentAPIKey,
+            developmentAPIKey: normalizedAPIKey,
             serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
             userAgent: SDKUserAgent.current
@@ -59,6 +73,21 @@ public struct JanuaryClient: Sendable {
             transport: URLSessionTransport(),
             clientTokenProvider: clientTokenProvider,
             userAgent: SDKUserAgent.current,
+            tokenRetryPolicy: tokenRetryPolicy
+        )
+    }
+
+    /// Explicit non-production API origin used by January-owned demo tooling
+    /// with a named token-provider implementation.
+    @_spi(JanuaryDevelopment)
+    public init(
+        clientTokenProvider: any JanuaryTokenProvider,
+        apiBaseURL: URL,
+        tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
+    ) throws {
+        try self.init(
+            clientTokenProvider: { try await clientTokenProvider.fetchClientToken() },
+            apiBaseURL: apiBaseURL,
             tokenRetryPolicy: tokenRetryPolicy
         )
     }
@@ -130,6 +159,21 @@ public struct JanuaryClient: Sendable {
             authenticationSource: .developmentAPIKey(developmentAPIKey),
             userAgent: userAgent
         )
+    }
+
+    internal static func validateDevelopmentAPIKey(
+        _ developmentAPIKey: String,
+        warningHandler: (String) -> Void
+    ) throws -> String {
+        let normalizedAPIKey = developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedAPIKey.isEmpty else {
+            throw JanuaryError(
+                category: .authentication,
+                message: "A development API key is required."
+            )
+        }
+        warningHandler(developmentAPIKeyWarning)
+        return normalizedAPIKey
     }
 
     internal init(

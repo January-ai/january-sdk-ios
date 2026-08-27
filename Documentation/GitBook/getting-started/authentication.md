@@ -129,7 +129,7 @@ The SDK cannot refresh this fixed-token client.
 ## Local development API-key authentication
 
 {% hint style="danger" %}
-`developmentAPIKey` is only for local development. Do not use it in production, include an API key in a distributed app, or commit one to source control. Use `JanuaryTokenProvider` for production.
+`developmentAPIKey` is only for local testing. Do not use it in production, include an API key in a distributed app, or commit one to source control. Use `JanuaryTokenProvider` for production.
 {% endhint %}
 
 Load the key from local Xcode scheme configuration instead of putting it in Swift source:
@@ -145,4 +145,4 @@ guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
 let client = try JanuaryClient(developmentAPIKey: apiKey)
 ```
 
-Xcode intentionally marks this initializer as deprecated so every call site displays the local-development warning.
+Xcode intentionally marks this initializer as deprecated so every call site displays the warning. Supplying a nonempty key also writes the same warning to the Xcode console at runtime without logging the key itself. An empty or whitespace-only value fails validation without logging a warning.

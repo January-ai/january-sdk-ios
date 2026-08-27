@@ -47,10 +47,10 @@ concurrent refreshes.
 
 ### Local development only
 
-> Warning: ``JanuaryClient/init(developmentAPIKey:)`` is only for local
-> development and intentionally emits an Xcode deprecation warning. Never ship
-> an API key in a production app or commit one to source control. Production
-> apps must use ``JanuaryTokenProvider``.
+> Warning: ``JanuaryClient/init(developmentAPIKey:)`` is only for local testing
+> and intentionally emits Xcode and runtime console warnings. The warning never
+> contains the key. Never ship an API key in a production app or commit one to
+> source control. Production apps must use ``JanuaryTokenProvider``.
 
 ```swift
 guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
