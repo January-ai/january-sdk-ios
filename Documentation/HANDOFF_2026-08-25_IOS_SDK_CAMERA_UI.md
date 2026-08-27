@@ -1,4 +1,4 @@
-# January Partner SDK — iOS camera and demo UI handoff
+# January SDK — iOS camera and demo UI handoff
 
 Date: 2026-08-25
 
@@ -27,7 +27,7 @@ Do not use a temporary DerivedData location. Build the one real checkout at the 
 
 - Partner API stays v1.2.
 - The public Swift SDK uses native `async`/`await`.
-- The SDK currently keeps Apple Swift OpenAPI Runtime and URLSession transport as runtime dependencies. They are not generation-only dependencies in the current architecture; generated transport code calls them at runtime.
+- The SDK ships its Foundation/URLSession transport without third-party runtime dependencies. Apple Swift OpenAPI packages are isolated to maintainer-only code generation tooling.
 - Minimum iOS support needs to be iOS 15.
 - The camera and barcode UI must be bundled into the existing `JanuaryPartnerSDK` product. Do not introduce or advertise a second product named `JanuaryPartnerSDKUI`.
 - The client app should only need to provide required Info.plist permission descriptions and present the SDK scanner.

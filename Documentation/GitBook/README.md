@@ -3,7 +3,7 @@
 Build food discovery, nutrition, meal logging, and glucose-prediction experiences with native Swift models and `async`/`await` APIs.
 
 {% hint style="warning" %}
-**Controlled Preview:** the Swift repository is private and has no semantic-version release tags. Installation currently requires GitHub access granted by January and the verified revision shown in [Installation](getting-started/installation.md). The SDK is not yet anonymously installable as a public package.
+**Controlled Preview:** the Swift repository is private. Installation currently requires GitHub access granted by January. The SDK is not yet anonymously installable as a public package.
 {% endhint %}
 
 ## What you can build
@@ -18,15 +18,16 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 
 | Component | Requirement |
 | --- | --- |
-| SDK toolchain | Swift 6.1 or later |
+| SDK toolchain | Swift 5.9 or later |
 | SDK platform | iOS 15 or later |
+| Runtime dependencies | None |
 | Demo app | Xcode 26 and an iOS 26 simulator or device |
 | Repository | GitHub access granted by January during Controlled Preview |
 | Production integration | A partner-controlled backend that issues short-lived January client tokens |
 
 ## Start here
 
-1. [Install the Controlled Preview revision](getting-started/installation.md).
+1. [Install the latest release](getting-started/installation.md).
 2. [Build the partner token endpoint](getting-started/backend-token-endpoint.md).
 3. [Add a concrete token provider](getting-started/authentication.md).
 4. [Run your first food search](getting-started/quick-start.md).

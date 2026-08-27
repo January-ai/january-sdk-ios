@@ -14,7 +14,7 @@ The SDK repository is private during Controlled Preview. Xcode must use a GitHub
 4. Set the deployment target to iOS 15 or later.
 5. Choose **File → Add Package Dependencies**.
 6. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-7. Select **Exact Version** and enter `0.1.0-beta.1`.
+7. Select the latest release shown by Xcode.
 8. Add the `JanuarySDK` product to the `JanuaryQuickstart` target.
 
 ## 2. Add required scheme configuration

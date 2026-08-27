@@ -1,7 +1,6 @@
 import Foundation
-import HTTPTypes
 import ImageIO
-import OpenAPIRuntime
+import JanuaryPartnerTransport
 import Testing
 @_spi(JanuaryDevelopment) @testable import JanuarySDK
 

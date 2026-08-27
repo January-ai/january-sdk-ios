@@ -57,6 +57,6 @@ documented command deliberately selects the complete `JanuarySDKTests` target.
 
 ## Consumer build
 
-Keep a minimal app or package that depends on the same pinned preview revision as production. Its build should import `JanuarySDK`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
+Keep a minimal app or package that depends on the same SDK release as production. Its build should import `JanuarySDK`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
 
-When a public release exists, repeat this check from a clean machine without organization credentials.
+When the repository becomes public, repeat this check from a clean machine without organization credentials.

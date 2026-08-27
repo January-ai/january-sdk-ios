@@ -1,8 +1,6 @@
 import Foundation
 import JanuaryPartnerTransport
 import OSLog
-import OpenAPIRuntime
-import OpenAPIURLSession
 
 /// The entry point for the January SDK.
 public struct JanuaryClient: Sendable {

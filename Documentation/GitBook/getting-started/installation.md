@@ -1,6 +1,7 @@
 # Installation
 
 The package product and importable module are both named `JanuarySDK`.
+It has no third-party runtime dependencies.
 
 {% hint style="warning" %}
 **Controlled Preview:** `January-ai/january-sdk-ios` is currently private. You need repository access from January before Xcode or Swift Package Manager can resolve it.
@@ -8,7 +9,8 @@ The package product and importable module are both named `JanuarySDK`.
 
 ## Requirements
 
-* Swift 6.1 or later
+* Xcode 15 or later
+* Swift 5.9 or later
 * iOS 15 or later
 * A GitHub account authorized for the private repository
 
@@ -20,46 +22,15 @@ The example app uses the latest tab-bar APIs and targets iOS 26 independently of
 2. Open your app project.
 3. Choose **File → Add Package Dependencies**.
 4. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-5. Select **Exact Version** and enter the preview release:
-
-```text
-0.1.0-beta.1
-```
-
+5. Select the latest release shown by Xcode.
 6. Add the `JanuarySDK` product to your app target.
 
 ## Package.swift
 
-Use the same exact prerelease while the SDK is in Controlled Preview:
-
-```swift
-// swift-tools-version: 6.1
-import PackageDescription
-
-let package = Package(
-    name: "YourApp",
-    platforms: [.iOS(.v15)],
-    dependencies: [
-        .package(
-            url: "https://github.com/January-ai/january-sdk-ios.git",
-            exact: "0.1.0-beta.1"
-        ),
-    ],
-    targets: [
-        .target(
-            name: "YourApp",
-            dependencies: [
-                .product(
-                    name: "JanuarySDK",
-                    package: "january-sdk-ios"
-                ),
-            ]
-        ),
-    ]
-)
-```
-
-Pinning prevents an unreviewed preview update from changing your build. January will publish a new prerelease when you should update.
+Swift Package Manager does not provide a symbolic `latest` requirement in a
+package manifest. For manifest-only integrations, use the current release tag
+shown in the repository and add the `JanuarySDK` product. Do not depend on the
+`main` branch for a production application.
 
 ## Verify the package
 
@@ -70,13 +41,5 @@ import JanuarySDK
 ```
 
 If resolution fails, follow [Xcode cannot resolve the package](../reference/troubleshooting.md#xcode-cannot-resolve-the-package).
-
-## Stable releases
-
-After January publishes `0.1.0`, use a compatible version requirement so your app can receive non-breaking updates:
-
-```text
-.package(url: "https://github.com/January-ai/january-sdk-ios.git", from: "0.1.0")
-```
 
 Continue to [Backend token endpoint](backend-token-endpoint.md).

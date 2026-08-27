@@ -5,7 +5,7 @@ coordination through your January partner support channel.
 
 ## Development setup
 
-Requirements: Xcode 16.3 or later and Swift 6.1 or later.
+Requirements: Xcode 15 or later and Swift 5.9 or later.
 
 ```sh
 git clone https://github.com/January-ai/january-sdk-ios.git

@@ -25,7 +25,7 @@ package enum SDKUserAgent {
     ) -> String {
         var parts = [
             "JanuarySDK/\(sdkVersion)",
-            "Swift/6",
+            swiftVersion,
             "Platform/\(token(platform))",
             "OS/\(token(osVersion))",
             "Device/\(token(deviceFamily))",
@@ -42,6 +42,14 @@ package enum SDKUserAgent {
         }
 
         return parts.joined(separator: " ")
+    }
+
+    private static var swiftVersion: String {
+        #if compiler(>=6.0)
+        "Swift/6"
+        #else
+        "Swift/5"
+        #endif
     }
 
     private static var platform: String {

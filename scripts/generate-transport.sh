@@ -112,4 +112,27 @@ swift package \
 mkdir -p "$destination_root"
 rsync -a --delete "$generated_root/" "$destination_root/"
 
+# Swift OpenAPI Generator follows its own current toolchain and can emit
+# Swift 6-only access modifiers on import declarations. The generated
+# declarations themselves use package access, which is available in Swift 5.9.
+# Keep the checked-in consumer transport compatible with the SDK's Swift 5.9
+# baseline without constraining the generator tool used by maintainers.
+node --input-type=module - "$destination_root" <<'NODE'
+import fs from "node:fs";
+import path from "node:path";
+
+const directory = process.argv[2];
+for (const name of ["Client.swift", "Types.swift"]) {
+    const file = path.join(directory, name);
+    let source = fs.readFileSync(file, "utf8");
+    source = source
+        .replaceAll("@_spi(Generated) package import", "@_spi(Generated) import")
+        .replaceAll("@preconcurrency package import", "@preconcurrency import")
+        .replaceAll("package import struct Foundation.", "import struct Foundation.")
+        .replace(/^@_spi\(Generated\) import OpenAPIRuntime\n/gm, "")
+        .replace(/^import HTTPTypes\n/gm, "");
+    fs.writeFileSync(file, source);
+}
+NODE
+
 echo "Generated the package-private Swift transport from contract release $contract_version."

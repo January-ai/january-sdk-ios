@@ -1,6 +1,5 @@
 import Foundation
-import HTTPTypes
-import OpenAPIRuntime
+import JanuaryPartnerTransport
 
 enum AuthenticationSource: Sendable {
     case developmentAPIKey(String, endUserID: PartnerUserID?)

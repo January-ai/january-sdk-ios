@@ -2,10 +2,11 @@
 
 [![CI](https://github.com/January-ai/january-sdk-ios/actions/workflows/quality.yml/badge.svg)](https://github.com/January-ai/january-sdk-ios/actions/workflows/quality.yml)
 ![iOS 15+](https://img.shields.io/badge/iOS-15%2B-blue)
-![Swift 6.1+](https://img.shields.io/badge/Swift-6.1%2B-orange)
+![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange)
 
 January's native Swift SDK for food discovery, restaurant search, meal scanning,
-food logs, and glucose prediction.
+food logs, and glucose prediction. The package has no third-party runtime
+dependencies.
 
 > **Preview:** This repository and its prerelease versions are currently
 > private. Your GitHub account must have access to install the package.
@@ -13,8 +14,8 @@ food logs, and glucose prediction.
 ## Requirements
 
 - iOS 15 or later
-- Xcode 16.3 or later
-- Swift 6.1 or later
+- Xcode 15 or later
+- Swift 5.9 or later
 
 ## Install with Swift Package Manager
 
@@ -24,28 +25,10 @@ In Xcode, choose **File → Add Package Dependencies**, then enter:
 https://github.com/January-ai/january-sdk-ios.git
 ```
 
-Select **Exact Version**, enter `0.1.0-beta.1`, and add the `JanuarySDK` product
-to your app target. For a package manifest:
-
-```swift
-dependencies: [
-    .package(
-        url: "https://github.com/January-ai/january-sdk-ios.git",
-        exact: "0.1.0-beta.1"
-    ),
-],
-targets: [
-    .target(
-        name: "YourApp",
-        dependencies: [
-            .product(name: "JanuarySDK", package: "january-sdk-ios"),
-        ]
-    ),
-]
-```
-
-Preview releases use exact prerelease versions. After the stable `0.1.0`
-release, applications can adopt a compatible version requirement.
+Select the latest release shown by Xcode and add the `JanuarySDK` product to
+your app target. Swift Package Manager has no symbolic `latest` requirement for
+manifest-only integrations; use the current release tag shown in the repository
+rather than copying a version number from this README.
 
 ## Production authentication: client tokens
 

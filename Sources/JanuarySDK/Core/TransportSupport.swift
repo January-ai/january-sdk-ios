@@ -1,6 +1,5 @@
 import Foundation
 import JanuaryPartnerTransport
-import OpenAPIRuntime
 
 internal enum ModelBridge {
     static func convert<Source: Encodable, Target: Decodable>(

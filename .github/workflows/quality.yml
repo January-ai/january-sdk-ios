@@ -15,6 +15,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  minimum-toolchain:
+    name: Build with Swift 5.9
+    runs-on: macos-14
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Select Xcode 15
+        run: sudo xcode-select -s /Applications/Xcode_15.0.1.app/Contents/Developer
+
+      - name: Verify minimum toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          test "$(swift package dump-package | jq -r '.toolsVersion._version')" = "5.9.0"
+          test "$(swift package dump-package | jq '.dependencies | length')" = "0"
+
+      - name: Build SDK for iOS
+        run: >-
+          xcodebuild
+          -scheme JanuarySDK
+          -destination 'generic/platform=iOS'
+          -configuration Release
+          CODE_SIGNING_ALLOWED=NO
+          build
+
   quality:
     name: Build and test Swift SDK
     runs-on: macos-26
@@ -51,8 +79,6 @@ jobs:
           -scheme JanuarySDK
           -destination 'generic/platform=iOS'
           -configuration Release
-          -disableAutomaticPackageResolution
-          -onlyUsePackageVersionsFromResolvedFile
           CODE_SIGNING_ALLOWED=NO
           build
 
