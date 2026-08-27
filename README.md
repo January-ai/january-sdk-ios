@@ -147,6 +147,10 @@ xcodebuild -scheme JanuarySDK -destination 'generic/platform=iOS' \
 See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), and
 [SECURITY.md](SECURITY.md) for project policies.
 
+## License
+
+January SDK for iOS is available under the [Apache License 2.0](LICENSE).
+
 ## Support
 
 For integration support, use your January partner support channel. Report
