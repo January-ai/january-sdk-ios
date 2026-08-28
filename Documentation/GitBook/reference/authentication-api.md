@@ -11,19 +11,28 @@ public struct JanuaryClient: Sendable {
     public let glucose: GlucoseResource
 
     public init(
+        endUserID: PartnerUserID,
+        timezone: String? = nil,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws
     public init(
+        endUserID: PartnerUserID,
+        timezone: String? = nil,
         clientTokenProvider: any JanuaryTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws
-    public init(clientToken: String) throws
+    public init(
+        clientToken: String,
+        endUserID: PartnerUserID,
+        timezone: String? = nil
+    ) throws
 
     @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
     public init(
         developmentAPIKey: String,
-        endUserID: PartnerUserID
+        endUserID: PartnerUserID,
+        timezone: String? = nil
     ) throws
 }
 ```
@@ -113,17 +122,9 @@ public struct JanuaryTokenRetryPolicy: Hashable, Sendable {
 
 Invalid policy values fail a precondition. See [Retries and concurrency](retries-and-concurrency.md).
 
-## User-scoped client
+## User context
 
 ```swift
-public extension JanuaryClient {
-    func forUser(_ context: PartnerUserContext) -> JanuaryUserClient
-    func forUser(
-        _ endUserID: PartnerUserID,
-        timezone: String? = nil
-    ) -> JanuaryUserClient
-}
-
 public struct PartnerUserContext: Hashable, Sendable {
     public var endUserID: PartnerUserID
     public var timezone: String?
@@ -131,8 +132,7 @@ public struct PartnerUserContext: Hashable, Sendable {
 }
 ```
 
-`JanuaryUserClient` exposes `context`, `foods`, `restaurants`, `photoScanning`,
-`foodLogs`, and `glucose`. Configure it once after authentication and use those
-scoped resources instead of repeating the user ID in individual requests.
-Client-token authentication removes the end-user header because the token
-already carries identity.
+Configure the end-user ID and optional timezone directly on `JanuaryClient`.
+Its `foods`, `restaurants`, `photoScanning`, `foodLogs`, and `glucose` resources
+reuse that context automatically. Client-token authentication removes the
+end-user header because the token already carries identity.

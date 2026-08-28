@@ -95,7 +95,11 @@ func livePartnerTokenProviderCallsPartnerBackendAndJanuaryWhenConfigured() async
         appSessionToken: appSessionToken,
         endUserID: endUserID
     )
-    let client = try JanuaryClient(clientTokenProvider: provider, tokenRetryPolicy: .none)
+    let client = try JanuaryClient(
+        endUserID: PartnerUserID(rawValue: endUserID),
+        clientTokenProvider: provider,
+        tokenRetryPolicy: .none
+    )
 
     let results = try await client.foods.search(
         .init(query: "banana", limit: 1)

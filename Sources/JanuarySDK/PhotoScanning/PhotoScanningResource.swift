@@ -2,13 +2,17 @@ import JanuaryPartnerTransport
 
 public struct PhotoScanningResource: Sendable {
     private let client: Client
-    internal init(client: Client) { self.client = client }
+    private let userContext: PartnerUserContext?
+    internal init(client: Client, userContext: PartnerUserContext? = nil) {
+        self.client = client
+        self.userContext = userContext
+    }
 
     public func scan(_ request: ScanFoodPhotoRequest) async throws -> FoodScan {
         try await performTransportRequest {
             let body = Components.Schemas.ScanFoodPhotoBody(image: request.image)
             let output = try await client.scanFoodPhoto(
-                .init(headers: .init(xEndUserId: request.endUserID?.rawValue), body: .json(body))
+                .init(headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue), body: .json(body))
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
@@ -36,7 +40,7 @@ public struct PhotoScanningResource: Sendable {
         return try await performTransportRequest {
             let output = try await client.searchFoodsByNaturalLanguage(
                 .init(
-                    headers: .init(xEndUserId: request.endUserID?.rawValue),
+                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue),
                     body: .json(.init(text: request.query))
                 )
             )
@@ -56,7 +60,7 @@ public struct PhotoScanningResource: Sendable {
                 CorrectBody(mealName: request.mealName, detections: request.detections, userInput: request.userInput)
             )
             let output = try await client.correctPhotoScan(
-                .init(headers: .init(xEndUserId: request.endUserID?.rawValue), body: .json(body))
+                .init(headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue), body: .json(body))
             )
             switch output {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
@@ -67,6 +71,10 @@ public struct PhotoScanningResource: Sendable {
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
         }
+    }
+
+    private func resolvedEndUserID(_ requestEndUserID: PartnerUserID?) -> PartnerUserID? {
+        userContext?.endUserID ?? requestEndUserID
     }
 }
 

@@ -59,7 +59,11 @@ final class AppModel {
                     endUserID: PartnerUserID(rawValue: endUserID),
                     ttlSeconds: ttlSeconds
                 )
-                client = try JanuaryClient(clientTokenProvider: provider)
+                client = try JanuaryClient(
+                    endUserID: PartnerUserID(rawValue: endUserID),
+                    timezone: userSession.timezone,
+                    clientTokenProvider: provider
+                )
 #else
                 state = .failed(
                     "Development API keys are disabled in Release builds. Configure PARTNER_TOKEN_URL instead."
@@ -76,7 +80,11 @@ final class AppModel {
                     appSessionToken: appSessionToken,
                     endUserID: PartnerUserID(rawValue: endUserID)
                 )
-                client = try JanuaryClient(clientTokenProvider: provider)
+                client = try JanuaryClient(
+                    endUserID: PartnerUserID(rawValue: endUserID),
+                    timezone: userSession.timezone,
+                    clientTokenProvider: provider
+                )
             case .invalid(let message):
                 state = .failed(message)
                 return

@@ -18,6 +18,8 @@ returned but empty or nearly expired token fails validation without retrying.
 
 ```swift
 let noProviderRetry = try JanuaryClient(
+    endUserID: partnerUserID,
+    timezone: TimeZone.current.identifier,
     clientTokenProvider: tokenProvider,
     tokenRetryPolicy: .none
 )

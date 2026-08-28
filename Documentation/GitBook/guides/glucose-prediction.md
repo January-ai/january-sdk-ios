@@ -8,12 +8,13 @@ Glucose predictions and profile inputs are health data. Do not place request or 
 
 ## Create a prediction
 
-Create a user-scoped client so the same identity and timezone are applied to each prediction:
+Configure the client so the same identity and timezone are applied to each prediction:
 
 ```swift
-let user = client.forUser(
-    PartnerUserID(rawValue: partnerUserID),
-    timezone: "America/New_York"
+let client = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: partnerUserID),
+    timezone: "America/New_York",
+    clientTokenProvider: tokenProvider
 )
 ```
 
@@ -31,7 +32,7 @@ let request = PredictGlucoseRequest(
     startTime: Date()
 )
 
-let prediction = try await user.glucose.predict(request)
+let prediction = try await client.glucose.predict(request)
 ```
 
 The result contains:
@@ -53,4 +54,4 @@ not present a single raw-inch field.
 Predictions are informational and must not be presented as diagnosis or medical treatment guidance.
 {% endhint %}
 
-With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header. The scoped client still applies the timezone.
+With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header. The configured client still applies the timezone.

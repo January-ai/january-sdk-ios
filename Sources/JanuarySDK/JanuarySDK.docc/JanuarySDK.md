@@ -46,6 +46,8 @@ struct AppTokenProvider: JanuaryTokenProvider {
 }
 
 let january = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: signedInUser.stableID),
+    timezone: TimeZone.current.identifier,
     clientTokenProvider: AppTokenProvider(
         endpoint: requiredTokenEndpoint,
         appSessionToken: signedInUser.sessionToken
@@ -57,19 +59,15 @@ The provider owns its URL, session authentication, and network request. The SDK
 keeps the returned token in memory, refreshes it before expiry, and coordinates
 concurrent refreshes.
 
-Create one user-scoped client after authentication and reuse it across every
+The client automatically applies that user ID and timezone across every
 resource:
 
 ```swift
-let user = january.forUser(
-    PartnerUserID(rawValue: signedInUser.stableID),
-    timezone: TimeZone.current.identifier
-)
-let results = try await user.foods.search(.init(query: "banana"))
+let results = try await january.foods.search(.init(query: "banana"))
 ```
 
-The scoped client exposes Foods, Restaurants, Photo Scanning, Food Logs, and
-Glucose. Recreate the lightweight value when the signed-in account changes.
+`JanuaryClient` exposes Foods, Restaurants, Photo Scanning, Food Logs, and
+Glucose. Recreate the client when the signed-in account changes.
 
 For a local end-to-end check, deploy the public
 [January token relay](https://github.com/January-ai/january-token-relay) and use
@@ -90,7 +88,10 @@ let provider = try JanuaryDevelopmentTokenProvider(
     endUserID: PartnerUserID(rawValue: "local-test-user"),
     ttlSeconds: 300
 )
-let january = try JanuaryClient(clientTokenProvider: provider)
+let january = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: "local-test-user"),
+    clientTokenProvider: provider
+)
 #endif
 ```
 
@@ -100,7 +101,7 @@ let january = try JanuaryClient(clientTokenProvider: provider)
 
 ### Local development only
 
-> Warning: ``JanuaryClient/init(developmentAPIKey:endUserID:)`` is only for local testing
+> Warning: ``JanuaryClient/init(developmentAPIKey:endUserID:timezone:)`` is only for local testing
 > and intentionally emits Xcode and runtime console warnings. The warning never
 > contains the key. Never ship an API key in a production app or commit one to
 > source control. Production apps must use ``JanuaryTokenProvider``.
@@ -144,11 +145,10 @@ if let match = results.items.first {
 - ``JanuaryTokenRetryPolicy``
 - ``JanuaryDevelopmentTokenProvider``
 
-### User context
+### User identity
 
 - ``PartnerUserContext``
 - ``PartnerUserID``
-- ``JanuaryUserClient``
 
 ### Resources
 

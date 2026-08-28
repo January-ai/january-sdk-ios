@@ -3,10 +3,56 @@ import JanuaryPartnerTransport
 
 public struct FoodLogsResource: Sendable {
     private let client: Client
-    internal init(client: Client) { self.client = client }
+    private let userContext: PartnerUserContext?
+    internal init(client: Client, userContext: PartnerUserContext? = nil) {
+        self.client = client
+        self.userContext = userContext
+    }
+
+    /// Creates a food log for the user configured on ``JanuaryClient``.
+    public func create(
+        foods: [FoodSelection],
+        timestampUTC: String? = nil,
+        name: String? = nil
+    ) async throws -> FoodLog {
+        try await create(.init(
+            foods: foods,
+            timestampUTC: timestampUTC,
+            name: name,
+            user: try configuredUser()
+        ))
+    }
+
+    /// Lists food logs for the user configured on ``JanuaryClient``.
+    public func list(start: String, end: String) async throws -> ListFoodLogsResponse {
+        try await list(.init(start: start, end: end, user: try configuredUser()))
+    }
+
+    /// Updates a food log for the user configured on ``JanuaryClient``.
+    public func update(
+        id: String,
+        foods: [FoodSelection]? = nil,
+        timestampUTC: String? = nil,
+        name: String? = nil
+    ) async throws -> FoodLog {
+        try await update(.init(
+            id: id,
+            foods: foods,
+            timestampUTC: timestampUTC,
+            name: name,
+            user: try configuredUser()
+        ))
+    }
+
+    /// Deletes a food log for the user configured on ``JanuaryClient``.
+    public func delete(id: String) async throws -> DeleteFoodLogResponse {
+        try await delete(.init(id: id, user: try configuredUser()))
+    }
 
     public func create(_ request: CreateFoodLogRequest) async throws -> FoodLog {
-        try await performTransportRequest {
+        var request = request
+        if let userContext { request.user = userContext }
+        return try await performTransportRequest {
             let body = Components.Schemas.CreateFoodLogBody(
                 foods: try ModelBridge.convert(request.foods),
                 timestampUtc: try parseTimestamp(request.timestampUTC),
@@ -29,7 +75,9 @@ public struct FoodLogsResource: Sendable {
     }
 
     public func list(_ request: ListFoodLogsRequest) async throws -> ListFoodLogsResponse {
-        try await performTransportRequest {
+        var request = request
+        if let userContext { request.user = userContext }
+        return try await performTransportRequest {
             let output = try await client.listFoodLogs(
                 .init(
                     query: .init(start: request.start, end: request.end),
@@ -55,7 +103,9 @@ public struct FoodLogsResource: Sendable {
     }
 
     public func update(_ request: UpdateFoodLogRequest) async throws -> FoodLog {
-        try await performTransportRequest {
+        var request = request
+        if let userContext { request.user = userContext }
+        return try await performTransportRequest {
             let body = Components.Schemas.UpdateFoodLogBody(
                 foods: try request.foods.map {
                     try ModelBridge.convert($0, to: [Components.Schemas.FoodLogInputFood].self)
@@ -78,7 +128,9 @@ public struct FoodLogsResource: Sendable {
     }
 
     public func delete(_ request: DeleteFoodLogRequest) async throws -> DeleteFoodLogResponse {
-        try await performTransportRequest {
+        var request = request
+        if let userContext { request.user = userContext }
+        return try await performTransportRequest {
             let output = try await client.deleteFoodLog(
                 .init(
                     path: .init(logId: request.id),
@@ -100,6 +152,17 @@ public struct FoodLogsResource: Sendable {
 
     private func headers(_ user: FoodLogUserContext) -> Operations.CreateFoodLog.Input.Headers {
         .init(xEndUserId: user.endUserID.rawValue, xEndUserTimezone: user.timezone)
+    }
+
+    private func configuredUser() throws -> PartnerUserContext {
+        guard let userContext else {
+            throw JanuaryError(
+                category: .validation,
+                code: "missing_user_context",
+                message: "Configure an end-user ID on JanuaryClient before using Food Logs."
+            )
+        }
+        return userContext
     }
 
     private func updateHeaders(_ user: FoodLogUserContext) -> Operations.UpdateFoodLog.Input.Headers {

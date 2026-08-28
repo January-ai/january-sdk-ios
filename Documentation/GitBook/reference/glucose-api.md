@@ -24,15 +24,8 @@ public struct PredictGlucoseRequest: Hashable, Sendable {
 }
 ```
 
-The user-scoped equivalent is:
-
-```swift
-public func predict(
-    _ request: PredictGlucoseRequest
-) async throws -> GlucosePrediction
-```
-
-`JanuaryUserClient.glucose` replaces the request's identity and timezone with its stored context.
+`JanuaryClient.glucose` replaces request-level identity and timezone values with
+the context configured on the client.
 
 ## Profile
 

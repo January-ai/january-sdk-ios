@@ -2,7 +2,7 @@
 
 Food discovery and serving selection are separate steps.
 
-The examples below use a user-scoped client created with `client.forUser(...)`.
+The examples below use the user context configured once on `JanuaryClient`.
 With client-token authentication, the token remains authoritative for identity.
 
 ```text
@@ -15,7 +15,7 @@ Autocomplete suggestion ─▶ Search results ─▶ GET food/{id} ─▶ Portio
 Use autocomplete while the user types. When the user selects a suggestion, put its name into the search field and perform a normal search. A suggestion is not a serving-ready food.
 
 ```swift
-let suggestions = try await user.foods.autocomplete(
+let suggestions = try await client.foods.autocomplete(
     .init(query: "greek yog", limit: 8)
 )
 ```
@@ -25,7 +25,7 @@ let suggestions = try await user.foods.autocomplete(
 ```swift
 guard let suggestion = suggestions.items.first else { return }
 
-let results = try await user.foods.search(
+let results = try await client.foods.search(
     .init(query: suggestion.name, category: .branded)
 )
 ```
@@ -37,7 +37,7 @@ Always fetch the chosen food by ID before opening a serving picker:
 ```swift
 guard let selected = results.items.first else { return }
 
-let food = try await user.foods.getFood(
+let food = try await client.foods.getFood(
     .init(foodID: selected.id)
 )
 ```

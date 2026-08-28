@@ -4,9 +4,11 @@ import JanuaryPartnerTransport
 /// Food operations exposed by ``JanuaryClient``.
 public struct FoodsResource: Sendable {
     private let client: Client
+    private let userContext: PartnerUserContext?
 
-    internal init(client: Client) {
+    internal init(client: Client, userContext: PartnerUserContext? = nil) {
         self.client = client
+        self.userContext = userContext
     }
 
     /// Returns lightweight food suggestions as a user types.
@@ -34,7 +36,7 @@ public struct FoodsResource: Sendable {
                         category: request.category.map(Components.Schemas.AutocompleteFoodCategory.init),
                         limit: request.limit
                     ),
-                    headers: .init(xEndUserId: request.endUserID?.rawValue)
+                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
                 )
             )
         }
@@ -65,7 +67,7 @@ public struct FoodsResource: Sendable {
             try await client.getFood(
                 .init(
                     path: .init(foodId: request.foodID.rawValue),
-                    headers: .init(xEndUserId: request.endUserID?.rawValue)
+                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
                 )
             )
         }
@@ -100,7 +102,7 @@ public struct FoodsResource: Sendable {
                 category: request.category.map(Components.Schemas.FoodCategory.init),
                 limit: request.limit
             ),
-            headers: .init(xEndUserId: request.endUserID?.rawValue)
+            headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
         )
 
         return try await performTransportRequest {
@@ -122,7 +124,7 @@ public struct FoodsResource: Sendable {
             let output = try await client.lookupFoodByBarcode(
                 .init(
                     path: .init(upc: request.upc),
-                    headers: .init(xEndUserId: request.endUserID?.rawValue)
+                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
                 )
             )
             switch output {
@@ -150,7 +152,7 @@ public struct FoodsResource: Sendable {
         return try await performTransportRequest {
             let output = try await client.searchFoodsByNaturalLanguage(
                 .init(
-                    headers: .init(xEndUserId: request.endUserID?.rawValue),
+                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue),
                     body: .json(.init(text: request.query))
                 )
             )
@@ -178,7 +180,7 @@ public struct FoodsResource: Sendable {
             let output = try await client.suggestFoodAlternatives(
                 .init(
                     path: .init(foodId: request.foodID.rawValue),
-                    headers: .init(xEndUserId: request.endUserID?.rawValue),
+                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue),
                     body: .json(transportBody)
                 )
             )
@@ -206,6 +208,10 @@ public struct FoodsResource: Sendable {
         case .default(let status, _):
             throw apiError(errorCategory(for: status), status: status)
         }
+    }
+
+    private func resolvedEndUserID(_ requestEndUserID: PartnerUserID?) -> PartnerUserID? {
+        userContext?.endUserID ?? requestEndUserID
     }
 
     private func map(_ value: Components.Schemas.FoodSearchResults) -> FoodSearchResults {

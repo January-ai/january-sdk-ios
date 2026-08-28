@@ -248,11 +248,7 @@ struct GlucoseView: View {
                 foods: foods.map(\.selection),
                 startTime: startTime
             )
-            if let userClient = userSession.client(for: client) {
-                prediction = try await userClient.glucose.predict(request)
-            } else {
-                prediction = try await client.glucose.predict(request)
-            }
+            prediction = try await client.glucose.predict(request)
         } catch { self.error = error }
         isLoading = false
     }

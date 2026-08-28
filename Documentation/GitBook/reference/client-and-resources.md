@@ -5,17 +5,21 @@
 ## Create a client
 
 ```swift
-let client = try JanuaryClient(clientTokenProvider: tokenProvider)
+let client = try JanuaryClient(
+    endUserID: partnerUserID,
+    timezone: TimeZone.current.identifier,
+    clientTokenProvider: tokenProvider
+)
 ```
 
 ## Public initializers
 
 | Initializer | Use |
 | --- | --- |
-| `clientTokenProvider: JanuaryClientTokenProvider` | Automatic refresh through an async closure |
-| `clientTokenProvider: JanuaryTokenProvider` | Automatic refresh through a named provider |
-| `clientToken: String` | App-managed fixed client token; recreate the client to replace it |
-| `developmentAPIKey: String, endUserID: PartnerUserID` | Deprecated local-development authentication only; never ship an API key in an app |
+| `endUserID, timezone, clientTokenProvider: JanuaryClientTokenProvider` | Configured user context plus automatic refresh through an async closure |
+| `endUserID, timezone, clientTokenProvider: JanuaryTokenProvider` | Configured user context plus automatic refresh through a named provider |
+| `clientToken, endUserID, timezone` | Configured user context plus app-managed fixed token; recreate the client to replace it |
+| `developmentAPIKey, endUserID, timezone` | Deprecated local-development authentication only; never ship an API key in an app |
 
 Public initializers target `https://partners.january.ai`. There is no public base-URL or token-endpoint override.
 
@@ -47,11 +51,11 @@ be used in a production or distributed build.
 
 All resource calls use Swift concurrency, are `async throws`, and may throw `JanuaryError` or preserve `CancellationError`.
 
-`client.forUser(...)` returns a lightweight `JanuaryUserClient` whose `foods`,
-`restaurants`, `photoScanning`, `foodLogs`, and `glucose` resources automatically
-reuse one `PartnerUserContext`. Set the active user once, then use the scoped
-client for every operation. The public client always targets January production
-and exposes no API-origin override.
+`JanuaryClient` applies its configured `PartnerUserContext` automatically to
+`foods`, `restaurants`, `photoScanning`, `foodLogs`, and `glucose`. There is no
+second user-client object and no need to repeat the ID in individual requests.
+The public client always targets January production and exposes no API-origin
+override.
 
 ## Identifiers
 

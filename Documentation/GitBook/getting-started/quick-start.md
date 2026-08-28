@@ -30,7 +30,7 @@ JANUARY_END_USER_ID=your-stable-user-id
 `PARTNER_TOKEN_URL` has no default. Replace these values with your configured backend endpoint, a valid session credential, and the stable ID for the signed-in app user. January's private server-side token-issuance credentials never belong in the app.
 
 Use the same stable, non-identifying partner user ID that your backend binds to
-the token. The scoped client keeps request context together, but the client
+the token. The configured client keeps request context together, but the client
 token remains authoritative for identity and the SDK removes `x-end-user-id`
 from January requests.
 
@@ -153,21 +153,19 @@ final class QuickstartViewModel: ObservableObject {
                 appSessionToken: appSessionToken
             )
             let january = try JanuaryClient(
+                endUserID: PartnerUserID(rawValue: endUserID),
+                timezone: TimeZone.current.identifier,
                 clientTokenProvider: provider
             )
-            let user = january.forUser(
-                PartnerUserID(rawValue: endUserID),
-                timezone: TimeZone.current.identifier
-            )
 
-            let results = try await user.foods.search(
+            let results = try await january.foods.search(
                 .init(query: "greek yogurt", category: .branded, limit: 10)
             )
             guard let match = results.items.first else {
                 throw QuickstartError.noFoods
             }
 
-            let food = try await user.foods.getFood(
+            let food = try await january.foods.getFood(
                 .init(foodID: match.id)
             )
             let portion = try food.portion(quantity: 1)

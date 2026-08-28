@@ -12,8 +12,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   single-flight coordination, and bounded exponential-backoff retries.
 - Add a deprecated local-only development provider for exercising the complete
   client-token lifecycle without a partner backend.
-- Expand `JanuaryUserClient` so one end-user ID and timezone are reused across
-  every SDK resource.
+- Configure one end-user ID and timezone directly on `JanuaryClient` and reuse
+  that context across every SDK resource.
 - Add food discovery and hydration, restaurant search, native meal scanning,
   food logs, and glucose prediction resources.
 - Add the example iOS app and integration documentation.

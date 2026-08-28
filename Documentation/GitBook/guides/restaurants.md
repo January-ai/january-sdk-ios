@@ -2,10 +2,13 @@
 
 Use the `restaurants` resource to discover nearby restaurants or search their menu items.
 
-Create a scoped client once for the signed-in user:
+Configure the signed-in user once on the client:
 
 ```swift
-let user = client.forUser(PartnerUserID(rawValue: partnerUserID))
+let client = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: partnerUserID),
+    clientTokenProvider: tokenProvider
+)
 ```
 
 With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header.
@@ -13,7 +16,7 @@ With client-token authentication, January derives identity from the token and th
 ## Search restaurants
 
 ```swift
-let restaurants = try await user.restaurants.search(
+let restaurants = try await client.restaurants.search(
     .init(
         query: "mediterranean",
         latitude: 37.7749,
@@ -31,7 +34,7 @@ for restaurant in restaurants.items {
 ## Search menu items
 
 ```swift
-let menuItems = try await user.restaurants.searchMenuItems(
+let menuItems = try await client.restaurants.searchMenuItems(
     .init(
         query: "grilled chicken",
         latitude: 37.7749,

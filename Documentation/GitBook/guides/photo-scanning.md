@@ -6,10 +6,13 @@ Use the `photoScanning` resource to analyze a meal image and submit natural-lang
 Meal images and inferred nutrition may be sensitive user data. Obtain appropriate consent, minimize retention, and never write image contents or results to application logs.
 {% endhint %}
 
-Create a scoped client once for the signed-in user:
+Configure the signed-in user once on the client:
 
 ```swift
-let user = client.forUser(PartnerUserID(rawValue: partnerUserID))
+let client = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: partnerUserID),
+    clientTokenProvider: tokenProvider
+)
 ```
 
 With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header.
@@ -17,7 +20,7 @@ With client-token authentication, January derives identity from the token and th
 ## Scan a public image URL
 
 ```swift
-let scan = try await user.photoScanning.scan(
+let scan = try await client.photoScanning.scan(
     .init(image: publicImageURL.absoluteString)
 )
 ```
@@ -30,7 +33,7 @@ longest edge to 1,000 pixels, compress to JPEG, and create a data URI:
 ```swift
 let dataURI = try PhotoScanImage.dataURI(from: imageData)
 
-let scan = try await user.photoScanning.scan(
+let scan = try await client.photoScanning.scan(
     .init(image: dataURI)
 )
 ```
@@ -43,7 +46,7 @@ The response can contain a meal name, detected foods, total nutrients, confidenc
 ## Correct a result
 
 ```swift
-let corrected = try await user.photoScanning.correct(
+let corrected = try await client.photoScanning.correct(
     .init(
         mealName: scan.mealName,
         detections: scan.detections,

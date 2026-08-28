@@ -2,7 +2,11 @@ import JanuaryPartnerTransport
 
 public struct RestaurantsResource: Sendable {
     private let client: Client
-    internal init(client: Client) { self.client = client }
+    private let userContext: PartnerUserContext?
+    internal init(client: Client, userContext: PartnerUserContext? = nil) {
+        self.client = client
+        self.userContext = userContext
+    }
 
     public func search(_ request: SearchRestaurantsRequest) async throws -> SearchRestaurantsResponse {
         try validate(request)
@@ -31,7 +35,7 @@ public struct RestaurantsResource: Sendable {
                     latitude: request.latitude,
                     longitude: request.longitude
                 ),
-                headers: .init(xEndUserId: request.endUserID?.rawValue)
+                headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
             )
             let output = try await client.searchRestaurantMenuItems(value)
             switch output {
@@ -53,7 +57,7 @@ public struct RestaurantsResource: Sendable {
                 latitude: request.latitude,
                 longitude: request.longitude
             ),
-            headers: .init(xEndUserId: request.endUserID?.rawValue)
+            headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
         )
     }
 
@@ -62,6 +66,10 @@ public struct RestaurantsResource: Sendable {
             query: request.query, latitude: request.latitude, longitude: request.longitude,
             radius: request.radius, limit: request.limit
         )
+    }
+
+    private func resolvedEndUserID(_ requestEndUserID: PartnerUserID?) -> PartnerUserID? {
+        userContext?.endUserID ?? requestEndUserID
     }
 
     private func validate(_ request: SearchRestaurantMenuItemsRequest) throws {

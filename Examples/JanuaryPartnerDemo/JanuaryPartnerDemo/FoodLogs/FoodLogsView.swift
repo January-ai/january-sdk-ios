@@ -142,11 +142,11 @@ struct FoodLogsView: View {
     }
 
     @MainActor private func load() async {
-        guard let userClient = userSession.client(for: client) else { return }
+        guard userSession.partnerUserID != nil else { return }
         isLoading = true; error = nil
         do {
             let query = selectedDateRange.apiQuery(calendar: foodLogCalendar)
-            logs = try await userClient.foodLogs.list(
+            logs = try await client.foodLogs.list(
                 start: query.start,
                 end: query.end
             ).items

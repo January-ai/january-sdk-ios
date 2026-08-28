@@ -27,7 +27,8 @@ public struct JanuaryClient: Sendable {
     @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
     public init(
         developmentAPIKey: String,
-        endUserID: PartnerUserID
+        endUserID: PartnerUserID,
+        timezone: String? = nil
     ) throws {
         let normalizedAPIKey = try Self.validateDevelopmentAPIKey(
             developmentAPIKey,
@@ -36,9 +37,14 @@ public struct JanuaryClient: Sendable {
             }
         )
         let normalizedEndUserID = try Self.validateDevelopmentEndUserID(endUserID)
+        let userContext = Self.userContext(
+            endUserID: normalizedEndUserID,
+            timezone: timezone
+        )
         try self.init(
             developmentAPIKey: normalizedAPIKey,
             endUserID: normalizedEndUserID,
+            userContext: userContext,
             serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
             userAgent: SDKUserAgent.current
@@ -51,13 +57,20 @@ public struct JanuaryClient: Sendable {
     /// Tokens are cached in memory, refreshed shortly before expiration, and
     /// never persisted by the SDK. The provider must not return a partner API key.
     public init(
+        endUserID: PartnerUserID,
+        timezone: String? = nil,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
+        let userContext = try Self.validateUserContext(
+            endUserID: endUserID,
+            timezone: timezone
+        )
         try self.init(
             serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
             clientTokenProvider: clientTokenProvider,
+            userContext: userContext,
             userAgent: SDKUserAgent.current,
             tokenRetryPolicy: tokenRetryPolicy
         )
@@ -67,14 +80,21 @@ public struct JanuaryClient: Sendable {
     /// Partner applications should use the production initializer above.
     @_spi(JanuaryDevelopment)
     public init(
+        endUserID: PartnerUserID,
+        timezone: String? = nil,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         apiBaseURL: URL,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
+        let userContext = try Self.validateUserContext(
+            endUserID: endUserID,
+            timezone: timezone
+        )
         try self.init(
             serverURL: apiBaseURL,
             transport: URLSessionTransport(),
             clientTokenProvider: clientTokenProvider,
+            userContext: userContext,
             userAgent: SDKUserAgent.current,
             tokenRetryPolicy: tokenRetryPolicy
         )
@@ -84,11 +104,15 @@ public struct JanuaryClient: Sendable {
     /// with a named token-provider implementation.
     @_spi(JanuaryDevelopment)
     public init(
+        endUserID: PartnerUserID,
+        timezone: String? = nil,
         clientTokenProvider: any JanuaryTokenProvider,
         apiBaseURL: URL,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
         try self.init(
+            endUserID: endUserID,
+            timezone: timezone,
             clientTokenProvider: { try await clientTokenProvider.fetchClientToken() },
             apiBaseURL: apiBaseURL,
             tokenRetryPolicy: tokenRetryPolicy
@@ -100,12 +124,19 @@ public struct JanuaryClient: Sendable {
     /// Recreate the client when the token changes. For automatic refresh, use a
     /// `clientTokenProvider` or `JanuaryTokenProvider` implementation.
     public init(
-        clientToken: String
+        clientToken: String,
+        endUserID: PartnerUserID,
+        timezone: String? = nil
     ) throws {
+        let userContext = try Self.validateUserContext(
+            endUserID: endUserID,
+            timezone: timezone
+        )
         try self.init(
             clientToken: clientToken,
             serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
+            userContext: userContext,
             userAgent: SDKUserAgent.current
         )
     }
@@ -114,6 +145,7 @@ public struct JanuaryClient: Sendable {
         clientToken: String,
         serverURL: URL,
         transport: any ClientTransport,
+        userContext: PartnerUserContext? = nil,
         userAgent: String = SDKUserAgent.current
     ) throws {
         let normalizedToken = clientToken.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -128,16 +160,21 @@ public struct JanuaryClient: Sendable {
             serverURL: serverURL,
             transport: transport,
             authenticationSource: .fixedClientToken(normalizedToken),
+            userContext: userContext,
             userAgent: userAgent
         )
     }
 
     /// Creates a client backed by a named token-provider implementation.
     public init(
+        endUserID: PartnerUserID,
+        timezone: String? = nil,
         clientTokenProvider: any JanuaryTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
         try self.init(
+            endUserID: endUserID,
+            timezone: timezone,
             clientTokenProvider: { try await clientTokenProvider.fetchClientToken() },
             tokenRetryPolicy: tokenRetryPolicy
         )
@@ -146,6 +183,7 @@ public struct JanuaryClient: Sendable {
     internal init(
         developmentAPIKey: String,
         endUserID: PartnerUserID? = nil,
+        userContext: PartnerUserContext? = nil,
         serverURL: URL,
         transport: any ClientTransport,
         userAgent: String = SDKUserAgent.current
@@ -164,6 +202,7 @@ public struct JanuaryClient: Sendable {
                 developmentAPIKey,
                 endUserID: endUserID
             ),
+            userContext: userContext,
             userAgent: userAgent
         )
     }
@@ -197,10 +236,31 @@ public struct JanuaryClient: Sendable {
         return PartnerUserID(rawValue: normalizedValue)
     }
 
+    internal static func validateUserContext(
+        endUserID: PartnerUserID,
+        timezone: String?
+    ) throws -> PartnerUserContext {
+        let normalizedEndUserID = try validateDevelopmentEndUserID(endUserID)
+        return userContext(endUserID: normalizedEndUserID, timezone: timezone)
+    }
+
+    private static func userContext(
+        endUserID: PartnerUserID,
+        timezone: String?
+    ) -> PartnerUserContext {
+        let normalizedTimezone = timezone?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return PartnerUserContext(
+            endUserID: endUserID,
+            timezone: normalizedTimezone?.isEmpty == false ? normalizedTimezone : nil
+        )
+    }
+
     internal init(
         serverURL: URL,
         transport: any ClientTransport,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
+        userContext: PartnerUserContext? = nil,
         userAgent: String = SDKUserAgent.current,
         refreshLeeway: TimeInterval = 60,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default,
@@ -223,6 +283,7 @@ public struct JanuaryClient: Sendable {
                     unitRandom: unitRandom
                 )
             ),
+            userContext: userContext,
             userAgent: userAgent
         )
     }
@@ -231,6 +292,7 @@ public struct JanuaryClient: Sendable {
         serverURL: URL,
         transport: any ClientTransport,
         authenticationSource: AuthenticationSource,
+        userContext: PartnerUserContext?,
         userAgent: String
     ) {
         let transportClient = Client(
@@ -243,10 +305,10 @@ public struct JanuaryClient: Sendable {
                 ),
             ]
         )
-        self.foods = FoodsResource(client: transportClient)
-        self.restaurants = RestaurantsResource(client: transportClient)
-        self.photoScanning = PhotoScanningResource(client: transportClient)
-        self.foodLogs = FoodLogsResource(client: transportClient)
-        self.glucose = GlucoseResource(client: transportClient)
+        self.foods = FoodsResource(client: transportClient, userContext: userContext)
+        self.restaurants = RestaurantsResource(client: transportClient, userContext: userContext)
+        self.photoScanning = PhotoScanningResource(client: transportClient, userContext: userContext)
+        self.foodLogs = FoodLogsResource(client: transportClient, userContext: userContext)
+        self.glucose = GlucoseResource(client: transportClient, userContext: userContext)
     }
 }

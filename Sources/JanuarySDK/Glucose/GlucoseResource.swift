@@ -3,7 +3,11 @@ import JanuaryPartnerTransport
 
 public struct GlucoseResource: Sendable {
     private let client: Client
-    internal init(client: Client) { self.client = client }
+    private let userContext: PartnerUserContext?
+    internal init(client: Client, userContext: PartnerUserContext? = nil) {
+        self.client = client
+        self.userContext = userContext
+    }
 
     public func predict(_ request: PredictGlucoseRequest) async throws -> GlucosePrediction {
         try await performTransportRequest {
@@ -25,8 +29,8 @@ public struct GlucoseResource: Sendable {
             let output = try await client.predictGlucose(
                 .init(
                     headers: .init(
-                        xEndUserId: request.endUserID?.rawValue,
-                        xEndUserTimezone: request.timezone
+                        xEndUserId: (userContext?.endUserID ?? request.endUserID)?.rawValue,
+                        xEndUserTimezone: userContext?.timezone ?? request.timezone
                     ),
                     body: .json(body)
                 )

@@ -37,20 +37,19 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 import Foundation
 import JanuarySDK
 
-let january = try JanuaryClient(clientTokenProvider: tokenProvider)
-let user = january.forUser(
-    partnerUserID,
-    timezone: TimeZone.current.identifier
+let january = try JanuaryClient(
+    endUserID: partnerUserID,
+    timezone: TimeZone.current.identifier,
+    clientTokenProvider: tokenProvider
 )
-let results = try await user.foods.search(.init(query: "greek yogurt"))
+let results = try await january.foods.search(.init(query: "greek yogurt"))
 ```
 
 ## SDK entry points
 
 | API | Purpose |
 | --- | --- |
-| `JanuaryClient` | Configures authentication and exposes resources |
-| `JanuaryUserClient` | Reuses one user's request context across all resources |
+| `JanuaryClient` | Configures authentication, one user context, and all resources |
 | `foods` | Food discovery, hydration, barcode lookup, meal parsing, and alternatives |
 | `restaurants` | Nearby restaurant and menu-item search |
 | `photoScanning` | Meal-photo analysis and corrections |

@@ -70,33 +70,34 @@ Resolve the endpoint from required app configuration. Do not provide a guessed o
 ```swift
 func makeJanuaryClient(
     tokenEndpoint: URL,
+    endUserID: PartnerUserID,
+    timezone: String,
     appAuthorizationHeader: @escaping @Sendable () async throws -> String
 ) throws -> JanuaryClient {
     let provider = PartnerBackendTokenProvider(
         endpoint: tokenEndpoint,
         authorizationHeader: appAuthorizationHeader
     )
-    return try JanuaryClient(clientTokenProvider: provider)
+    return try JanuaryClient(
+        endUserID: endUserID,
+        timezone: timezone,
+        clientTokenProvider: provider
+    )
 }
 ```
 
 `JanuaryClient` always targets January's production Partner API through its documented client-token initializers. It exposes no API-origin override.
 
-Create a lightweight user-scoped client for resource calls so user context and
-timezone are configured once:
+The user context and timezone are configured once on the general client, so all
+resources are available directly:
 
 ```swift
-let user = client.forUser(
-    partnerUserID,
-    timezone: TimeZone.current.identifier
-)
-
-let results = try await user.foods.search(.init(query: "greek yogurt"))
+let results = try await client.foods.search(.init(query: "greek yogurt"))
 ```
 
 With client-token authentication, the token remains authoritative for identity.
-The SDK removes `x-end-user-id` before calling January, so the scoped context
-cannot override the user bound to the token. The scoped timezone is applied to
+The SDK removes `x-end-user-id` before calling January, so the configured context
+cannot override the user bound to the token. The configured timezone is applied to
 operations that support it.
 
 ## Token lifecycle
@@ -117,6 +118,8 @@ The default is nine total provider calls: one initial attempt and eight retries.
 
 ```swift
 let client = try JanuaryClient(
+    endUserID: partnerUserID,
+    timezone: TimeZone.current.identifier,
     clientTokenProvider: provider,
     tokenRetryPolicy: JanuaryTokenRetryPolicy(
         maximumAttempts: 9,
@@ -136,7 +139,11 @@ errors and `JanuaryTokenProviderError(retryable: false)` stop immediately.
 If your app deliberately owns the entire token lifecycle, it may create a client from one short-lived token and recreate the client when the token changes:
 
 ```swift
-let client = try JanuaryClient(clientToken: clientTokenValue)
+let client = try JanuaryClient(
+    clientToken: clientTokenValue,
+    endUserID: partnerUserID,
+    timezone: TimeZone.current.identifier
+)
 ```
 
 The SDK cannot refresh this fixed-token client.
@@ -166,7 +173,11 @@ let provider = try JanuaryDevelopmentTokenProvider(
     endUserID: PartnerUserID(rawValue: rawUserID),
     ttlSeconds: 300
 )
-let client = try JanuaryClient(clientTokenProvider: provider)
+let client = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: rawUserID),
+    timezone: TimeZone.current.identifier,
+    clientTokenProvider: provider
+)
 #endif
 ```
 

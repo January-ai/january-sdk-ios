@@ -42,7 +42,7 @@ public struct DeleteFoodLogRequest: Hashable, Sendable {
 
 `FoodLogUserContext` is a public type alias for `PartnerUserContext`.
 
-## Scoped operations
+## Configured-client operations
 
 ```swift
 public func create(
@@ -63,7 +63,8 @@ public func update(
 public func delete(id: String) async throws -> DeleteFoodLogResponse
 ```
 
-These methods are on `JanuaryUserClient.foodLogs` and automatically reuse its context.
+These methods are on `JanuaryClient.foodLogs` and automatically reuse the
+client's configured context.
 
 ## Responses
 

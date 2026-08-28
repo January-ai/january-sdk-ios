@@ -77,26 +77,22 @@ let provider = AppTokenProvider(
     endpoint: requiredTokenEndpoint,
     appSessionToken: signedInUser.sessionToken
 )
-let january = try JanuaryClient(clientTokenProvider: provider)
-```
-
-Set the signed-in user once after creating the client, then use the scoped
-resources instead of repeating an ID in every request:
-
-```swift
-let user = january.forUser(
-    PartnerUserID(rawValue: signedInUser.stableID),
-    timezone: TimeZone.current.identifier
+let january = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: signedInUser.stableID),
+    timezone: TimeZone.current.identifier,
+    clientTokenProvider: provider
 )
 
-let results = try await user.foods.search(.init(query: "greek yogurt"))
-let logs = try await user.foodLogs.list(
+let results = try await january.foods.search(.init(query: "greek yogurt"))
+let logs = try await january.foodLogs.list(
     start: "2026-08-01",
     end: "2026-08-31"
 )
 ```
 
-Recreate this lightweight scoped value when the active app account changes.
+Create one `JanuaryClient` for the signed-in app account and recreate it when
+that account changes. The client applies its configured user context to every
+resource automatically.
 With client-token authentication, January derives identity from the token and
 the SDK prevents a per-request ID from contradicting it.
 
@@ -142,7 +138,11 @@ let provider = try JanuaryDevelopmentTokenProvider(
     endUserID: PartnerUserID(rawValue: rawUserID),
     ttlSeconds: 300
 )
-let january = try JanuaryClient(clientTokenProvider: provider)
+let january = try JanuaryClient(
+    endUserID: PartnerUserID(rawValue: rawUserID),
+    timezone: TimeZone.current.identifier,
+    clientTokenProvider: provider
+)
 #endif
 ```
 

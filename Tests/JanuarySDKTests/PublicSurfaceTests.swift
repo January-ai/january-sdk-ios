@@ -56,14 +56,14 @@ private actor SurfaceTransport: ClientTransport {
 @Test
 func allContractOperationsAreExposedThroughThePublicClient() async throws {
     let transport = SurfaceTransport()
+    let userID = PartnerUserID(rawValue: "fixture-user")
+    let user = FoodLogUserContext(endUserID: userID, timezone: "America/New_York")
     let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
+        userContext: user,
         serverURL: URL(string: "https://example.invalid")!,
         transport: transport
     )
-    let userID = PartnerUserID(rawValue: "fixture-user")
-    let user = FoodLogUserContext(endUserID: userID, timezone: "America/New_York")
-    let userClient = client.forUser(user)
     let food = FoodSelection(
         id: FoodID(rawValue: 1),
         serving: ServingSelection(id: ServingID(rawValue: 2), quantity: 1)
@@ -77,23 +77,23 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
         )
     )
 
-    _ = try await userClient.foods.autocomplete(.init(query: "ban"))
-    _ = try await userClient.foods.getFood(.init(foodID: FoodID(rawValue: 1)))
-    _ = try await userClient.foods.search(.init(query: "banana"))
-    _ = try await userClient.foods.lookupByBarcode(.init(upc: "049000006346"))
-    _ = try await userClient.photoScanning.searchByNaturalLanguage(.init(query: "one banana"))
-    _ = try await userClient.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1)))
-    _ = try await userClient.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74))
-    _ = try await userClient.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74))
-    _ = try await userClient.photoScanning.scan(.init(image: "fixture-image"))
-    _ = try await userClient.photoScanning.correct(
+    _ = try await client.foods.autocomplete(.init(query: "ban"))
+    _ = try await client.foods.getFood(.init(foodID: FoodID(rawValue: 1)))
+    _ = try await client.foods.search(.init(query: "banana"))
+    _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346"))
+    _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana"))
+    _ = try await client.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1)))
+    _ = try await client.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74))
+    _ = try await client.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74))
+    _ = try await client.photoScanning.scan(.init(image: "fixture-image"))
+    _ = try await client.photoScanning.correct(
         .init(mealName: "Meal", detections: [detection], userInput: "Add banana")
     )
-    let created = try await userClient.foodLogs.create(foods: [food])
-    _ = try await userClient.foodLogs.list(start: "2026-08-21", end: "2026-08-23")
-    _ = try await userClient.foodLogs.update(id: created.id, name: "Updated")
-    _ = try await userClient.foodLogs.delete(id: created.id)
-    _ = try await userClient.glucose.predict(
+    let created = try await client.foodLogs.create(foods: [food])
+    _ = try await client.foodLogs.list(start: "2026-08-21", end: "2026-08-23")
+    _ = try await client.foodLogs.update(id: created.id, name: "Updated")
+    _ = try await client.foodLogs.delete(id: created.id)
+    _ = try await client.glucose.predict(
         .init(
             userProfile: .init(age: 35, gender: .male, height: 70, weight: 175),
             foods: [food], startTime: Date()
