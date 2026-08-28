@@ -4,22 +4,22 @@ January client tokens are bound to one end user. With client-token authenticatio
 
 ## Partner-owned identifiers
 
-`PartnerUserID` is a typed wrapper for an identifier from your own system:
+Pass the stable string identifier from your own system when creating the client:
 
 ```swift
-let partnerUserID = PartnerUserID(rawValue: account.stableID)
+let partnerUserID = account.stableID
 ```
 
 Do not use an email address, display name, or other directly identifying value. Keep the mapping in your system.
 
-## Set the user once
+## Required identity
 
-Create one client after authentication. It keeps the active app account and timezone together for Foods, Restaurants, Photo Scanning, Food Logs, and Glucose:
+`endUserID` is the required stable string from your user system. Create one
+client after authentication and let the SDK use the device's current timezone:
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    timezone: "America/New_York",
+    endUserID: account.stableID,
     clientTokenProvider: tokenProvider
 )
 
@@ -33,7 +33,18 @@ let foods = try await client.foods.search(
 )
 ```
 
-Use an IANA timezone identifier such as `America/New_York`.
+You may also explicitly select a Foundation `TimeZone`:
+
+```swift
+let client = try JanuaryClient(
+    endUserID: partnerUserID,
+    timezone: .current,
+    clientTokenProvider: tokenProvider
+)
+```
+
+When `timezone` is omitted, the SDK uses `TimeZone.current`. The SDK converts
+the value to its IANA identifier only when creating the request header.
 
 Request models retain optional identity fields for source compatibility, but
 new integrations should configure the general client instead of passing an

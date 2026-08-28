@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import JanuarySDK
+@testable import January
 
 private actor DevelopmentTokenRequestProbe {
     private(set) var request: URLRequest?
@@ -33,14 +33,13 @@ func developmentTokenProviderMintsAndDecodesClientToken() async throws {
     var warnings: [String] = []
     let provider = try JanuaryDevelopmentTokenProvider(
         apiKey: "  fixture-development-key  ",
-        endUserID: PartnerUserID(rawValue: "  demo-user  "),
         ttlSeconds: 300,
         endpoint: URL(string: "https://example.invalid/v1.2/auth/client-tokens")!,
         warningHandler: { warnings.append($0) },
         performRequest: { request in try await probe.perform(request) }
     )
 
-    let token = try await provider.fetchClientToken()
+    let token = try await provider.fetchClientToken(for: "  demo-user  ")
     let request = try #require(await probe.request)
     let body = try #require(request.httpBody)
     let json = try #require(
@@ -62,7 +61,6 @@ func developmentTokenProviderRejectsInvalidTTL(_ ttlSeconds: Int) {
     #expect(throws: JanuaryError.self) {
         _ = try JanuaryDevelopmentTokenProvider(
             apiKey: "fixture-development-key",
-            endUserID: PartnerUserID(rawValue: "demo-user"),
             ttlSeconds: ttlSeconds,
             endpoint: URL(string: "https://example.invalid")!,
             warningHandler: { _ in },
@@ -72,20 +70,23 @@ func developmentTokenProviderRejectsInvalidTTL(_ ttlSeconds: Int) {
 }
 
 @Test
-func developmentTokenProviderRejectsInvalidIdentityBeforeWarning() {
+func developmentTokenProviderRejectsInvalidIdentity() async throws {
     var warnings: [String] = []
+    let provider = try JanuaryDevelopmentTokenProvider(
+        apiKey: "fixture-development-key",
+        ttlSeconds: 300,
+        endpoint: URL(string: "https://example.invalid")!,
+        warningHandler: { warnings.append($0) },
+        performRequest: { _ in throw URLError(.badServerResponse) }
+    )
 
-    #expect(throws: JanuaryError.self) {
-        _ = try JanuaryDevelopmentTokenProvider(
-            apiKey: "fixture-development-key",
-            endUserID: PartnerUserID(rawValue: "   "),
-            ttlSeconds: 300,
-            endpoint: URL(string: "https://example.invalid")!,
-            warningHandler: { warnings.append($0) },
-            performRequest: { _ in throw URLError(.badServerResponse) }
-        )
+    do {
+        _ = try await provider.fetchClientToken(for: "   ")
+        Issue.record("Expected invalid identity to fail.")
+    } catch let error as JanuaryError {
+        #expect(error.code == "invalid_end_user_id")
     }
-    #expect(warnings.isEmpty)
+    #expect(warnings == [JanuaryDevelopmentTokenProvider.warning])
 }
 
 @Test
@@ -96,7 +97,6 @@ func developmentTokenProviderMapsRejectedMintWithoutExposingBody() async throws 
     )
     let provider = try JanuaryDevelopmentTokenProvider(
         apiKey: "fixture-development-key",
-        endUserID: PartnerUserID(rawValue: "demo-user"),
         ttlSeconds: 300,
         endpoint: URL(string: "https://example.invalid")!,
         warningHandler: { _ in },
@@ -104,7 +104,7 @@ func developmentTokenProviderMapsRejectedMintWithoutExposingBody() async throws 
     )
 
     do {
-        _ = try await provider.fetchClientToken()
+        _ = try await provider.fetchClientToken(for: "demo-user")
         Issue.record("Expected token minting to fail.")
     } catch let error as JanuaryError {
         #expect(error.category == .authentication)
@@ -118,7 +118,6 @@ func developmentTokenProviderMarksServerFailuresRetryable() async throws {
     let probe = DevelopmentTokenRequestProbe(responseStatus: 503)
     let provider = try JanuaryDevelopmentTokenProvider(
         apiKey: "fixture-development-key",
-        endUserID: PartnerUserID(rawValue: "demo-user"),
         ttlSeconds: 300,
         endpoint: URL(string: "https://example.invalid")!,
         warningHandler: { _ in },
@@ -126,7 +125,7 @@ func developmentTokenProviderMarksServerFailuresRetryable() async throws {
     )
 
     do {
-        _ = try await provider.fetchClientToken()
+        _ = try await provider.fetchClientToken(for: "demo-user")
         Issue.record("Expected token minting to fail.")
     } catch let error as JanuaryTokenProviderError {
         #expect(error.retryable)

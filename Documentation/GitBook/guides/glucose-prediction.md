@@ -12,8 +12,8 @@ Configure the client so the same identity and timezone are applied to each predi
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: partnerUserID),
-    timezone: "America/New_York",
+    endUserID: partnerUserID,
+    timezone: .current,
     clientTokenProvider: tokenProvider
 )
 ```

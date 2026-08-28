@@ -1,28 +1,25 @@
 import Foundation
 import Testing
-@testable import JanuarySDK
+@testable import January
 
 private struct LivePartnerTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
-    let endUserID: String
     let performRequest: @Sendable (URLRequest) async throws -> (Data, URLResponse)
 
     init(
         endpoint: URL,
         appSessionToken: String,
-        endUserID: String,
         performRequest: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = {
             try await URLSession.shared.data(for: $0)
         }
     ) {
         self.endpoint = endpoint
         self.appSessionToken = appSessionToken
-        self.endUserID = endUserID
         self.performRequest = performRequest
     }
 
-    func fetchClientToken() async throws -> JanuaryClientToken {
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue(
@@ -64,11 +61,10 @@ func relayProviderUsesVerifiedRequestContract() async throws {
     let provider = LivePartnerTokenProvider(
         endpoint: URL(string: "https://relay.example.test/api/january/client-token")!,
         appSessionToken: "fixture-relay-secret",
-        endUserID: "fixture-user",
         performRequest: { request in try await probe.perform(request) }
     )
 
-    let token = try await provider.fetchClientToken()
+    let token = try await provider.fetchClientToken(for: "fixture-user")
     let request = try #require(await probe.request)
 
     #expect(token == JanuaryClientToken(token: "ct-relay", expiresIn: 1_800))
@@ -92,11 +88,10 @@ func livePartnerTokenProviderCallsPartnerBackendAndJanuaryWhenConfigured() async
     }
     let provider = LivePartnerTokenProvider(
         endpoint: tokenURL,
-        appSessionToken: appSessionToken,
-        endUserID: endUserID
+        appSessionToken: appSessionToken
     )
     let client = try JanuaryClient(
-        endUserID: PartnerUserID(rawValue: endUserID),
+        endUserID: endUserID,
         clientTokenProvider: provider,
         tokenRetryPolicy: .none
     )

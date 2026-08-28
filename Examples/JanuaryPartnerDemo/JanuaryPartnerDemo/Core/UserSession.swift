@@ -1,14 +1,13 @@
+import Combine
 import Foundation
-import JanuarySDK
-import Observation
+import January
 
 /// App-owned user identity persisted across launches and reused by every tab.
 ///
 /// A production app would usually populate this from its authenticated account
 /// session instead of asking the user to type an identifier.
 @MainActor
-@Observable
-final class UserSession {
+final class UserSession: ObservableObject {
     private enum Key {
         static let endUserID = "demo.endUserID"
         static let timezone = "demo.timezone"
@@ -16,11 +15,11 @@ final class UserSession {
 
     private let defaults: UserDefaults
 
-    var endUserID: String {
+    @Published var endUserID: String {
         didSet { defaults.set(endUserID, forKey: Key.endUserID) }
     }
 
-    var timezone: String {
+    @Published var timezone: String {
         didSet { defaults.set(timezone, forKey: Key.timezone) }
     }
 
@@ -35,7 +34,12 @@ final class UserSession {
     }
 
     var partnerContext: PartnerUserContext? {
-        partnerUserID.map { PartnerUserContext(endUserID: $0, timezone: timezone) }
+        partnerUserID.map {
+            PartnerUserContext(
+                endUserID: $0,
+                timezone: TimeZone(identifier: timezone) ?? .current
+            )
+        }
     }
 
     func clear() {

@@ -6,40 +6,39 @@
 public struct JanuaryClient: Sendable {
     public let foods: FoodsResource
     public let restaurants: RestaurantsResource
-    public let photoScanning: PhotoScanningResource
+    public let foodAnalysis: FoodAnalysisResource
     public let foodLogs: FoodLogsResource
     public let glucose: GlucoseResource
 
     public init(
-        endUserID: PartnerUserID,
-        timezone: String? = nil,
+        endUserID: String,
+        timezone: TimeZone? = nil,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws
     public init(
-        endUserID: PartnerUserID,
-        timezone: String? = nil,
+        endUserID: String,
+        timezone: TimeZone? = nil,
         clientTokenProvider: any JanuaryTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws
     public init(
         clientToken: String,
-        endUserID: PartnerUserID,
-        timezone: String? = nil
+        endUserID: String,
+        timezone: TimeZone? = nil
     ) throws
 
-    @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
     public init(
         developmentAPIKey: String,
-        endUserID: PartnerUserID,
-        timezone: String? = nil
+        endUserID: String,
+        timezone: TimeZone? = nil
     ) throws
 }
 ```
 
 The client-token initializers target January production. `clientToken` rejects an empty value and cannot refresh itself.
 
-`developmentAPIKey` is available only for local testing and intentionally emits both an Xcode warning and a runtime console warning for a nonempty key. The SDK never includes the key in that warning. Its required `endUserID` binds every request to one stable partner-owned test user. Never ship an API key in a production or distributed app; use `JanuaryTokenProvider` instead.
+`developmentAPIKey` is supported for local Debug testing and emits a runtime console warning for a nonempty key. The SDK never includes the key in that warning. Release builds reject the initializer at compile time. Its `endUserID` is required. Never ship an API key in a production or distributed app; use `JanuaryTokenProvider` instead.
 
 ## Token provider
 
@@ -51,10 +50,10 @@ public struct JanuaryClientToken: Codable, Hashable, Sendable {
 }
 
 public typealias JanuaryClientTokenProvider =
-    @Sendable () async throws -> JanuaryClientToken
+    @Sendable (_ endUserID: String) async throws -> JanuaryClientToken
 
 public protocol JanuaryTokenProvider: Sendable {
-    func fetchClientToken() async throws -> JanuaryClientToken
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken
 }
 
 public struct JanuaryTokenProviderError: Error, LocalizedError, Sendable {
@@ -79,21 +78,16 @@ immediately.
 
 ```swift
 public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
-    @available(*, deprecated, message: "Local debug testing only…")
-    public init(
-        apiKey: String,
-        endUserID: PartnerUserID,
-        ttlSeconds: Int = 300
-    ) throws
+    public init(apiKey: String) throws
 
-    public func fetchClientToken() async throws -> JanuaryClientToken
+    public func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken
 }
 ```
 
 This provider exercises the production client-token lifecycle without a partner
-backend. It accepts a token lifetime from 300 through 7,200 seconds and emits an
-Xcode deprecation warning plus a runtime warning that never contains the key.
-It is strictly for a local Debug build. Never distribute an app containing a
+backend. Token lifetime is managed internally. It emits a runtime warning that
+never contains the key. Release builds reject its
+initializer at compile time. It is strictly for a local Debug build. Never distribute an app containing a
 January API key; production apps implement `JanuaryTokenProvider` against their
 authenticated backend.
 
@@ -126,13 +120,15 @@ Invalid policy values fail a precondition. See [Retries and concurrency](retries
 
 ```swift
 public struct PartnerUserContext: Hashable, Sendable {
-    public var endUserID: PartnerUserID
-    public var timezone: String?
-    public init(endUserID: PartnerUserID, timezone: String? = nil)
+    public var endUserID: PartnerUserID?
+    public var timezone: TimeZone
+    public init(endUserID: PartnerUserID? = nil, timezone: TimeZone? = nil)
 }
 ```
 
-Configure the end-user ID and optional timezone directly on `JanuaryClient`.
-Its `foods`, `restaurants`, `photoScanning`, `foodLogs`, and `glucose` resources
+Configure the optional end-user ID and timezone directly on `JanuaryClient`.
+Its `foods`, `restaurants`, `foodAnalysis`, `foodLogs`, and `glucose` resources
 reuse that context automatically. Client-token authentication removes the
-end-user header because the token already carries identity.
+end-user header because the token already carries identity. An omitted or blank
+timezone resolves to `TimeZone.current`. The SDK sends its `identifier` only at
+the HTTP boundary.

@@ -12,9 +12,6 @@ public struct SearchFoodsByNaturalLanguageRequest: Hashable, Sendable {
     public init(query: String, endUserID: PartnerUserID? = nil) { self.query = query; self.endUserID = endUserID }
 }
 
-@available(*, deprecated, renamed: "FoodScan")
-public typealias SearchFoodsByNaturalLanguageResponse = FoodScan
-
 public enum DietRestriction: String, Codable, Hashable, Sendable, CaseIterable {
     case gluten, lactose, yeast
     case treeNuts = "tree_nuts", peanuts, dairy, eggs

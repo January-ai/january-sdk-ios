@@ -12,6 +12,7 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
     private static let tokenEndpoint = URL(
         string: "https://partners.january.ai/v1.2/auth/client-tokens"
     )!
+    private static let tokenTTLSeconds = 300
     private static let logger = Logger(
         subsystem: "ai.january.sdk",
         category: "authentication"
@@ -22,7 +23,6 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
         "JanuaryTokenProvider in production."
 
     private let apiKey: String
-    private let endUserID: PartnerUserID
     private let ttlSeconds: Int
     private let endpoint: URL
     private let performRequest: RequestPerformer
@@ -32,16 +32,13 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
     ///
     /// - Warning: The API key is sent directly from the app process. Never use
     ///   this provider in a production or distributed application.
-    @available(*, deprecated, message: "Local debug testing only. Do not ship an API key; implement JanuaryTokenProvider against your authenticated backend for production.")
-    public init(
-        apiKey: String,
-        endUserID: PartnerUserID,
-        ttlSeconds: Int = 300
-    ) throws {
+#if !DEBUG
+    @available(*, unavailable, message: "JanuaryDevelopmentTokenProvider cannot be used in a Release build. Implement JanuaryTokenProvider against your authenticated backend for production.")
+#endif
+    public init(apiKey: String) throws {
         try self.init(
             apiKey: apiKey,
-            endUserID: endUserID,
-            ttlSeconds: ttlSeconds,
+            ttlSeconds: Self.tokenTTLSeconds,
             endpoint: Self.tokenEndpoint,
             warningHandler: { message in
                 Self.logger.warning("\(message, privacy: .public)")
@@ -54,7 +51,6 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
 
     internal init(
         apiKey: String,
-        endUserID: PartnerUserID,
         ttlSeconds: Int,
         endpoint: URL,
         warningHandler: (String) -> Void,
@@ -69,16 +65,6 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
             )
         }
 
-        let normalizedEndUserID = endUserID.rawValue.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        guard !normalizedEndUserID.isEmpty, normalizedEndUserID.count <= 64 else {
-            throw JanuaryError(
-                category: .validation,
-                code: "invalid_end_user_id",
-                message: "The development end-user ID must contain between 1 and 64 characters."
-            )
-        }
         guard (300...7_200).contains(ttlSeconds) else {
             throw JanuaryError(
                 category: .validation,
@@ -89,19 +75,27 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
 
         warningHandler(Self.warning)
         self.apiKey = normalizedAPIKey
-        self.endUserID = PartnerUserID(rawValue: normalizedEndUserID)
         self.ttlSeconds = ttlSeconds
         self.endpoint = endpoint
         self.performRequest = performRequest
     }
 
-    public func fetchClientToken() async throws -> JanuaryClientToken {
+    public func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
+        let normalizedEndUserID = endUserID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedEndUserID.isEmpty, normalizedEndUserID.count <= 64 else {
+            throw JanuaryError(
+                category: .validation,
+                code: "invalid_end_user_id",
+                message: "The development end-user ID must contain between 1 and 64 characters."
+            )
+        }
+
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(MintRequest(
-            endUserID: endUserID.rawValue,
+            endUserID: normalizedEndUserID,
             ttlSeconds: ttlSeconds
         ))
 

@@ -1,6 +1,7 @@
 import JanuaryPartnerTransport
 
-public struct PhotoScanningResource: Sendable {
+/// Operations that analyze food from photos or natural-language descriptions.
+public struct FoodAnalysisResource: Sendable {
     private let client: Client
     private let userContext: PartnerUserContext?
     internal init(client: Client, userContext: PartnerUserContext? = nil) {
@@ -8,7 +9,7 @@ public struct PhotoScanningResource: Sendable {
         self.userContext = userContext
     }
 
-    public func scan(_ request: ScanFoodPhotoRequest) async throws -> FoodScan {
+    public func analyzePhoto(_ request: ScanFoodPhotoRequest) async throws -> FoodScan {
         try await performTransportRequest {
             let body = Components.Schemas.ScanFoodPhotoBody(image: request.image)
             let output = try await client.scanFoodPhoto(
@@ -27,7 +28,7 @@ public struct PhotoScanningResource: Sendable {
     }
 
     /// Parses a natural-language meal description into detected foods and nutrition.
-    public func searchByNaturalLanguage(
+    public func analyzeDescription(
         _ request: SearchFoodsByNaturalLanguageRequest
     ) async throws -> FoodScan {
         guard !request.query.isEmpty, request.query.count <= 512 else {

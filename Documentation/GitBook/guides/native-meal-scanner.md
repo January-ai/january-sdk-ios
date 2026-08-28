@@ -1,4 +1,4 @@
-# Native meal scanner
+# Native food scanner
 
 {% hint style="info" %}
 The January SDK is iOS-only and supports iOS 15 or later. The ready-made scanner uses native SwiftUI, UIKit, AVFoundation, and Vision APIs.
@@ -13,12 +13,12 @@ Add a user-facing camera purpose string to the host app's `Info.plist`:
 <string>Scan meals and food barcodes.</string>
 ```
 
-The scanner validates this entry before presenting. Missing configuration throws `JanuaryMealScannerConfigurationError.missingCameraUsageDescription`.
+The scanner validates this entry before presenting. Missing configuration throws `JanuaryFoodScannerConfigurationError.missingCameraUsageDescription`.
 
 ## SwiftUI
 
 ```swift
-import JanuarySDK
+import January
 import SwiftUI
 
 struct ScannerHost: View {
@@ -26,7 +26,7 @@ struct ScannerHost: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        JanuaryMealScannerView(
+        JanuaryFoodScannerView(
             client: client,
             configuration: .init(
                 enabledModes: [.photo, .barcode],
@@ -34,7 +34,7 @@ struct ScannerHost: View {
             ),
             onResult: { result in
                 switch result {
-                case .meal(let image, let analysis):
+                case .photo(let image, let analysis):
                     print(image.pixelWidth, analysis.mealName as Any)
                 case .barcode(let value, let food):
                     print(value, food.name, food.servings.count)
@@ -46,19 +46,19 @@ struct ScannerHost: View {
 }
 ```
 
-The meal result includes the orientation-normalized, aspect-preserving JPEG sent to January and the `FoodScan`. Barcode mode performs the barcode lookup and then hydrates the first match with `getFood` before returning it.
+The meal result includes the orientation-normalized, aspect-preserving JPEG sent to January and the `FoodScan`. Barcode mode performs the barcode lookup and then hydrates the first match with `get` before returning it.
 
 With client-token authentication, January derives identity from the token. You do not need to pass `endUserID` to the scanner; if supplied, the SDK removes that header before sending the request.
 
 ## UIKit
 
 ```swift
-import JanuarySDK
+import January
 import UIKit
 
 extension UIViewController {
     func presentJanuaryScanner(client: JanuaryClient) {
-        let scanner = JanuaryMealScanner.makeViewController(
+        let scanner = JanuaryFoodScanner.makeViewController(
             client: client,
             onResult: { result in
                 print(result)

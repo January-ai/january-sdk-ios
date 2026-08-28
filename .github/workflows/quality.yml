@@ -37,7 +37,7 @@ jobs:
       - name: Build SDK for iOS
         run: >-
           xcodebuild
-          -scheme JanuarySDK
+          -scheme January
           -destination 'generic/platform=iOS'
           -configuration Release
           CODE_SIGNING_ALLOWED=NO
@@ -71,7 +71,7 @@ jobs:
       - name: Build for iOS
         run: >-
           xcodebuild
-          -scheme JanuarySDK
+          -scheme January
           -destination 'generic/platform=iOS'
           -configuration Release
           CODE_SIGNING_ALLOWED=NO

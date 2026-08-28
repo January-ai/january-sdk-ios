@@ -1,11 +1,11 @@
-import JanuarySDK
+import January
 import SwiftUI
 
 struct FoodLogsView: View {
     let client: JanuaryClient
     let settingsAction: () -> Void
 
-    @Environment(UserSession.self) private var userSession
+    @EnvironmentObject private var userSession: UserSession
     @State private var selectedTimeSpan = FoodLogTimeSpan.currentWeek
     @State private var logs: [FoodLog] = []
     @State private var isLoading = false
@@ -566,7 +566,7 @@ struct FoodPickerView: View {
         error = nil
         failedFoodID = nil
         do {
-            chosenFood = try await client.foods.getFood(.init(foodID: foodID, endUserID: endUserID))
+            chosenFood = try await client.foods.get(id: foodID, endUserID: endUserID)
         } catch {
             self.error = error
             failedFoodID = foodID

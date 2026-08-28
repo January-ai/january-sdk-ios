@@ -25,7 +25,7 @@ In Xcode, choose **File → Add Package Dependencies**, then enter:
 https://github.com/January-ai/january-sdk-ios.git
 ```
 
-Select the latest release shown by Xcode and add the `JanuarySDK` product to
+Select the latest release shown by Xcode and add the `January` product to
 your app target. Swift Package Manager has no symbolic `latest` requirement for
 manifest-only integrations; use the current release tag shown in the repository
 rather than copying a version number from this README.
@@ -39,18 +39,20 @@ your server and returns your server's response to the SDK:
 
 ```swift
 import Foundation
-import JanuarySDK
+import January
 
 struct AppTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
 
-    func fetchClientToken() async throws -> JanuaryClientToken {
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
         request.setValue(
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
+        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
         let data: Data
         let response: URLResponse
@@ -78,8 +80,7 @@ let provider = AppTokenProvider(
     appSessionToken: signedInUser.sessionToken
 )
 let january = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: signedInUser.stableID),
-    timezone: TimeZone.current.identifier,
+    endUserID: signedInUser.id,
     clientTokenProvider: provider
 )
 
@@ -90,11 +91,10 @@ let logs = try await january.foodLogs.list(
 )
 ```
 
-Create one `JanuaryClient` for the signed-in app account and recreate it when
-that account changes. The client applies its configured user context to every
-resource automatically.
-With client-token authentication, January derives identity from the token and
-the SDK prevents a per-request ID from contradicting it.
+Create one `JanuaryClient` for the signed-in user and reuse it. `endUserID` is
+the required stable string from your user system. The SDK passes it to the
+provider whenever a new client token is needed. The SDK uses
+`TimeZone.current` when `timezone` is omitted.
 
 The endpoint is app configuration with no SDK default. Its stable response is:
 
@@ -119,8 +119,8 @@ production.
 `JanuaryDevelopmentTokenProvider` lets a local Debug build exercise the same
 mint, cache, refresh, and replay path without first implementing a partner
 backend. It exchanges a development API key for short-lived client tokens
-against January production. The token lifetime must be between 300 and 7,200
-seconds.
+against January production. Token lifetime is managed internally and is not
+part of the public configuration.
 
 > **Warning:** This provider sends the API key from the app process. Use it only
 > in a local Debug build. Never commit the key, include it in an app binary, or
@@ -133,14 +133,9 @@ guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
     fatalError("Set the local January development credentials in the Xcode scheme.")
 }
 
-let provider = try JanuaryDevelopmentTokenProvider(
-    apiKey: apiKey,
-    endUserID: PartnerUserID(rawValue: rawUserID),
-    ttlSeconds: 300
-)
+let provider = try JanuaryDevelopmentTokenProvider(apiKey: apiKey)
 let january = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: rawUserID),
-    timezone: TimeZone.current.identifier,
+    endUserID: rawUserID,
     clientTokenProvider: provider
 )
 #endif
@@ -155,30 +150,28 @@ For production, replace this helper with the backend-backed
 > with this key or commit one to source control. Production apps must use
 > `JanuaryTokenProvider` as shown above.
 
-The initializer remains available for local experiments and displays both an
-Xcode warning and a runtime warning in the Xcode console. Neither warning ever
-contains the key:
+The initializer remains supported for local experiments and writes a runtime
+warning to the Xcode console whenever a nonempty key is provided. The warning
+never contains the key. Release builds reject this initializer at compile time,
+preventing a development API key from being shipped:
 
 ```swift
 import Foundation
-import JanuarySDK
+import January
 
-guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
-    fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
+guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
+      let endUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
+    fatalError("Set the local January development credentials in the Xcode scheme.")
 }
-guard let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
-    fatalError("Set JANUARY_END_USER_ID in the local Xcode scheme.")
-}
-
 let january = try JanuaryClient(
     developmentAPIKey: apiKey,
-    endUserID: PartnerUserID(rawValue: rawUserID)
+    endUserID: endUserID
 )
 ```
 
-The end-user ID is the stable, non-identifying ID from your own user system. In
-development API-key mode the client applies it to every request. It is not the
-SDK developer's personal ID, an email address, or a display name.
+`endUserID` is required and must be a stable, non-identifying string from your
+own user system. It must never be an email address or display name. If
+`timezone` is omitted, the SDK uses `TimeZone.current`.
 
 ## Make a request
 
@@ -188,14 +181,12 @@ let results = try await january.foods.search(
 )
 
 if let match = results.items.first {
-    let food = try await january.foods.getFood(
-        GetFoodRequest(foodID: match.id)
-    )
+    let food = try await january.foods.get(id: match.id)
     print(food.name, food.servings)
 }
 ```
 
-Search results are lightweight. Call `getFood` before presenting serving choices
+Search results are lightweight. Call `get` before presenting serving choices
 so the selected food contains every available serving.
 
 ## Documentation
@@ -211,7 +202,7 @@ so the selected food contains every available serving.
 
 ```sh
 node scripts/check-coverage.mjs
-xcodebuild -scheme JanuarySDK -destination 'generic/platform=iOS' \
+xcodebuild -scheme January -destination 'generic/platform=iOS' \
   CODE_SIGNING_ALLOWED=NO build
 ```
 

@@ -9,21 +9,18 @@ public func autocomplete(
     _ request: AutocompleteFoodsRequest
 ) async throws -> AutocompleteFoodsResponse
 
-public func getFood(
-    _ request: GetFoodRequest
+public func get(
+    id: FoodID,
+    endUserID: PartnerUserID? = nil
 ) async throws -> FoodSearchItem
 
 public func search(
     _ request: SearchFoodsRequest
 ) async throws -> FoodSearchResults
 
-public func lookupByBarcode(
+public func lookupBarcode(
     _ request: LookupFoodByBarcodeRequest
 ) async throws -> FoodSearchResults
-
-public func searchByNaturalLanguage(
-    _ request: SearchFoodsByNaturalLanguageRequest
-) async throws -> FoodScan
 
 public func suggestAlternatives(
     _ request: SuggestFoodAlternativesRequest
@@ -35,15 +32,13 @@ public func suggestAlternatives(
 | Request | Required | Defaults |
 | --- | --- | --- |
 | `AutocompleteFoodsRequest` | `query` | `category: nil`, `limit: 8`, `endUserID: nil` |
-| `GetFoodRequest` | `foodID` | `endUserID: nil` |
 | `SearchFoodsRequest` | `query` | `category: nil`, `limit: 10`, `endUserID: nil` |
 | `LookupFoodByBarcodeRequest` | `upc` | `endUserID: nil` |
-| `SearchFoodsByNaturalLanguageRequest` | `query` | `endUserID: nil` |
 | `SuggestFoodAlternativesRequest` | `foodID` | empty restriction/preference arrays, `endUserID: nil` |
 
 ## Responses
 
-`AutocompleteFoodsResponse.items` contains `FoodSuggestion` values with `id`, `name`, optional brand/image/nutrition. `FoodSearchResults` contains `totalCount` and `[FoodSearchItem]`. `getFood` returns one complete `FoodSearchItem` with all servings.
+`AutocompleteFoodsResponse.items` contains `FoodSuggestion` values with `id`, `name`, optional brand/image/nutrition. `FoodSearchResults` contains `totalCount` and `[FoodSearchItem]`. `get` returns one complete `FoodSearchItem` with all servings.
 
 `FoodScan` contains optional meal name, optional total nutrients, `[FoodDetection]`, and optional glucose impact. Alternatives return `[FoodAlternative]`.
 
@@ -61,6 +56,6 @@ public enum FoodCategory: String, Codable, CaseIterable, Sendable {
 
 ## Errors
 
-Local validation covers query, limit, natural-language length, and barcode shape. API responses may map 400 to `.validation`, 401 to `.authentication`, 404 to `.notFound` where declared, 429 to `.rateLimited`, and other statuses through the stable category mapper.
+Local validation covers query, limit, and barcode shape. API responses may map 400 to `.validation`, 401 to `.authentication`, 404 to `.notFound` where declared, 429 to `.rateLimited`, and other statuses through the stable category mapper.
 
-Always use `getFood` after selecting a discovery result and before presenting servings.
+Always use `get` after selecting a discovery result and before presenting servings.

@@ -1,12 +1,12 @@
 # Foods
 
-Use the `foods` resource to autocomplete and search the food database, retrieve a full food record, look up a barcode, parse a meal description, or request alternatives.
+Use the `foods` resource to autocomplete and search the food database, retrieve a full food record, look up a barcode, or request alternatives.
 
 Configure the signed-in user's stable ID once when creating the client:
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: partnerUserID),
+    endUserID: partnerUserID,
     clientTokenProvider: tokenProvider
 )
 ```
@@ -23,7 +23,7 @@ let suggestions = try await client.foods.autocomplete(
 
 Autocomplete returns lightweight query suggestions for type-ahead interfaces.
 Selecting one should place its name in the search field and run `search`. Search
-results are discovery records; call `getFood(_:)` before opening
+results are discovery records; call `get(id:)` before opening
 a serving picker so the selected food contains every available serving.
 
 ```swift
@@ -55,9 +55,7 @@ Filter with `.general`, `.branded`, or `.recipe` through the request's `category
 ```swift
 guard let match = results.items.first else { return }
 
-let food = try await client.foods.getFood(
-    .init(foodID: match.id)
-)
+let food = try await client.foods.get(id: match.id)
 let portion = try food.portion(quantity: 1.5)
 
 print(portion.nutrition.calories?.value ?? 0)
@@ -72,7 +70,7 @@ changes the serving or quantity.
 ## Look up a barcode
 
 ```swift
-let results = try await client.foods.lookupByBarcode(
+let results = try await client.foods.lookupBarcode(
     .init(upc: "049000006346")
 )
 ```
@@ -82,7 +80,7 @@ The barcode must contain 6–14 ASCII digits.
 ## Parse natural language
 
 ```swift
-let meal = try await client.foods.searchByNaturalLanguage(
+let meal = try await client.foodAnalysis.analyzeDescription(
     .init(
         query: "one banana and a bowl of oatmeal"
     )

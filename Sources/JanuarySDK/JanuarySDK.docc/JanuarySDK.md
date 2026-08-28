@@ -1,4 +1,4 @@
-# ``JanuarySDK``
+# ``January``
 
 Add January food and metabolic intelligence to iOS applications.
 
@@ -17,12 +17,14 @@ struct AppTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
 
-    func fetchClientToken() async throws -> JanuaryClientToken {
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
         request.setValue(
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
+        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
         let data: Data
         let response: URLResponse
@@ -46,8 +48,7 @@ struct AppTokenProvider: JanuaryTokenProvider {
 }
 
 let january = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: signedInUser.stableID),
-    timezone: TimeZone.current.identifier,
+    endUserID: signedInUser.id,
     clientTokenProvider: AppTokenProvider(
         endpoint: requiredTokenEndpoint,
         appSessionToken: signedInUser.sessionToken
@@ -59,8 +60,9 @@ The provider owns its URL, session authentication, and network request. The SDK
 keeps the returned token in memory, refreshes it before expiry, and coordinates
 concurrent refreshes.
 
-The client automatically applies that user ID and timezone across every
-resource:
+The required end-user ID is a stable string from your user system. The SDK
+passes it to the provider whenever it needs a new token. An omitted timezone
+defaults to `TimeZone.current` across resources:
 
 ```swift
 let results = try await january.foods.search(.init(query: "banana"))
@@ -83,13 +85,9 @@ is available:
 
 ```swift
 #if DEBUG
-let provider = try JanuaryDevelopmentTokenProvider(
-    apiKey: requiredLocalDevelopmentKey,
-    endUserID: PartnerUserID(rawValue: "local-test-user"),
-    ttlSeconds: 300
-)
+let provider = try JanuaryDevelopmentTokenProvider(apiKey: requiredLocalDevelopmentKey)
 let january = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: "local-test-user"),
+    endUserID: "local-test-user",
     clientTokenProvider: provider
 )
 #endif
@@ -115,7 +113,7 @@ guard let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"]
 }
 let january = try JanuaryClient(
     developmentAPIKey: apiKey,
-    endUserID: PartnerUserID(rawValue: rawUserID)
+    endUserID: rawUserID
 )
 ```
 
@@ -128,9 +126,7 @@ let results = try await january.foods.search(
 )
 
 if let match = results.items.first {
-    let food = try await january.foods.getFood(
-        GetFoodRequest(foodID: match.id)
-    )
+    let food = try await january.foods.get(id: match.id)
     print(food.servings)
 }
 ```
@@ -154,6 +150,6 @@ if let match = results.items.first {
 
 - ``FoodsResource``
 - ``RestaurantsResource``
-- ``PhotoScanningResource``
+- ``FoodAnalysisResource``
 - ``FoodLogsResource``
 - ``GlucoseResource``

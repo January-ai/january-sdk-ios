@@ -94,6 +94,13 @@ struct AuthenticationMiddleware: ClientMiddleware {
             request.headerFields[name] = forcedEndUserID.rawValue
         }
 
+        if
+            let name = HTTPField.Name("x-end-user-id"),
+            request.headerFields[name]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true
+        {
+            request.headerFields[name] = nil
+        }
+
         if omitEndUserID, let name = HTTPField.Name("x-end-user-id") {
             request.headerFields[name] = nil
         }

@@ -1,6 +1,6 @@
-# Photo scanning
+# Food analysis
 
-Use the `photoScanning` resource to analyze a meal image and submit natural-language corrections.
+Use the `foodAnalysis` resource to analyze a meal image and submit natural-language corrections.
 
 {% hint style="warning" %}
 Meal images and inferred nutrition may be sensitive user data. Obtain appropriate consent, minimize retention, and never write image contents or results to application logs.
@@ -10,7 +10,7 @@ Configure the signed-in user once on the client:
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: partnerUserID),
+    endUserID: partnerUserID,
     clientTokenProvider: tokenProvider
 )
 ```
@@ -20,7 +20,7 @@ With client-token authentication, January derives identity from the token and th
 ## Scan a public image URL
 
 ```swift
-let scan = try await client.photoScanning.scan(
+let scan = try await client.foodAnalysis.analyzePhoto(
     .init(image: publicImageURL.absoluteString)
 )
 ```
@@ -33,20 +33,20 @@ longest edge to 1,000 pixels, compress to JPEG, and create a data URI:
 ```swift
 let dataURI = try PhotoScanImage.dataURI(from: imageData)
 
-let scan = try await client.photoScanning.scan(
+let scan = try await client.foodAnalysis.analyzePhoto(
     .init(image: dataURI)
 )
 ```
 
-For a ready-made native SwiftUI flow, present `JanuaryMealScannerView`. It
-supports photo and barcode modes and returns analyzed meal images or fully hydrated barcode food records. See [Native meal scanner](native-meal-scanner.md).
+For a ready-made native SwiftUI flow, present `JanuaryFoodScannerView`. It
+supports photo and barcode modes and returns analyzed meal images or fully hydrated barcode food records. See [Native food scanner](native-meal-scanner.md).
 
 The response can contain a meal name, detected foods, total nutrients, confidence values, and glucose impact.
 
 ## Correct a result
 
 ```swift
-let corrected = try await client.photoScanning.correct(
+let corrected = try await client.foodAnalysis.correct(
     .init(
         mealName: scan.mealName,
         detections: scan.detections,

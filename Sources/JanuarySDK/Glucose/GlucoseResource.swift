@@ -30,7 +30,7 @@ public struct GlucoseResource: Sendable {
                 .init(
                     headers: .init(
                         xEndUserId: (userContext?.endUserID ?? request.endUserID)?.rawValue,
-                        xEndUserTimezone: userContext?.timezone ?? request.timezone
+                        xEndUserTimezone: userContext?.timezone.identifier ?? request.timezone?.identifier
                     ),
                     body: .json(body)
                 )

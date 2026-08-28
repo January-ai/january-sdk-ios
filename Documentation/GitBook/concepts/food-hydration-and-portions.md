@@ -37,12 +37,10 @@ Always fetch the chosen food by ID before opening a serving picker:
 ```swift
 guard let selected = results.items.first else { return }
 
-let food = try await client.foods.getFood(
-    .init(foodID: selected.id)
-)
+let food = try await client.foods.get(id: selected.id)
 ```
 
-`getFood` returns the complete `FoodSearchItem`, including every available `ServingOption`.
+`get` returns the complete `FoodSearchItem`, including every available `ServingOption`.
 
 ## 4. Calculate locally
 

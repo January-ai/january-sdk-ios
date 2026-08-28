@@ -1,57 +1,48 @@
 # Authentication
 
-Use a `JanuaryTokenProvider` in every production or distributed application. Its `fetchClientToken()` method makes an authenticated API call to your backend and returns that backend response directly as `JanuaryClientToken`.
+Use a `JanuaryTokenProvider` in every production or distributed application. Its `fetchClientToken(for:)` method receives the required end-user ID, makes an authenticated API call to your backend, and returns that backend response directly as `JanuaryClientToken`.
 
 {% hint style="danger" %}
 Production apps must use short-lived client tokens. Server-side token issuance and its credentials stay outside the app and SDK integration. API-key authentication is available only for local development and must never be shipped.
 {% endhint %}
 
-## Implement a URLSession provider
+## Call your backend for a client token
 
-This implementation keeps the endpoint and the app's session authentication injected. It accepts both `expiresIn` and `expires_in` because `JanuaryClientToken` decodes both forms.
+This provider is an example API request to **your server**, not to January. Your server authenticates the signed-in app user, mints a new short-lived January client token, and returns `{ "token": "ct-…", "expiresIn": 1800 }`.
 
 ```swift
 import Foundation
-import JanuarySDK
+import January
 
 struct PartnerBackendTokenProvider: JanuaryTokenProvider {
-    let endpoint: URL
-    let session: URLSession
-    let authorizationHeader: @Sendable () async throws -> String
+    let tokenEndpoint: URL
+    let appSessionToken: String
 
-    init(
-        endpoint: URL,
-        session: URLSession = .shared,
-        authorizationHeader: @escaping @Sendable () async throws -> String
-    ) {
-        self.endpoint = endpoint
-        self.session = session
-        self.authorizationHeader = authorizationHeader
-    }
-
-    func fetchClientToken() async throws -> JanuaryClientToken {
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "GET" // Match your backend contract.
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
+        // This calls your server to mint a new January client token.
+        var request = URLRequest(url: tokenEndpoint)
+        request.httpMethod = "POST"
         request.setValue(
-            try await authorizationHeader(),
+            "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
+        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await session.data(for: request)
+            (data, response) = try await URLSession.shared.data(for: request)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            throw JanuaryTokenProviderError("Token endpoint is unavailable.", retryable: true)
+            throw JanuaryTokenProviderError("Your token endpoint is unavailable.", retryable: true)
         }
         guard let http = response as? HTTPURLResponse else {
-            throw JanuaryTokenProviderError("Token endpoint returned an invalid response.")
+            throw JanuaryTokenProviderError("Your token endpoint returned an invalid response.")
         }
         guard (200..<300).contains(http.statusCode) else {
             throw JanuaryTokenProviderError(
-                "Token endpoint rejected the request.",
+                "Your token endpoint rejected the request.",
                 retryable: http.statusCode == 408 || http.statusCode == 429 || http.statusCode >= 500
             )
         }
@@ -61,7 +52,7 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
 }
 ```
 
-`authorizationHeader` is an app hook. Return whatever your backend expects, such as `Bearer <your-app-session-token>`.
+Change the HTTP method and authentication header only if your backend uses a different contract. `JanuaryClientToken` accepts both `expiresIn` and `expires_in`.
 
 ## Inject configuration and create the client
 
@@ -70,13 +61,13 @@ Resolve the endpoint from required app configuration. Do not provide a guessed o
 ```swift
 func makeJanuaryClient(
     tokenEndpoint: URL,
-    endUserID: PartnerUserID,
-    timezone: String,
-    appAuthorizationHeader: @escaping @Sendable () async throws -> String
+    appSessionToken: String,
+    endUserID: String,
+    timezone: TimeZone? = nil
 ) throws -> JanuaryClient {
     let provider = PartnerBackendTokenProvider(
-        endpoint: tokenEndpoint,
-        authorizationHeader: appAuthorizationHeader
+        tokenEndpoint: tokenEndpoint,
+        appSessionToken: appSessionToken
     )
     return try JanuaryClient(
         endUserID: endUserID,
@@ -88,8 +79,8 @@ func makeJanuaryClient(
 
 `JanuaryClient` always targets January's production Partner API through its documented client-token initializers. It exposes no API-origin override.
 
-The user context and timezone are configured once on the general client, so all
-resources are available directly:
+The required stable user ID and the resolved timezone are configured once on
+the general client, so all resources are available directly:
 
 ```swift
 let results = try await client.foods.search(.init(query: "greek yogurt"))
@@ -97,8 +88,8 @@ let results = try await client.foods.search(.init(query: "greek yogurt"))
 
 With client-token authentication, the token remains authoritative for identity.
 The SDK removes `x-end-user-id` before calling January, so the configured context
-cannot override the user bound to the token. The configured timezone is applied to
-operations that support it.
+cannot override the user bound to the token. The configured timezone—or
+`TimeZone.current` when omitted—is applied to supported operations.
 
 ## Token lifecycle
 
@@ -118,8 +109,7 @@ The default is nine total provider calls: one initial attempt and eight retries.
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    timezone: TimeZone.current.identifier,
+    endUserID: endUserID,
     clientTokenProvider: provider,
     tokenRetryPolicy: JanuaryTokenRetryPolicy(
         maximumAttempts: 9,
@@ -141,8 +131,7 @@ If your app deliberately owns the entire token lifecycle, it may create a client
 ```swift
 let client = try JanuaryClient(
     clientToken: clientTokenValue,
-    endUserID: partnerUserID,
-    timezone: TimeZone.current.identifier
+    endUserID: endUserID
 )
 ```
 
@@ -168,23 +157,17 @@ guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
     fatalError("Set the local January development credentials in the Xcode scheme.")
 }
 
-let provider = try JanuaryDevelopmentTokenProvider(
-    apiKey: apiKey,
-    endUserID: PartnerUserID(rawValue: rawUserID),
-    ttlSeconds: 300
-)
+let provider = try JanuaryDevelopmentTokenProvider(apiKey: apiKey)
 let client = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: rawUserID),
-    timezone: TimeZone.current.identifier,
+    endUserID: rawUserID,
     clientTokenProvider: provider
 )
 #endif
 ```
 
-The supported lifetime is 300–7,200 seconds. A 300-second token reaches the
-SDK's 60-second proactive-refresh window after approximately four minutes. When
-your backend becomes available, replace this helper with your own provider; the
-`JanuaryClient` construction and resource calls stay the same.
+Token lifetime is managed internally. When your backend becomes available,
+replace this helper with your own provider; the `JanuaryClient` construction
+and resource calls stay the same.
 
 ## Local development API-key authentication
 
@@ -196,21 +179,21 @@ Load the key from local Xcode scheme configuration instead of putting it in Swif
 
 ```swift
 import Foundation
-import JanuarySDK
+import January
 
-guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"] else {
-    fatalError("Set JANUARY_API_KEY in the local Xcode scheme.")
+guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
+      let endUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
+    fatalError("Set the local January development credentials in the Xcode scheme.")
 }
-guard let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
-    fatalError("Set JANUARY_END_USER_ID in the local Xcode scheme.")
-}
-
 let client = try JanuaryClient(
     developmentAPIKey: apiKey,
-    endUserID: PartnerUserID(rawValue: rawUserID)
+    endUserID: endUserID
 )
 ```
 
-Xcode intentionally marks this initializer as deprecated so every call site displays the warning. Supplying a nonempty key also writes the same warning to the Xcode console at runtime without logging the key itself. An empty or whitespace-only value fails validation without logging a warning.
+This initializer is supported for local Debug testing and is not deprecated. Supplying a nonempty key writes a warning to the Xcode console at runtime without logging the key itself. Release builds reject the initializer at compile time, preventing the development key from being shipped. An empty or whitespace-only value fails validation without logging a warning.
 
-The required end-user ID is your own stable, non-identifying ID for the user exercising the SDK. Development API-key mode binds the client to that ID and applies it to every request, overriding a conflicting request value. Do not use the SDK developer's personal ID, an email address, or a display name.
+The end-user ID is required. Use your own stable, non-identifying string for
+the user exercising the SDK. Do not use the SDK developer's personal ID, an
+email address, or a display name. An omitted timezone defaults to
+`TimeZone.current`.

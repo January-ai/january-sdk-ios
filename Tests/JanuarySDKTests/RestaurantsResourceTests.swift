@@ -1,7 +1,7 @@
 import Foundation
 import JanuaryPartnerTransport
 import Testing
-@_spi(JanuaryDevelopment) @testable import JanuarySDK
+@_spi(JanuaryDevelopment) @testable import January
 
 private struct RestaurantFixtureTransport: ClientTransport {
     func send(

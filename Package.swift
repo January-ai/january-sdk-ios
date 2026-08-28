@@ -3,14 +3,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "JanuarySDK",
+    name: "January",
     platforms: [
         .iOS(.v15),
     ],
     products: [
         .library(
-            name: "JanuarySDK",
-            targets: ["JanuarySDK"]
+            name: "January",
+            targets: ["January"]
         ),
     ],
     dependencies: [],
@@ -20,15 +20,16 @@ let package = Package(
             dependencies: []
         ),
         .target(
-            name: "JanuarySDK",
+            name: "January",
             dependencies: [
                 "JanuaryPartnerTransport",
-            ]
+            ],
+            path: "Sources/JanuarySDK"
         ),
         .testTarget(
             name: "JanuarySDKTests",
             dependencies: [
-                "JanuarySDK",
+                "January",
                 "JanuaryPartnerTransport",
             ],
             resources: [.copy("Fixtures")]

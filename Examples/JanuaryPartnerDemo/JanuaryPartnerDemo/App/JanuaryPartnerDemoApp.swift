@@ -1,53 +1,55 @@
 import Foundation
 import SwiftUI
 
-private enum AppConfiguration {
-    private static let environment = ProcessInfo.processInfo.environment
+#warning("January demo authentication: development API keys are for local Debug testing only. Never commit or ship one. Use JanuaryTokenProvider for production authentication.")
 
-    static var endUserID: String {
-        environment["JANUARY_END_USER_ID"] ?? "local-ios-user"
-    }
+private enum AppConfiguration {
+    // MARK: Configure the demo here
+
+    // Recommended: connect the demo to your authenticated token endpoint.
+    static let partnerTokenURL: URL? = nil
+    static let partnerAppSessionToken = ""
+
+    // Local Debug testing only. Never commit or ship a development API key.
+    static let developmentAPIKey = ""
+
+    static let endUserID = "your-ios-user-id"
 
     static var authentication: AuthenticationConfiguration {
-        if let rawURL = environment["PARTNER_TOKEN_URL"], let url = URL(string: rawURL) {
-            guard
-                let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"],
-                !appSessionToken.isEmpty
-            else {
-                return .invalid(
-                    "Set PARTNER_APP_SESSION_TOKEN when PARTNER_TOKEN_URL is configured."
-                )
-            }
+        let sessionToken = partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let partnerTokenURL, !sessionToken.isEmpty {
             return .clientToken(
-                partnerTokenURL: url,
-                appSessionToken: appSessionToken,
+                partnerTokenURL: partnerTokenURL,
+                appSessionToken: sessionToken,
                 endUserID: endUserID
             )
         }
 
 #if DEBUG
-        if let apiKey = environment["JANUARY_DEMO_API_KEY"], !apiKey.isEmpty {
-            let ttlSeconds = environment["JANUARY_DEMO_TOKEN_TTL_SECONDS"]
-                .flatMap(Int.init) ?? 300
+        let apiKey = developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !apiKey.isEmpty {
             return .developmentClientToken(
                 apiKey,
-                endUserID: endUserID,
-                ttlSeconds: ttlSeconds
+                endUserID: endUserID
+            )
+        }
+#else
+        if !developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return .setupRequired(
+                "Development API-key authentication is disabled in Release builds. Use the token provider configuration above."
             )
         }
 #endif
 
-        return .invalid(
-            "Set PARTNER_TOKEN_URL and PARTNER_APP_SESSION_TOKEN. " +
-            "For a local Debug run, set JANUARY_DEMO_API_KEY instead."
-        )
+        return .setupRequired()
     }
 
     static var authenticationLabel: String {
-        if environment["PARTNER_TOKEN_URL"] != nil {
+        if partnerTokenURL != nil,
+           !partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Partner backend token provider"
         }
-        if environment["JANUARY_DEMO_API_KEY"] != nil {
+        if !developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Development client-token provider"
         }
         return "Not configured"
@@ -56,7 +58,7 @@ private enum AppConfiguration {
 
 @main
 struct JanuaryPartnerDemoApp: App {
-    @State private var model: AppModel
+    @StateObject private var model: AppModel
 
     init() {
         UserDefaults.standard.register(defaults: [
@@ -64,12 +66,13 @@ struct JanuaryPartnerDemoApp: App {
             "demo.endUserID": AppConfiguration.endUserID,
         ])
         UserDefaults.standard.set(AppConfiguration.authenticationLabel, forKey: "demo.authenticationMode")
-        _model = State(initialValue: AppModel(authentication: AppConfiguration.authentication))
+        _model = StateObject(wrappedValue: AppModel(authentication: AppConfiguration.authentication))
     }
 
     var body: some Scene {
         WindowGroup {
-            RootView(model: model)
+            RootView()
+                .environmentObject(model)
         }
     }
 }

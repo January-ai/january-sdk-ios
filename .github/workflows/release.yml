@@ -41,7 +41,7 @@ jobs:
       - name: Build SDK for iOS 15+
         run: >-
           xcodebuild
-          -scheme JanuarySDK
+          -scheme January
           -destination 'generic/platform=iOS'
           -configuration Release
           CODE_SIGNING_ALLOWED=NO

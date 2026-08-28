@@ -1,4 +1,4 @@
-import JanuarySDK
+import January
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -7,7 +7,7 @@ struct ScanView: View {
     let client: JanuaryClient
     let settingsAction: () -> Void
 
-    @Environment(UserSession.self) private var userSession
+    @EnvironmentObject private var userSession: UserSession
     @State private var imageInput = ""
     @State private var previewImage: UIImage?
     @State private var selectedPhoto: PhotosPickerItem?
@@ -38,13 +38,13 @@ struct ScanView: View {
                 AppNavigationButton(.settings, action: settingsAction)
             }
             .fullScreenCover(isPresented: $isShowingCamera, onDismiss: presentPendingScannerResult) {
-                JanuaryMealScannerView(
+                JanuaryFoodScannerView(
                     client: client,
                     endUserID: AppFormatting.endUserID(endUserID),
                     onResult: { scannerResult in
                         isShowingCamera = false
                         switch scannerResult {
-                        case .meal(let image, let analysis):
+                        case .photo(let image, let analysis):
                             previewImage = image.image
                             imageInput = image.dataURI
                             pendingScannerResult = ScanResultPresentation(result: analysis, previewImage: image.image)
@@ -168,7 +168,7 @@ struct ScanView: View {
         guard !imageInput.isEmpty else { return }
         isLoading = true; error = nil
         do {
-            let analysis = try await client.photoScanning.scan(
+            let analysis = try await client.foodAnalysis.analyzePhoto(
                 .init(image: imageInput, endUserID: AppFormatting.endUserID(endUserID))
             )
             presentedResult = ScanResultPresentation(result: analysis, previewImage: previewImage)
@@ -473,7 +473,7 @@ private struct CorrectScanView: View {
         }
         isLoading = true; error = nil
         do {
-            let corrected = try await client.photoScanning.correct(.init(mealName: mealName, detections: scan.detections, userInput: correction, endUserID: endUserID))
+            let corrected = try await client.foodAnalysis.correct(.init(mealName: mealName, detections: scan.detections, userInput: correction, endUserID: endUserID))
             onSuccess(corrected)
         } catch { self.error = error }
         isLoading = false

@@ -1,7 +1,7 @@
 import Foundation
-import JanuarySDK
+import January
 
-/// Demo implementation of the provider a partner supplies to JanuarySDK.
+/// Demo implementation of the provider a partner supplies to January.
 ///
 /// The endpoint is either the partner's authenticated backend or its
 /// self-hosted testing relay. It exchanges the server-side January credential
@@ -9,14 +9,13 @@ import JanuarySDK
 struct PartnerBackendTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
-    let endUserID: PartnerUserID
     var session: URLSession = .shared
 
-    func fetchClientToken() async throws -> JanuaryClientToken {
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("Bearer \(appSessionToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(endUserID.rawValue, forHTTPHeaderField: "x-end-user-id")
+        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
         let data: Data
         let response: URLResponse

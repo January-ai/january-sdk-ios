@@ -5,13 +5,13 @@ import OSLog
 import SwiftUI
 import UIKit
 
-private let mealScannerLogger = Logger(
+private let foodScannerLogger = Logger(
     subsystem: "ai.january.partner-sdk",
-    category: "MealScanner"
+    category: "FoodScanner"
 )
 
 struct MealCameraRepresentable: UIViewControllerRepresentable {
-    let configuration: JanuaryMealScannerConfiguration
+    let configuration: JanuaryFoodScannerConfiguration
     let isProcessing: Bool
     let onImage: @MainActor (UIImage) -> Void
     let onBarcode: @MainActor (String) -> Void
@@ -44,7 +44,7 @@ private final class MealCameraPreviewView: UIView {
     func setSession(_ session: AVCaptureSession) {
         previewLayer.session = session
         previewLayer.videoGravity = .resizeAspectFill
-        mealScannerLogger.info(
+        foodScannerLogger.info(
             "Camera preview attached before capture start; bounds=\(String(describing: self.bounds), privacy: .public), connection=\(self.previewLayer.connection != nil, privacy: .public)"
         )
     }
@@ -138,7 +138,7 @@ private final class MealCameraSessionRunner: @unchecked Sendable {
     }
 
     func configure(
-        enabledModes: Set<JanuaryMealScannerMode>,
+        enabledModes: Set<JanuaryFoodScannerMode>,
         delegate: MealCaptureDelegateProxy
     ) async throws -> MealCameraConfigurationResult {
         try await withCheckedThrowingContinuation { continuation in
@@ -212,12 +212,12 @@ private final class MealCameraSessionRunner: @unchecked Sendable {
                 defer { continuation.resume() }
                 guard !session.isRunning else { return }
                 guard !session.isInterrupted else {
-                    mealScannerLogger.info("Capture start deferred while the session is interrupted")
+                    foodScannerLogger.info("Capture start deferred while the session is interrupted")
                     return
                 }
-                mealScannerLogger.info("Starting capture session on camera queue")
+                foodScannerLogger.info("Starting capture session on camera queue")
                 session.startRunning()
-                mealScannerLogger.info(
+                foodScannerLogger.info(
                     "Capture session start completed; running=\(session.isRunning, privacy: .public), interrupted=\(session.isInterrupted, privacy: .public)"
                 )
             }
@@ -229,7 +229,7 @@ private final class MealCameraSessionRunner: @unchecked Sendable {
             sessionQueue.async { [session] in
                 defer { continuation.resume() }
                 guard session.isRunning else { return }
-                mealScannerLogger.info("Stopping capture session on camera queue")
+                foodScannerLogger.info("Stopping capture session on camera queue")
                 session.stopRunning()
             }
         }
@@ -262,7 +262,7 @@ private final class MealCameraSessionRunner: @unchecked Sendable {
                     camera.unlockForConfiguration()
                     continuation.resume(returning: true)
                 } catch {
-                    mealScannerLogger.error(
+                    foodScannerLogger.error(
                         "Torch configuration failed: \(error.localizedDescription, privacy: .public)"
                     )
                     continuation.resume(returning: false)
@@ -274,7 +274,7 @@ private final class MealCameraSessionRunner: @unchecked Sendable {
 
 @MainActor
 final class MealCameraViewController: UIViewController {
-    private let configuration: JanuaryMealScannerConfiguration
+    private let configuration: JanuaryFoodScannerConfiguration
     private let onImage: @MainActor (UIImage) -> Void
     private let onBarcode: @MainActor (String) -> Void
     private let onCancel: @MainActor () -> Void
@@ -297,12 +297,12 @@ final class MealCameraViewController: UIViewController {
     private let flashButton = UIButton(type: .system)
     private let closeButton = UIButton(type: .system)
 
-    private var selectedMode: JanuaryMealScannerMode {
+    private var selectedMode: JanuaryFoodScannerMode {
         modeControl.selectedSegmentIndex == 1 ? .barcode : .photo
     }
 
     init(
-        configuration: JanuaryMealScannerConfiguration,
+        configuration: JanuaryFoodScannerConfiguration,
         onImage: @escaping @MainActor (UIImage) -> Void,
         onBarcode: @escaping @MainActor (String) -> Void,
         onCancel: @escaping @MainActor () -> Void
@@ -319,7 +319,7 @@ final class MealCameraViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        mealScannerLogger.info("Meal scanner view loaded")
+        foodScannerLogger.info("Food scanner view loaded")
         view.backgroundColor = .black
         configurePreview()
         configureOverlay()
@@ -360,7 +360,7 @@ final class MealCameraViewController: UIViewController {
     private func authorizeAndConfigureCamera() {
         guard !isConfigured, !isAuthorizingOrConfiguring else { return }
         do {
-            try JanuaryMealScanner.validateHostConfiguration()
+            try JanuaryFoodScanner.validateHostConfiguration()
         } catch {
             showConfigurationAlert(message: error.localizedDescription)
             return
@@ -371,13 +371,13 @@ final class MealCameraViewController: UIViewController {
             defer { isAuthorizingOrConfiguring = false }
             switch await MealCameraSessionRunner.authorize() {
             case .authorized:
-                mealScannerLogger.info("Camera authorization status: authorized")
+                foodScannerLogger.info("Camera authorization status: authorized")
                 await configureCamera()
             case .denied:
-                mealScannerLogger.error("Camera authorization status: denied")
+                foodScannerLogger.error("Camera authorization status: denied")
                 showCameraAccessAlert(canOpenSettings: true)
             case .restricted:
-                mealScannerLogger.error("Camera authorization status: restricted")
+                foodScannerLogger.error("Camera authorization status: restricted")
                 showCameraAccessAlert(canOpenSettings: false)
             }
         }
@@ -423,13 +423,13 @@ final class MealCameraViewController: UIViewController {
             cameraHasTorch = result.cameraHasTorch
             isConfigured = true
             observeSessionNotifications()
-            mealScannerLogger.info(
+            foodScannerLogger.info(
                 "Capture session configured using January iOS lifecycle; camera=\(result.cameraName, privacy: .public), connected=\(result.cameraIsConnected, privacy: .public), inputs=\(result.inputCount, privacy: .public), outputs=\(result.outputCount, privacy: .public)"
             )
             updateModeUI()
             await startCameraIfReady()
         } catch {
-            mealScannerLogger.error("Camera configuration failed: \(error.localizedDescription, privacy: .public)")
+            foodScannerLogger.error("Camera configuration failed: \(error.localizedDescription, privacy: .public)")
             showCameraUnavailableAlert()
         }
     }
@@ -448,7 +448,7 @@ final class MealCameraViewController: UIViewController {
 
     private func startCameraIfReady() async {
         guard isVisible, isConfigured else {
-            mealScannerLogger.debug("Capture start deferred until the scanner is visible and configured")
+            foodScannerLogger.debug("Capture start deferred until the scanner is visible and configured")
             return
         }
         await cameraRunner.start()
@@ -567,7 +567,7 @@ final class MealCameraViewController: UIViewController {
         ) { notification in
             let rawReason = (notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as? NSNumber)?.intValue
             let reason = rawReason.flatMap(AVCaptureSession.InterruptionReason.init(rawValue:))
-            mealScannerLogger.error(
+            foodScannerLogger.error(
                 "Capture session interrupted; reason=\(rawReason ?? -1, privacy: .public) (\(String(describing: reason), privacy: .public))"
             )
         })
@@ -577,7 +577,7 @@ final class MealCameraViewController: UIViewController {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            mealScannerLogger.info("Capture session interruption ended")
+            foodScannerLogger.info("Capture session interruption ended")
             Task { await self.startCameraIfReady() }
         })
         observerTokens.append(center.addObserver(
@@ -586,7 +586,7 @@ final class MealCameraViewController: UIViewController {
             queue: .main
         ) { notification in
             let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError
-            mealScannerLogger.error(
+            foodScannerLogger.error(
                 "Capture session runtime error: code=\(String(describing: error?.code), privacy: .public), description=\(error?.localizedDescription ?? "unknown", privacy: .public)"
             )
         })

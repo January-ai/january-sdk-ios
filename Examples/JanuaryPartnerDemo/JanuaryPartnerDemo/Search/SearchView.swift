@@ -1,4 +1,4 @@
-import JanuarySDK
+import January
 import SwiftUI
 
 private struct SearchCity: Identifiable, Hashable {
@@ -26,7 +26,7 @@ struct SearchView: View {
     let client: JanuaryClient
     let settingsAction: () -> Void
 
-    @Environment(UserSession.self) private var userSession
+    @EnvironmentObject private var userSession: UserSession
     @State private var scope = Scope.foods
     @State private var foodMode = FoodMode.name
     @State private var restaurantMode = RestaurantMode.restaurants
@@ -48,7 +48,7 @@ struct SearchView: View {
     @State private var radius = 8000.0
     @State private var foodResultLimit = 10
     @State private var restaurantResultLimit = 10
-    @State private var locationProvider = LocationProvider()
+    @StateObject private var locationProvider = LocationProvider()
 
     private var endUserID: String { userSession.endUserID }
 
@@ -363,9 +363,9 @@ struct SearchView: View {
                 case .name:
                     foodResults = try await client.foods.search(.init(query: value, category: category, limit: Double(foodResultLimit), endUserID: userID)).items
                 case .meal:
-                    naturalResult = try await client.photoScanning.searchByNaturalLanguage(.init(query: value, endUserID: userID))
+                    naturalResult = try await client.foodAnalysis.analyzeDescription(.init(query: value, endUserID: userID))
                 case .barcode:
-                    foodResults = try await client.foods.lookupByBarcode(.init(upc: value, endUserID: userID)).items
+                    foodResults = try await client.foods.lookupBarcode(.init(upc: value, endUserID: userID)).items
                 }
             } else if restaurantMode == .restaurants {
                 restaurants = try await client.restaurants.search(.init(query: value, latitude: latitude, longitude: longitude, radius: radius, limit: restaurantResultLimit, endUserID: userID)).items
@@ -681,7 +681,7 @@ struct FoodDetailView: View {
     @MainActor
     private func loadFullFood() async {
         do {
-            let fullFood = try await client.foods.getFood(.init(foodID: food.id, endUserID: endUserID))
+            let fullFood = try await client.foods.get(id: food.id, endUserID: endUserID)
             detailFood = fullFood
             let initialServing = fullFood.servings.first(where: \.isPrimary) ?? fullFood.servings.first
             if let initialServing {
@@ -704,12 +704,12 @@ private struct FoodGlucoseSheet: View {
     let endUserID: PartnerUserID?
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(UserSession.self) private var userSession
+    @EnvironmentObject private var userSession: UserSession
     @State private var prediction: GlucosePrediction?
     @State private var isLoading = false
     @State private var error: Error?
 
-    private var timezone: String { userSession.timezone }
+    private var timezone: TimeZone { TimeZone(identifier: userSession.timezone) ?? .current }
 
     private let profile = GlucosePredictionProfile(
         age: 42,
@@ -1009,7 +1009,7 @@ private struct AlternativesView: View {
         await withTaskGroup(of: (FoodID, FoodSearchItem)?.self) { group in
             for id in ids {
                 group.addTask {
-                    guard let detail = try? await client.foods.getFood(.init(foodID: id, endUserID: endUserID)) else {
+                    guard let detail = try? await client.foods.get(id: id, endUserID: endUserID) else {
                         return nil
                     }
                     return (id, detail)

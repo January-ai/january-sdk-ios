@@ -65,7 +65,8 @@ Without a serving ID, portion selection uses the primary serving or the first se
 | `ActivityLevel` | `sedentary`, `lightlyActive`, `moderatelyActive`, `veryActive` |
 | `MedicalCondition` | `type2Diabetes`, `prediabetes` |
 
-`Gender` is a deprecated alias for `Sex`. `MedicalCondition.noneOfTheAbove` is deprecated; omit conditions or pass an empty array instead.
+Use `Sex` for the profile's biological-sex field. Omit `healthConditions` or
+pass an empty array when no medical conditions apply.
 
 ## Error categories
 
@@ -75,4 +76,4 @@ Without a serving ID, portion selection uses the primary serving or the first se
 
 ## Scanner types
 
-On iOS, `JanuaryMealScannerMode` has `photo` and `barcode`. `JanuaryMealScannerConfiguration` defaults to both modes, photo first, maximum dimension 1,000, and compression quality 0.7. `JanuaryMealScannerResult` is either `.meal(image:analysis:)` or `.barcode(value:food:)`.
+On iOS, `JanuaryFoodScannerMode` has `photo` and `barcode`. `JanuaryFoodScannerConfiguration` defaults to both modes, photo first, maximum dimension 1,000, and compression quality 0.7. `JanuaryFoodScannerResult` is either `.photo(image:analysis:)` or `.barcode(value:food:)`.

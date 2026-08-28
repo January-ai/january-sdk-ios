@@ -1,29 +1,30 @@
+import Combine
 import Foundation
-import JanuarySDK
-import Observation
+import January
 
 enum AuthenticationConfiguration: Sendable {
-    case developmentClientToken(String, endUserID: String, ttlSeconds: Int)
+    case developmentClientToken(String, endUserID: String)
     case clientToken(
         partnerTokenURL: URL,
         appSessionToken: String,
         endUserID: String
     )
-    case invalid(String)
+    case setupRequired(String? = nil)
 }
 
 @MainActor
-@Observable
-final class AppModel {
+final class AppModel: ObservableObject {
     enum State: Equatable {
         case loading
         case connecting
         case ready
+        case setupRequired(String?)
         case failed(String)
     }
 
-    private(set) var state: State = .loading
-    private(set) var client: JanuaryClient?
+    @Published private(set) var state: State = .loading
+    @Published private(set) var client: JanuaryClient?
+    @Published private(set) var isUsingDevelopmentAuthentication = false
     let userSession = UserSession()
 
     private let authentication: AuthenticationConfiguration
@@ -42,31 +43,29 @@ final class AppModel {
 
     private func connect(authentication: AuthenticationConfiguration) {
         state = .connecting
+        isUsingDevelopmentAuthentication = false
 
         do {
             switch authentication {
-            case .developmentClientToken(let apiKey, let endUserID, let ttlSeconds):
+            case .developmentClientToken(let apiKey, let endUserID):
 #if DEBUG
                 let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !normalizedAPIKey.isEmpty else {
-                    state = .failed(
-                        "Set JANUARY_DEMO_API_KEY or PARTNER_TOKEN_URL in the Xcode scheme."
-                    )
+                    state = .setupRequired(nil)
                     return
                 }
                 let provider = try JanuaryDevelopmentTokenProvider(
-                    apiKey: normalizedAPIKey,
-                    endUserID: PartnerUserID(rawValue: endUserID),
-                    ttlSeconds: ttlSeconds
+                    apiKey: normalizedAPIKey
                 )
                 client = try JanuaryClient(
-                    endUserID: PartnerUserID(rawValue: endUserID),
-                    timezone: userSession.timezone,
+                    endUserID: endUserID,
+                    timezone: TimeZone(identifier: userSession.timezone) ?? .current,
                     clientTokenProvider: provider
                 )
+                isUsingDevelopmentAuthentication = true
 #else
-                state = .failed(
-                    "Development API keys are disabled in Release builds. Configure PARTNER_TOKEN_URL instead."
+                state = .setupRequired(
+                    "Development API-key authentication is disabled in Release builds. Use the token provider configuration in JanuaryPartnerDemoApp.swift."
                 )
                 return
 #endif
@@ -77,16 +76,15 @@ final class AppModel {
             ):
                 let provider = PartnerBackendTokenProvider(
                     endpoint: partnerTokenURL,
-                    appSessionToken: appSessionToken,
-                    endUserID: PartnerUserID(rawValue: endUserID)
+                    appSessionToken: appSessionToken
                 )
                 client = try JanuaryClient(
-                    endUserID: PartnerUserID(rawValue: endUserID),
-                    timezone: userSession.timezone,
+                    endUserID: endUserID,
+                    timezone: TimeZone(identifier: userSession.timezone) ?? .current,
                     clientTokenProvider: provider
                 )
-            case .invalid(let message):
-                state = .failed(message)
+            case .setupRequired(let message):
+                state = .setupRequired(message)
                 return
             }
             state = .ready

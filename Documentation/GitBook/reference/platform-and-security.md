@@ -6,8 +6,8 @@
 | --- | --- |
 | Core client and all API resources | Yes |
 | `PhotoScanImage` preparation | Yes |
-| `JanuaryMealScannerView` | Yes |
-| `JanuaryMealScanner.makeViewController` | Yes |
+| `JanuaryFoodScannerView` | Yes |
+| `JanuaryFoodScanner.makeViewController` | Yes |
 
 The repository demo uses the latest tab-bar APIs and targets iOS 26 independently of the SDK deployment target.
 

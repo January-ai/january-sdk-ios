@@ -6,7 +6,7 @@ Configure the signed-in user once on the client:
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: PartnerUserID(rawValue: partnerUserID),
+    endUserID: partnerUserID,
     clientTokenProvider: tokenProvider
 )
 ```

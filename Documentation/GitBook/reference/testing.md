@@ -60,14 +60,13 @@ complete target.
 ## Local lifecycle verification
 
 In a local Debug app, `JanuaryDevelopmentTokenProvider` can verify the complete
-token lifecycle without a partner backend. Use `ttlSeconds: 300`, make an
-initial request, then make another request after approximately four minutes to
-observe proactive refresh. To test server-expiry replay deterministically, use
-the SDK's mocked transport tests rather than placing internal environment URLs
-in public source or documentation.
+token lifecycle without a partner backend. Token lifetime is managed
+internally. To test server-expiry replay deterministically, use the SDK's mocked
+transport tests rather than placing internal environment URLs in public source
+or documentation.
 
 ## Consumer build
 
-Keep a minimal app or package that depends on the same SDK release as production. Its build should import `JanuarySDK`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
+Keep a minimal app or package that depends on the same SDK release as production. Its build should import `January`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
 
 When the repository becomes public, repeat this check from a clean machine without organization credentials.

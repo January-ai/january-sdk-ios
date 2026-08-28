@@ -1,5 +1,5 @@
 import SwiftUI
-import JanuarySDK
+import January
 
 struct AppTabView: View {
     let client: JanuaryClient
@@ -7,23 +7,18 @@ struct AppTabView: View {
 
     var body: some View {
         TabView {
-            Tab("Search", systemImage: "magnifyingglass") {
-                SearchView(client: client, settingsAction: showSettings)
-            }
+            SearchView(client: client, settingsAction: showSettings)
+                .tabItem { Label("Search", systemImage: "magnifyingglass") }
 
-            Tab("Scan", systemImage: "camera.viewfinder") {
-                ScanView(client: client, settingsAction: showSettings)
-            }
+            ScanView(client: client, settingsAction: showSettings)
+                .tabItem { Label("Scan", systemImage: "camera.viewfinder") }
 
-            Tab("Food Logs", systemImage: "list.bullet.rectangle") {
-                FoodLogsView(client: client, settingsAction: showSettings)
-            }
+            FoodLogsView(client: client, settingsAction: showSettings)
+                .tabItem { Label("Food Logs", systemImage: "list.bullet.rectangle") }
 
-            Tab("Glucose", systemImage: "chart.xyaxis.line") {
-                GlucoseView(client: client, settingsAction: showSettings)
-            }
+            GlucoseView(client: client, settingsAction: showSettings)
+                .tabItem { Label("Glucose", systemImage: "chart.xyaxis.line") }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
         .tint(AppPalette.ink)
         .background(Color.clear)
         .sheet(isPresented: $isShowingSettings) {

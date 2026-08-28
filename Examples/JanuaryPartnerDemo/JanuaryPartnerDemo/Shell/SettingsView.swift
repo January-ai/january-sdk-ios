@@ -2,12 +2,10 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(UserSession.self) private var userSession
+    @EnvironmentObject private var userSession: UserSession
     @AppStorage("demo.authenticationMode") private var authenticationMode = "Development API key"
 
     var body: some View {
-        @Bindable var userSession = userSession
-
         NavigationStack {
             ScrollView {
                 ScreenShell {

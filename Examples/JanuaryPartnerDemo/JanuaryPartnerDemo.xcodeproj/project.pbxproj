@@ -12,7 +12,7 @@
 		A10000000000000000000004 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* RootView.swift */; };
 		A10000000000000000000006 /* AppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* AppTabView.swift */; };
 		A10000000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* Assets.xcassets */; };
-		A10000000000000000000008 /* JanuarySDK in Frameworks */ = {isa = PBXBuildFile; productRef = A90000000000000000000001 /* JanuarySDK */; };
+		A10000000000000000000008 /* January in Frameworks */ = {isa = PBXBuildFile; productRef = A90000000000000000000001 /* January */; };
 		B10000000000000000000001 /* AppFoundations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* AppFoundations.swift */; };
 		B10000000000000000000002 /* ScreenShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ScreenShell.swift */; };
 		B10000000000000000000003 /* LoadingSpinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* LoadingSpinner.swift */; };
@@ -109,7 +109,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A10000000000000000000008 /* JanuarySDK in Frameworks */,
+				A10000000000000000000008 /* January in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -263,7 +263,6 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A80000000000000000000002 /* Build configuration list for PBXNativeTarget "JanuaryPartnerDemo" */;
 			buildPhases = (
-				AB0000000000000000000001 /* Require demo API key */,
 				A60000000000000000000001 /* Sources */,
 				A30000000000000000000001 /* Frameworks */,
 				A60000000000000000000002 /* Resources */,
@@ -274,7 +273,7 @@
 			);
 			name = JanuaryPartnerDemo;
 			packageProductDependencies = (
-				A90000000000000000000001 /* JanuarySDK */,
+				A90000000000000000000001 /* January */,
 			);
 			productName = JanuaryPartnerDemo;
 			productReference = A20000000000000000000008 /* JanuaryPartnerDemo.app */;
@@ -327,29 +326,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		AB0000000000000000000001 /* Require demo API key */ = {
-			isa = PBXShellScriptBuildPhase;
-			alwaysOutOfDate = 1;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/JanuaryPartnerDemo/App/JanuaryPartnerDemoApp.swift",
-			);
-			name = "Require demo API key";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "CONFIG_FILE=\"${SRCROOT}/JanuaryPartnerDemo/App/JanuaryPartnerDemoApp.swift\"\nif /usr/bin/grep -Eq 'static let apiKey = \"[[:space:]]*\"' \"${CONFIG_FILE}\"; then\n    echo \"${CONFIG_FILE}:5:1: error: Set AppConfiguration.apiKey before running the demo.\" >&2\n    exit 1\nfi\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A60000000000000000000001 /* Sources */ = {
@@ -591,10 +567,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		A90000000000000000000001 /* JanuarySDK */ = {
+		A90000000000000000000001 /* January */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = A90000000000000000000002 /* XCLocalSwiftPackageReference "../.." */;
-			productName = JanuarySDK;
+			productName = January;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

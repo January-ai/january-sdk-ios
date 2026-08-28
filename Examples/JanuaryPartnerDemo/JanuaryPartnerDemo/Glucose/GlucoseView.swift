@@ -1,11 +1,11 @@
-import JanuarySDK
+import January
 import SwiftUI
 
 struct GlucoseView: View {
     let client: JanuaryClient
     let settingsAction: () -> Void
 
-    @Environment(UserSession.self) private var userSession
+    @EnvironmentObject private var userSession: UserSession
     @State private var age = 42.0
     @State private var sex = Sex.female
     @State private var height = 66.0

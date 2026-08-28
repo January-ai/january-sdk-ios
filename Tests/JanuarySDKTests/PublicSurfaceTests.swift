@@ -1,11 +1,12 @@
 import Foundation
 import JanuaryPartnerTransport
 import Testing
-@_spi(JanuaryDevelopment) @testable import JanuarySDK
+@_spi(JanuaryDevelopment) @testable import January
 
 private actor SurfaceTransport: ClientTransport {
     private var operations: [String] = []
     private var endUserIDs: [String?] = []
+    private var timezones: [String?] = []
 
     func send(
         _ request: HTTPRequest,
@@ -15,6 +16,7 @@ private actor SurfaceTransport: ClientTransport {
     ) async throws -> (HTTPResponse, HTTPBody?) {
         operations.append(operationID)
         endUserIDs.append(request.headerFields[HTTPField.Name("x-end-user-id")!])
+        timezones.append(request.headerFields[HTTPField.Name("x-end-user-timezone")!])
         var response = HTTPResponse(status: .ok)
         response.headerFields[.contentType] = "application/json"
         return (response, HTTPBody(Data(responseJSON(for: operationID).utf8)))
@@ -22,6 +24,7 @@ private actor SurfaceTransport: ClientTransport {
 
     func operationIDs() -> [String] { operations }
     func capturedEndUserIDs() -> [String?] { endUserIDs }
+    func capturedTimezones() -> [String?] { timezones }
 
     private func responseJSON(for operationID: String) -> String {
         switch operationID {
@@ -54,10 +57,29 @@ private actor SurfaceTransport: ClientTransport {
 }
 
 @Test
+func optionalUserIDAndDefaultTimezoneApplyToFoodLogs() async throws {
+    let transport = SurfaceTransport()
+    let client = try JanuaryClient(
+        clientToken: "ct-fixture",
+        serverURL: URL(string: "https://example.invalid")!,
+        transport: transport,
+        userContext: PartnerUserContext()
+    )
+
+    _ = try await client.foodLogs.list(start: "2026-08-21", end: "2026-08-23")
+
+    #expect(await transport.capturedEndUserIDs() == [nil])
+    #expect(await transport.capturedTimezones() == [TimeZone.current.identifier])
+}
+
+@Test
 func allContractOperationsAreExposedThroughThePublicClient() async throws {
     let transport = SurfaceTransport()
     let userID = PartnerUserID(rawValue: "fixture-user")
-    let user = FoodLogUserContext(endUserID: userID, timezone: "America/New_York")
+    let user = FoodLogUserContext(
+        endUserID: userID,
+        timezone: TimeZone(identifier: "America/New_York")!
+    )
     let client = try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         userContext: user,
@@ -78,15 +100,15 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
     )
 
     _ = try await client.foods.autocomplete(.init(query: "ban"))
-    _ = try await client.foods.getFood(.init(foodID: FoodID(rawValue: 1)))
+    _ = try await client.foods.get(id: FoodID(rawValue: 1))
     _ = try await client.foods.search(.init(query: "banana"))
-    _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346"))
-    _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana"))
+    _ = try await client.foods.lookupBarcode(.init(upc: "049000006346"))
+    _ = try await client.foodAnalysis.analyzeDescription(.init(query: "one banana"))
     _ = try await client.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1)))
     _ = try await client.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74))
     _ = try await client.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74))
-    _ = try await client.photoScanning.scan(.init(image: "fixture-image"))
-    _ = try await client.photoScanning.correct(
+    _ = try await client.foodAnalysis.analyzePhoto(.init(image: "fixture-image"))
+    _ = try await client.foodAnalysis.correct(
         .init(mealName: "Meal", detections: [detection], userInput: "Add banana")
     )
     let created = try await client.foodLogs.create(foods: [food])

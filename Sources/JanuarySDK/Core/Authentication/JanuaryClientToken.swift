@@ -37,24 +37,21 @@ public struct JanuaryClientToken: Codable, Hashable, Sendable {
         try values.encode(expiresIn, forKey: .expiresIn)
     }
 
-    @available(*, deprecated, renamed: "token")
-    public var accessToken: String { token }
-
-    @available(*, deprecated, renamed: "token")
-    public var value: String { token }
 }
 
 /// Fetches a fresh short-lived credential from the integrating app's backend.
 ///
 /// The provider should use the app's existing authenticated session. It must
 /// never contain or return a January partner API key.
-public typealias JanuaryClientTokenProvider = @Sendable () async throws -> JanuaryClientToken
+public typealias JanuaryClientTokenProvider = @Sendable (_ endUserID: String) async throws -> JanuaryClientToken
 
 /// The integration seam between the SDK and the app's authenticated backend.
 /// The provider owns its URL, authentication, and networking implementation.
 public protocol JanuaryTokenProvider: Sendable {
-    func fetchClientToken() async throws -> JanuaryClientToken
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken
 }
+
+package typealias CachedClientTokenProvider = @Sendable () async throws -> JanuaryClientToken
 
 /// A token-provider failure with an explicit retry decision.
 ///
@@ -72,11 +69,8 @@ public struct JanuaryTokenProviderError: Error, LocalizedError, Sendable {
     public var errorDescription: String? { message }
 }
 
-@available(*, deprecated, renamed: "JanuaryTokenProvider")
-public typealias JanuaryClientTokenProviding = JanuaryTokenProvider
-
 package actor ClientTokenManager {
-    private let provider: JanuaryClientTokenProvider
+    private let provider: CachedClientTokenProvider
     private let refreshLeeway: TimeInterval
     private let retryPolicy: JanuaryTokenRetryPolicy
     private let now: @Sendable () -> Date
@@ -87,7 +81,7 @@ package actor ClientTokenManager {
     private var refreshTask: Task<JanuaryClientToken, any Error>?
 
     init(
-        provider: @escaping JanuaryClientTokenProvider,
+        provider: @escaping CachedClientTokenProvider,
         refreshLeeway: TimeInterval = 60,
         retryPolicy: JanuaryTokenRetryPolicy = .default,
         now: @escaping @Sendable () -> Date = { Date() },

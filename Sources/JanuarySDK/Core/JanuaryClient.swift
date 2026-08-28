@@ -15,7 +15,7 @@ public struct JanuaryClient: Sendable {
     /// Food search operations.
     public let foods: FoodsResource
     public let restaurants: RestaurantsResource
-    public let photoScanning: PhotoScanningResource
+    public let foodAnalysis: FoodAnalysisResource
     public let foodLogs: FoodLogsResource
     public let glucose: GlucoseResource
 
@@ -24,11 +24,13 @@ public struct JanuaryClient: Sendable {
     /// - Warning: Do not use API-key authentication in a production or
     ///   distributed app. Never embed an API key in an app binary or commit it to
     ///   source control. Use ``JanuaryTokenProvider`` in production.
-    @available(*, deprecated, message: "Local testing only. Do not ship your app with this key; use JanuaryTokenProvider for production authentication.")
+#if !DEBUG
+    @available(*, unavailable, message: "Development API-key authentication cannot be used in a Release build. Use JanuaryTokenProvider for production authentication.")
+#endif
     public init(
         developmentAPIKey: String,
-        endUserID: PartnerUserID,
-        timezone: String? = nil
+        endUserID: String,
+        timezone: TimeZone? = nil
     ) throws {
         let normalizedAPIKey = try Self.validateDevelopmentAPIKey(
             developmentAPIKey,
@@ -36,7 +38,7 @@ public struct JanuaryClient: Sendable {
                 Self.authenticationLogger.warning("\(message, privacy: .public)")
             }
         )
-        let normalizedEndUserID = try Self.validateDevelopmentEndUserID(endUserID)
+        let normalizedEndUserID = try Self.validateRequiredEndUserID(endUserID)
         let userContext = Self.userContext(
             endUserID: normalizedEndUserID,
             timezone: timezone
@@ -56,20 +58,26 @@ public struct JanuaryClient: Sendable {
     ///
     /// Tokens are cached in memory, refreshed shortly before expiration, and
     /// never persisted by the SDK. The provider must not return a partner API key.
+    /// The end-user ID is required so the integrating backend can mint a token
+    /// for the same stable user. When `timezone` is omitted, the SDK uses the
+    /// device's current IANA timezone identifier.
     public init(
-        endUserID: PartnerUserID,
-        timezone: String? = nil,
+        endUserID: String,
+        timezone: TimeZone? = nil,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
+        let normalizedEndUserID = try Self.validateRequiredEndUserID(endUserID)
         let userContext = try Self.validateUserContext(
-            endUserID: endUserID,
+            endUserID: normalizedEndUserID,
             timezone: timezone
         )
         try self.init(
             serverURL: Self.productionServerURL,
             transport: URLSessionTransport(),
-            clientTokenProvider: clientTokenProvider,
+            clientTokenProvider: {
+                try await clientTokenProvider(normalizedEndUserID.rawValue)
+            },
             userContext: userContext,
             userAgent: SDKUserAgent.current,
             tokenRetryPolicy: tokenRetryPolicy
@@ -80,20 +88,23 @@ public struct JanuaryClient: Sendable {
     /// Partner applications should use the production initializer above.
     @_spi(JanuaryDevelopment)
     public init(
-        endUserID: PartnerUserID,
-        timezone: String? = nil,
+        endUserID: String,
+        timezone: TimeZone? = nil,
         clientTokenProvider: @escaping JanuaryClientTokenProvider,
         apiBaseURL: URL,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
+        let normalizedEndUserID = try Self.validateRequiredEndUserID(endUserID)
         let userContext = try Self.validateUserContext(
-            endUserID: endUserID,
+            endUserID: normalizedEndUserID,
             timezone: timezone
         )
         try self.init(
             serverURL: apiBaseURL,
             transport: URLSessionTransport(),
-            clientTokenProvider: clientTokenProvider,
+            clientTokenProvider: {
+                try await clientTokenProvider(normalizedEndUserID.rawValue)
+            },
             userContext: userContext,
             userAgent: SDKUserAgent.current,
             tokenRetryPolicy: tokenRetryPolicy
@@ -104,8 +115,8 @@ public struct JanuaryClient: Sendable {
     /// with a named token-provider implementation.
     @_spi(JanuaryDevelopment)
     public init(
-        endUserID: PartnerUserID,
-        timezone: String? = nil,
+        endUserID: String,
+        timezone: TimeZone? = nil,
         clientTokenProvider: any JanuaryTokenProvider,
         apiBaseURL: URL,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
@@ -113,7 +124,7 @@ public struct JanuaryClient: Sendable {
         try self.init(
             endUserID: endUserID,
             timezone: timezone,
-            clientTokenProvider: { try await clientTokenProvider.fetchClientToken() },
+            clientTokenProvider: { try await clientTokenProvider.fetchClientToken(for: $0) },
             apiBaseURL: apiBaseURL,
             tokenRetryPolicy: tokenRetryPolicy
         )
@@ -125,11 +136,12 @@ public struct JanuaryClient: Sendable {
     /// `clientTokenProvider` or `JanuaryTokenProvider` implementation.
     public init(
         clientToken: String,
-        endUserID: PartnerUserID,
-        timezone: String? = nil
+        endUserID: String,
+        timezone: TimeZone? = nil
     ) throws {
+        let normalizedEndUserID = try Self.validateRequiredEndUserID(endUserID)
         let userContext = try Self.validateUserContext(
-            endUserID: endUserID,
+            endUserID: normalizedEndUserID,
             timezone: timezone
         )
         try self.init(
@@ -167,15 +179,15 @@ public struct JanuaryClient: Sendable {
 
     /// Creates a client backed by a named token-provider implementation.
     public init(
-        endUserID: PartnerUserID,
-        timezone: String? = nil,
+        endUserID: String,
+        timezone: TimeZone? = nil,
         clientTokenProvider: any JanuaryTokenProvider,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default
     ) throws {
         try self.init(
             endUserID: endUserID,
             timezone: timezone,
-            clientTokenProvider: { try await clientTokenProvider.fetchClientToken() },
+            clientTokenProvider: { try await clientTokenProvider.fetchClientToken(for: $0) },
             tokenRetryPolicy: tokenRetryPolicy
         )
     }
@@ -222,44 +234,57 @@ public struct JanuaryClient: Sendable {
         return normalizedAPIKey
     }
 
-    internal static func validateDevelopmentEndUserID(
-        _ endUserID: PartnerUserID
-    ) throws -> PartnerUserID {
+    internal static func validateEndUserID(
+        _ endUserID: PartnerUserID?
+    ) throws -> PartnerUserID? {
+        guard let endUserID else { return nil }
         let normalizedValue = endUserID.rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedValue.isEmpty else {
             throw JanuaryError(
                 category: .authentication,
                 code: "invalid_end_user_id",
-                message: "A stable partner end-user ID is required for development API-key authentication."
+                message: "The end-user ID cannot be empty when supplied."
+            )
+        }
+        return PartnerUserID(rawValue: normalizedValue)
+    }
+
+    internal static func validateRequiredEndUserID(
+        _ endUserID: String
+    ) throws -> PartnerUserID {
+        let normalizedValue = endUserID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedValue.isEmpty else {
+            throw JanuaryError(
+                category: .authentication,
+                code: "invalid_end_user_id",
+                message: "A non-empty end-user ID is required."
             )
         }
         return PartnerUserID(rawValue: normalizedValue)
     }
 
     internal static func validateUserContext(
-        endUserID: PartnerUserID,
-        timezone: String?
+        endUserID: PartnerUserID?,
+        timezone: TimeZone?
     ) throws -> PartnerUserContext {
-        let normalizedEndUserID = try validateDevelopmentEndUserID(endUserID)
+        let normalizedEndUserID = try validateEndUserID(endUserID)
         return userContext(endUserID: normalizedEndUserID, timezone: timezone)
     }
 
     private static func userContext(
-        endUserID: PartnerUserID,
-        timezone: String?
+        endUserID: PartnerUserID?,
+        timezone: TimeZone?
     ) -> PartnerUserContext {
-        let normalizedTimezone = timezone?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
         return PartnerUserContext(
             endUserID: endUserID,
-            timezone: normalizedTimezone?.isEmpty == false ? normalizedTimezone : nil
+            timezone: timezone
         )
     }
 
     internal init(
         serverURL: URL,
         transport: any ClientTransport,
-        clientTokenProvider: @escaping JanuaryClientTokenProvider,
+        clientTokenProvider: @escaping CachedClientTokenProvider,
         userContext: PartnerUserContext? = nil,
         userAgent: String = SDKUserAgent.current,
         refreshLeeway: TimeInterval = 60,
@@ -307,7 +332,7 @@ public struct JanuaryClient: Sendable {
         )
         self.foods = FoodsResource(client: transportClient, userContext: userContext)
         self.restaurants = RestaurantsResource(client: transportClient, userContext: userContext)
-        self.photoScanning = PhotoScanningResource(client: transportClient, userContext: userContext)
+        self.foodAnalysis = FoodAnalysisResource(client: transportClient, userContext: userContext)
         self.foodLogs = FoodLogsResource(client: transportClient, userContext: userContext)
         self.glucose = GlucoseResource(client: transportClient, userContext: userContext)
     }

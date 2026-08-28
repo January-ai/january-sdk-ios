@@ -1,13 +1,13 @@
 # Client lifecycle
 
-Create one `JanuaryClient` for an authenticated app session and reuse it. Give
-that client the active user's ID and timezone at initialization. Every resource
-shares the same transport, authentication source, and user context.
+Create one `JanuaryClient` for an authenticated app session and reuse it. Every
+resource shares the same transport and authentication source. The end-user ID
+is required so the provider can mint tokens for the correct user. If no
+timezone is supplied, the SDK uses `TimeZone.current`.
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    timezone: TimeZone.current.identifier,
+    endUserID: signedInUser.id,
     clientTokenProvider: tokenProvider
 )
 
@@ -31,9 +31,9 @@ Do not recreate a provider-backed client for ordinary token refresh. The SDK cac
 
 ## Resource values
 
-The client covers `foods`, `restaurants`, `photoScanning`, `foodLogs`, and
-`glucose`. Its stable partner user context and timezone are automatically
-reused across request models.
+The client covers `foods`, `restaurants`, `foodAnalysis`, `foodLogs`, and
+`glucose`. Any configured partner user context and the resolved timezone are
+automatically reused across request models.
 
 With client-token authentication, the token is authoritative for identity. The
 SDK strips `x-end-user-id` from outgoing January requests; the client still

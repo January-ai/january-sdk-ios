@@ -62,12 +62,15 @@ public struct FoodsResource: Sendable {
     }
 
     /// Retrieves a complete food record, including every available serving.
-    public func getFood(_ request: GetFoodRequest) async throws -> FoodSearchItem {
+    public func get(
+        id: FoodID,
+        endUserID: PartnerUserID? = nil
+    ) async throws -> FoodSearchItem {
         let output = try await performTransportRequest {
             try await client.getFood(
                 .init(
-                    path: .init(foodId: request.foodID.rawValue),
-                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
+                    path: .init(foodId: id.rawValue),
+                    headers: .init(xEndUserId: resolvedEndUserID(endUserID)?.rawValue)
                 )
             )
         }
@@ -111,7 +114,7 @@ public struct FoodsResource: Sendable {
     }
 
     /// Looks up a food by UPC/EAN/GTIN barcode.
-    public func lookupByBarcode(_ request: LookupFoodByBarcodeRequest) async throws -> FoodSearchResults {
+    public func lookupBarcode(_ request: LookupFoodByBarcodeRequest) async throws -> FoodSearchResults {
         let upcBytes = request.upc.utf8
         guard (6...14).contains(upcBytes.count), upcBytes.allSatisfy({ (48...57).contains($0) }) else {
             throw JanuaryError(
@@ -132,34 +135,6 @@ public struct FoodsResource: Sendable {
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
-            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
-            }
-        }
-    }
-
-    /// Parses a natural-language meal description into foods and servings.
-    public func searchByNaturalLanguage(
-        _ request: SearchFoodsByNaturalLanguageRequest
-    ) async throws -> FoodScan {
-        guard !request.query.isEmpty, request.query.count <= 512 else {
-            throw JanuaryError(
-                category: .validation,
-                message: "Natural-language food search query must contain between 1 and 512 characters."
-            )
-        }
-
-        return try await performTransportRequest {
-            let output = try await client.searchFoodsByNaturalLanguage(
-                .init(
-                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue),
-                    body: .json(.init(text: request.query))
-                )
-            )
-            switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
-            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
-            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }

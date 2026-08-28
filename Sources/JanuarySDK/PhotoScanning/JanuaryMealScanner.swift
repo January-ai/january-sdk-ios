@@ -3,31 +3,31 @@ import OSLog
 import SwiftUI
 import UIKit
 
-private let mealScannerWorkflowLogger = Logger(
+private let foodScannerWorkflowLogger = Logger(
     subsystem: "ai.january.partner.sdk",
-    category: "MealScannerWorkflow"
+    category: "FoodScannerWorkflow"
 )
 
-/// A capture mode available in ``JanuaryMealScannerView``.
-public enum JanuaryMealScannerMode: Hashable, Sendable {
+/// A capture mode available in the January food scanner.
+public enum JanuaryFoodScannerMode: Hashable, Sendable {
     case photo
     case barcode
 }
 
-/// Configuration for January's ready-to-use meal scanner.
-public struct JanuaryMealScannerConfiguration: Hashable, Sendable {
-    public var enabledModes: Set<JanuaryMealScannerMode>
-    public var initialMode: JanuaryMealScannerMode
+/// Configuration for January's ready-to-use food scanner.
+public struct JanuaryFoodScannerConfiguration: Hashable, Sendable {
+    public var enabledModes: Set<JanuaryFoodScannerMode>
+    public var initialMode: JanuaryFoodScannerMode
     public var maximumImageDimension: Int
     public var compressionQuality: Double
 
     public init(
-        enabledModes: Set<JanuaryMealScannerMode> = [.photo, .barcode],
-        initialMode: JanuaryMealScannerMode = .photo,
+        enabledModes: Set<JanuaryFoodScannerMode> = [.photo, .barcode],
+        initialMode: JanuaryFoodScannerMode = .photo,
         maximumImageDimension: Int = PhotoScanImage.defaultMaxDimension,
         compressionQuality: Double = PhotoScanImage.defaultCompressionQuality
     ) {
-        let modes = enabledModes.isEmpty ? Set([JanuaryMealScannerMode.photo]) : enabledModes
+        let modes = enabledModes.isEmpty ? Set([JanuaryFoodScannerMode.photo]) : enabledModes
         self.enabledModes = modes
         self.initialMode = modes.contains(initialMode)
             ? initialMode
@@ -38,7 +38,7 @@ public struct JanuaryMealScannerConfiguration: Hashable, Sendable {
 }
 
 /// The exact, upload-ready meal image produced by the scanner.
-public struct JanuaryProcessedMealImage {
+public struct JanuaryProcessedFoodImage {
     public let image: UIImage
     public let jpegData: Data
     public let pixelWidth: Int
@@ -57,31 +57,31 @@ public struct JanuaryProcessedMealImage {
 }
 
 /// A completed camera or barcode workflow.
-public enum JanuaryMealScannerResult {
+public enum JanuaryFoodScannerResult {
     /// The analyzed meal and the processed image that was sent to January.
-    case meal(image: JanuaryProcessedMealImage, analysis: FoodScan)
+    case photo(image: JanuaryProcessedFoodImage, analysis: FoodScan)
     /// The detected barcode and its complete food record.
     case barcode(value: String, food: FoodSearchItem)
 }
 
-public enum JanuaryMealScannerConfigurationError: Error, LocalizedError, Sendable {
+public enum JanuaryFoodScannerConfigurationError: Error, LocalizedError, Sendable {
     case missingCameraUsageDescription
 
     public var errorDescription: String? {
         switch self {
         case .missingCameraUsageDescription:
-            "Add NSCameraUsageDescription to the host app's Info.plist before presenting the January meal scanner."
+            "Add NSCameraUsageDescription to the host app's Info.plist before presenting the January food scanner."
         }
     }
 }
 
-/// Entry points and configuration validation for January's meal scanner.
-public enum JanuaryMealScanner {
+/// Entry points and configuration validation for January's food scanner.
+public enum JanuaryFoodScanner {
     /// Validates the only host-app configuration required by the camera flow.
     public static func validateHostConfiguration(in bundle: Bundle = .main) throws {
         let description = bundle.object(forInfoDictionaryKey: "NSCameraUsageDescription") as? String
         guard let description, !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw JanuaryMealScannerConfigurationError.missingCameraUsageDescription
+            throw JanuaryFoodScannerConfigurationError.missingCameraUsageDescription
         }
     }
 
@@ -90,12 +90,12 @@ public enum JanuaryMealScanner {
     public static func makeViewController(
         client: JanuaryClient,
         endUserID: PartnerUserID? = nil,
-        configuration: JanuaryMealScannerConfiguration = .init(),
-        onResult: @escaping @MainActor (JanuaryMealScannerResult) -> Void,
+        configuration: JanuaryFoodScannerConfiguration = .init(),
+        onResult: @escaping @MainActor (JanuaryFoodScannerResult) -> Void,
         onCancel: @escaping @MainActor () -> Void
     ) -> UIViewController {
         let controller = UIHostingController(
-            rootView: JanuaryMealScannerView(
+            rootView: JanuaryFoodScannerView(
                 client: client,
                 endUserID: endUserID,
                 configuration: configuration,
@@ -110,11 +110,11 @@ public enum JanuaryMealScanner {
 
 /// A full-screen, native camera that captures meal photos and scans food barcodes.
 @MainActor
-public struct JanuaryMealScannerView: View {
+public struct JanuaryFoodScannerView: View {
     private let client: JanuaryClient
     private let endUserID: PartnerUserID?
-    private let configuration: JanuaryMealScannerConfiguration
-    private let onResult: @MainActor (JanuaryMealScannerResult) -> Void
+    private let configuration: JanuaryFoodScannerConfiguration
+    private let onResult: @MainActor (JanuaryFoodScannerResult) -> Void
     private let onCancel: @MainActor () -> Void
 
     @State private var processingLabel: String?
@@ -124,8 +124,8 @@ public struct JanuaryMealScannerView: View {
     public init(
         client: JanuaryClient,
         endUserID: PartnerUserID? = nil,
-        configuration: JanuaryMealScannerConfiguration = .init(),
-        onResult: @escaping @MainActor (JanuaryMealScannerResult) -> Void,
+        configuration: JanuaryFoodScannerConfiguration = .init(),
+        onResult: @escaping @MainActor (JanuaryFoodScannerResult) -> Void,
         onCancel: @escaping @MainActor () -> Void
     ) {
         self.client = client
@@ -183,21 +183,21 @@ public struct JanuaryMealScannerView: View {
         guard processingLabel == nil else { return }
         processingLabel = "Analyzing meal…"
         do {
-            let image = try JanuaryProcessedMealImage.process(
+            let image = try JanuaryProcessedFoodImage.process(
                 capturedImage,
                 maximumDimension: configuration.maximumImageDimension,
                 compressionQuality: configuration.compressionQuality
             )
-            let analysis = try await client.photoScanning.scan(
+            let analysis = try await client.foodAnalysis.analyzePhoto(
                 .init(image: image.dataURI, endUserID: endUserID)
             )
-            mealScannerWorkflowLogger.info(
+            foodScannerWorkflowLogger.info(
                 "Meal scan response received; meal=\(analysis.mealName ?? "unnamed", privacy: .public), detections=\(analysis.detections.count), hasNutrition=\(analysis.totalNutrients != nil)"
             )
             processingLabel = nil
-            onResult(.meal(image: image, analysis: analysis))
+            onResult(.photo(image: image, analysis: analysis))
         } catch {
-            mealScannerWorkflowLogger.error(
+            foodScannerWorkflowLogger.error(
                 "Meal scan request failed; error=\(String(describing: error), privacy: .public)"
             )
             processingLabel = nil
@@ -209,28 +209,26 @@ public struct JanuaryMealScannerView: View {
         guard processingLabel == nil else { return }
         processingLabel = "Looking up barcode…"
         do {
-            let results = try await client.foods.lookupByBarcode(
+            let results = try await client.foods.lookupBarcode(
                 .init(upc: barcode, endUserID: endUserID)
             )
-            mealScannerWorkflowLogger.info(
+            foodScannerWorkflowLogger.info(
                 "Barcode lookup response received; barcode=\(barcode, privacy: .public), items=\(results.items.count)"
             )
             guard let match = results.items.first else {
                 throw ScannerLookupError.noBarcodeMatch
             }
-            mealScannerWorkflowLogger.info(
+            foodScannerWorkflowLogger.info(
                 "Barcode match selected; foodID=\(match.id.rawValue), name=\(match.name, privacy: .public)"
             )
-            let food = try await client.foods.getFood(
-                .init(foodID: match.id, endUserID: endUserID)
-            )
-            mealScannerWorkflowLogger.info(
+            let food = try await client.foods.get(id: match.id, endUserID: endUserID)
+            foodScannerWorkflowLogger.info(
                 "Full food response received; foodID=\(food.id.rawValue), name=\(food.name, privacy: .public), servings=\(food.servings.count)"
             )
             processingLabel = nil
             onResult(.barcode(value: barcode, food: food))
         } catch {
-            mealScannerWorkflowLogger.error(
+            foodScannerWorkflowLogger.error(
                 "Barcode workflow failed; barcode=\(barcode, privacy: .public), error=\(String(describing: error), privacy: .public)"
             )
             processingLabel = nil
@@ -258,12 +256,12 @@ private enum ScannerLookupError: Error, LocalizedError {
     }
 }
 
-private extension JanuaryProcessedMealImage {
+private extension JanuaryProcessedFoodImage {
     static func process(
         _ source: UIImage,
         maximumDimension: Int,
         compressionQuality: Double
-    ) throws -> JanuaryProcessedMealImage {
+    ) throws -> JanuaryProcessedFoodImage {
         guard source.size.width > 0, source.size.height > 0 else {
             throw PhotoScanImageError.invalidImage
         }
@@ -279,6 +277,6 @@ private extension JanuaryProcessedMealImage {
         guard let image = UIImage(data: data) else {
             throw PhotoScanImageError.invalidImage
         }
-        return JanuaryProcessedMealImage(image: image, jpegData: data)
+        return JanuaryProcessedFoodImage(image: image, jpegData: data)
     }
 }

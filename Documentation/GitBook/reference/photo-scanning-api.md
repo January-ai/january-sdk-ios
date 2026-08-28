@@ -1,13 +1,13 @@
-# Photo scanning API
+# Food analysis API
 
 ## Operations
 
 ```swift
-public func scan(
+public func analyzePhoto(
     _ request: ScanFoodPhotoRequest
 ) async throws -> FoodScan
 
-public func searchByNaturalLanguage(
+public func analyzeDescription(
     _ request: SearchFoodsByNaturalLanguageRequest
 ) async throws -> FoodScan
 
@@ -15,8 +15,6 @@ public func correct(
     _ request: CorrectPhotoScanRequest
 ) async throws -> FoodScan
 ```
-
-`FoodsResource.searchByNaturalLanguage` and `PhotoScanningResource.searchByNaturalLanguage` expose the same Partner API workflow for convenience.
 
 ## Requests and defaults
 
@@ -51,4 +49,4 @@ The string image can be a public URL string or data URI. The `Data` initializer 
 
 Scan maps 413 to `.validation` and 504 to `.timeout`; correction also maps 504 to `.timeout`. Both map 400, 401, 429, and other statuses to `JanuaryError`. Image preparation throws `PhotoScanImageError.invalidImage` or `.encodingFailed`.
 
-The native scanner types are documented separately in [Native meal scanner](../guides/native-meal-scanner.md) because they are iOS-only.
+The native scanner types are documented separately in [Native food scanner](../guides/native-meal-scanner.md) because they are iOS-only.

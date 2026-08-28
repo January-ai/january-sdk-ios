@@ -15,7 +15,7 @@ The SDK repository is private during Controlled Preview. Xcode must use a GitHub
 5. Choose **File → Add Package Dependencies**.
 6. Enter `https://github.com/January-ai/january-sdk-ios.git`.
 7. Select the latest release shown by Xcode.
-8. Add the `JanuarySDK` product to the `JanuaryQuickstart` target.
+8. Add the `January` product to the `JanuaryQuickstart` target.
 
 ## 2. Add required scheme configuration
 
@@ -55,7 +55,7 @@ Replace `ContentView.swift` with:
 
 ```swift
 import Foundation
-import JanuarySDK
+import January
 import SwiftUI
 
 enum QuickstartError: LocalizedError {
@@ -85,13 +85,15 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
 
-    func fetchClientToken() async throws -> JanuaryClientToken {
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
+        // This calls your server to mint a new January client token.
         var request = URLRequest(url: endpoint)
-        request.httpMethod = "GET" // Match your backend contract.
+        request.httpMethod = "POST"
         request.setValue(
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
+        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
         let data: Data
         let response: URLResponse
@@ -147,14 +149,12 @@ final class QuickstartViewModel: ObservableObject {
             guard let endUserID = environment["JANUARY_END_USER_ID"] else {
                 throw QuickstartError.missingEnvironment("JANUARY_END_USER_ID")
             }
-
             let provider = PartnerBackendTokenProvider(
                 endpoint: endpoint,
                 appSessionToken: appSessionToken
             )
             let january = try JanuaryClient(
-                endUserID: PartnerUserID(rawValue: endUserID),
-                timezone: TimeZone.current.identifier,
+                endUserID: endUserID,
                 clientTokenProvider: provider
             )
 
@@ -165,9 +165,7 @@ final class QuickstartViewModel: ObservableObject {
                 throw QuickstartError.noFoods
             }
 
-            let food = try await january.foods.getFood(
-                .init(foodID: match.id)
-            )
+            let food = try await january.foods.get(id: match.id)
             let portion = try food.portion(quantity: 1)
 
             state = .loaded(

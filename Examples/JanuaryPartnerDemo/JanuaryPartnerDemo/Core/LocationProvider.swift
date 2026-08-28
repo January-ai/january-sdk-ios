@@ -1,6 +1,6 @@
+import Combine
 import CoreLocation
 import Foundation
-import Observation
 
 struct DeviceLocation: Equatable, Sendable {
     let latitude: Double
@@ -14,12 +14,11 @@ struct DeviceLocation: Equatable, Sendable {
 /// A small, reusable one-shot location provider for demo features that need coordinates.
 /// It requests permission only in response to a user action and never continuously tracks.
 @MainActor
-@Observable
-final class LocationProvider: NSObject, CLLocationManagerDelegate {
-    private(set) var authorizationStatus: CLAuthorizationStatus
-    private(set) var location: DeviceLocation?
-    private(set) var isRequesting = false
-    private(set) var errorMessage: String?
+final class LocationProvider: NSObject, ObservableObject, CLLocationManagerDelegate {
+    @Published private(set) var authorizationStatus: CLAuthorizationStatus
+    @Published private(set) var location: DeviceLocation?
+    @Published private(set) var isRequesting = false
+    @Published private(set) var errorMessage: String?
 
     private let manager = CLLocationManager()
     private var requestAfterAuthorization = false

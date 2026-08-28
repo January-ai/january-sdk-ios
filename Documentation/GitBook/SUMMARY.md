@@ -20,8 +20,8 @@
 
 * [Foods](guides/foods.md)
 * [Restaurants](guides/restaurants.md)
-* [Photo scanning](guides/photo-scanning.md)
-* [Native meal scanner](guides/native-meal-scanner.md)
+* [Food analysis](guides/photo-scanning.md)
+* [Native food scanner](guides/native-meal-scanner.md)
 * [Food logs](guides/food-logs.md)
 * [Glucose prediction](guides/glucose-prediction.md)
 
@@ -31,7 +31,7 @@
 * [Authentication API](reference/authentication-api.md)
 * [Foods API](reference/foods-api.md)
 * [Restaurants API](reference/restaurants-api.md)
-* [Photo scanning API](reference/photo-scanning-api.md)
+* [Food analysis API](reference/photo-scanning-api.md)
 * [Food Logs API](reference/food-logs-api.md)
 * [Glucose API](reference/glucose-api.md)
 * [Models and enums](reference/models-and-enums.md)

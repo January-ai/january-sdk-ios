@@ -2,7 +2,7 @@ import Foundation
 import ImageIO
 import JanuaryPartnerTransport
 import Testing
-@_spi(JanuaryDevelopment) @testable import JanuarySDK
+@_spi(JanuaryDevelopment) @testable import January
 
 private let burgerImageURL = "https://friendlysrestaurants.com/assets/live/img/production/detail/menu/lunch-dinner_999-combohs_all-american-burger-fries.jpg"
 
@@ -50,8 +50,8 @@ func photoScanSendsPublicURLAndPNGDataURIThroughPublicClient() async throws {
         transport: transport
     )
 
-    _ = try await client.photoScanning.scan(.init(image: burgerImageURL))
-    _ = try await client.photoScanning.scan(.init(image: dataURI))
+    _ = try await client.foodAnalysis.analyzePhoto(.init(image: burgerImageURL))
+    _ = try await client.foodAnalysis.analyzePhoto(.init(image: dataURI))
 
     let images = await transport.images()
     #expect(images.count == 2)

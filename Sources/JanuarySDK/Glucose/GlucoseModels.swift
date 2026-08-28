@@ -1,8 +1,6 @@
 import Foundation
 
 public enum Sex: String, Codable, Hashable, Sendable, CaseIterable { case male, female }
-@available(*, deprecated, renamed: "Sex")
-public typealias Gender = Sex
 
 public enum HeightUnit: String, Codable, Hashable, Sendable, CaseIterable {
     case inches = "in"
@@ -30,8 +28,6 @@ public enum ActivityLevel: String, Codable, Hashable, Sendable {
 }
 public enum MedicalCondition: String, Codable, Hashable, Sendable {
     case type2Diabetes = "type_2_diabetes"; case prediabetes
-    @available(*, deprecated, message: "Omit healthConditions or pass an empty array when none apply.")
-    case noneOfTheAbove = "none_of_the_above"
 }
 
 public struct GlucosePredictionProfile: Codable, Hashable, Sendable {
@@ -73,8 +69,8 @@ public struct ConsumedHistoricalFood: Codable, Hashable, Sendable {
 public struct PredictGlucoseRequest: Hashable, Sendable {
     public var userProfile: GlucosePredictionProfile; public var foods: [FoodSelection]; public var startTime: Date
     public var cgmData: [CgmReading]?; public var consumedFoods: [ConsumedHistoricalFood]?
-    public var endUserID: PartnerUserID?; public var timezone: String?
-    public init(userProfile: GlucosePredictionProfile, foods: [FoodSelection], startTime: Date, cgmData: [CgmReading]? = nil, consumedFoods: [ConsumedHistoricalFood]? = nil, endUserID: PartnerUserID? = nil, timezone: String? = nil) {
+    public var endUserID: PartnerUserID?; public var timezone: TimeZone?
+    public init(userProfile: GlucosePredictionProfile, foods: [FoodSelection], startTime: Date, cgmData: [CgmReading]? = nil, consumedFoods: [ConsumedHistoricalFood]? = nil, endUserID: PartnerUserID? = nil, timezone: TimeZone? = nil) {
         self.userProfile = userProfile; self.foods = foods; self.startTime = startTime; self.cgmData = cgmData
         self.consumedFoods = consumedFoods; self.endUserID = endUserID; self.timezone = timezone
     }

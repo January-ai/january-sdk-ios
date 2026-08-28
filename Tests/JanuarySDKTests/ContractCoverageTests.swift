@@ -1,7 +1,7 @@
 import Foundation
 import JanuaryPartnerTransport
 import Testing
-@_spi(JanuaryDevelopment) @testable import JanuarySDK
+@_spi(JanuaryDevelopment) @testable import January
 
 private struct ProbeRequest: Sendable {
     let operationID: String
@@ -85,7 +85,7 @@ func barcodeRejectsValuesOutsideTheDocumentedASCIIFormat(_ upc: String) async th
     let client = try probeClient(transport)
 
     await #expect(throws: JanuaryError.self) {
-        _ = try await client.foods.lookupByBarcode(.init(upc: upc))
+        _ = try await client.foods.lookupBarcode(.init(upc: upc))
     }
     #expect(await transport.requests().isEmpty)
 }
@@ -95,7 +95,7 @@ func barcodeAcceptsDocumentedLengthsAndPreservesLeadingZeroes(_ upc: String) asy
     let transport = ContractProbeTransport()
     let client = try probeClient(transport)
 
-    _ = try await client.foods.lookupByBarcode(.init(upc: upc))
+    _ = try await client.foods.lookupBarcode(.init(upc: upc))
 
     let request = try #require(await transport.requests().first)
     #expect(request.path == "/v1.2/foods/barcode/\(upc)")
@@ -107,7 +107,7 @@ func naturalLanguageSearchRejectsInvalidQueryLengths(_ query: String) async thro
     let client = try probeClient(transport)
 
     await #expect(throws: JanuaryError.self) {
-        _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: query))
+        _ = try await client.foodAnalysis.analyzeDescription(.init(query: query))
     }
     #expect(await transport.requests().isEmpty)
 }
@@ -194,7 +194,10 @@ func foodLogCreateSendsAuthenticationUserTimezoneAndDocumentedBody() async throw
     let response = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z","name":"Lunch"}"#
     let transport = ContractProbeTransport(responses: ["createFoodLog": response])
     let client = try probeClient(transport)
-    let user = FoodLogUserContext(endUserID: .init(rawValue: "fixture-user"), timezone: "America/New_York")
+    let user = FoodLogUserContext(
+        endUserID: .init(rawValue: "fixture-user"),
+        timezone: TimeZone(identifier: "America/New_York")!
+    )
 
     _ = try await client.foodLogs.create(
         .init(
@@ -287,7 +290,7 @@ func transportFailuresMapToStablePublicErrors() async throws {
     for (mode, expected) in modes {
         let client = try probeClient(FailureTransport(mode))
         do {
-            _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346"))
+            _ = try await client.foods.lookupBarcode(.init(upc: "049000006346"))
             Issue.record("Expected request to fail")
         } catch let error as JanuaryError {
             #expect(error.category == expected)
@@ -296,7 +299,7 @@ func transportFailuresMapToStablePublicErrors() async throws {
 
     let cancelled = try probeClient(FailureTransport(.cancellation))
     await #expect(throws: CancellationError.self) {
-        _ = try await cancelled.foods.lookupByBarcode(.init(upc: "049000006346"))
+        _ = try await cancelled.foods.lookupBarcode(.init(upc: "049000006346"))
     }
 
     let direct = mapTransportError(FixtureTransportError())
@@ -349,14 +352,22 @@ func foodSearchMapsCancellationDecodingTimeoutAndTransportFailures() async throw
 
 @Test
 func publicClientAndCoreUtilitiesCoverValidAndInvalidConstruction() throws {
+    _ = try JanuaryClient(clientToken: "ct-fixture", endUserID: "fixture-user")
+    _ = try JanuaryClient(developmentAPIKey: "fixture-key", endUserID: "fixture-user")
     _ = try JanuaryClient(
         developmentAPIKey: "fixture-key",
-        endUserID: PartnerUserID(rawValue: "fixture-user")
+        endUserID: "fixture-user"
     )
     #expect(throws: JanuaryError.self) {
         _ = try JanuaryClient(
             developmentAPIKey: " \n ",
-            endUserID: PartnerUserID(rawValue: "fixture-user")
+            endUserID: "fixture-user"
+        )
+    }
+    #expect(throws: JanuaryError.self) {
+        _ = try JanuaryClient(
+            clientToken: "ct-fixture",
+            endUserID: "   "
         )
     }
 
@@ -366,6 +377,14 @@ func publicClientAndCoreUtilitiesCoverValidAndInvalidConstruction() throws {
     #expect(servingID == ServingID(rawValue: 7))
     let userID = PartnerUserID(rawValue: "fixture-user")
     #expect(try JSONDecoder().decode(PartnerUserID.self, from: JSONEncoder().encode(userID)) == userID)
+
+    let defaultContext = PartnerUserContext()
+    #expect(defaultContext.endUserID == nil)
+    #expect(defaultContext.timezone == .current)
+    #expect(
+        PartnerUserContext(timezone: TimeZone(identifier: "America/New_York")!).timezone.identifier
+            == "America/New_York"
+    )
 
     let error = JanuaryError(
         category: .rateLimited, code: "rate", message: "retry", httpStatus: 429,
@@ -400,10 +419,11 @@ func developmentAPIKeyWarningIsEmittedOnlyForANonemptyKey() throws {
     #expect(warnings.isEmpty)
 
     #expect(throws: JanuaryError.self) {
-        _ = try JanuaryClient.validateDevelopmentEndUserID(.init(rawValue: " \n "))
+        _ = try JanuaryClient.validateEndUserID(.init(rawValue: " \n "))
     }
+    #expect(try JanuaryClient.validateEndUserID(nil) == nil)
     #expect(
-        try JanuaryClient.validateDevelopmentEndUserID(.init(rawValue: "  fixture-user  "))
+        try JanuaryClient.validateEndUserID(.init(rawValue: "  fixture-user  "))
             == PartnerUserID(rawValue: "fixture-user")
     )
 }
@@ -503,7 +523,10 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     let detectedServing = DetectedServing(id: .init(rawValue: 7), quantity: 1, unit: "cup")
     let detectedFood = DetectedFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [detectedServing])
     let alternatives = SuggestFoodAlternativesResponse(alternatives: [.init(food: detectedFood)])
-    let user = FoodLogUserContext(endUserID: .init(rawValue: "user"), timezone: "UTC")
+    let user = FoodLogUserContext(
+        endUserID: .init(rawValue: "user"),
+        timezone: TimeZone(secondsFromGMT: 0)!
+    )
     _ = CreateFoodLogRequest(foods: [selection], timestampUTC: "2026-08-23T12:00:00Z", name: "Meal", user: user)
     _ = UpdateFoodLogRequest(id: UUID().uuidString, foods: [selection], timestampUTC: "2026-08-23T12:00:00Z", name: "Meal", user: user)
     _ = ListFoodLogsRequest(start: "2026-08-22", end: "2026-08-24", user: user)
@@ -523,7 +546,7 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     let reading = CgmReading(timestamp: "2026-08-23T12:00:00Z", value: 100)
     let historicalServing = ConsumedHistoricalServing(id: .init(rawValue: 7), quantity: 1)
     let historicalFood = ConsumedHistoricalFood(timestamp: reading.timestamp, id: .init(rawValue: 42), serving: historicalServing)
-    _ = PredictGlucoseRequest(userProfile: profile, foods: [selection], startTime: Date(), cgmData: [reading], consumedFoods: [historicalFood], endUserID: user.endUserID, timezone: "UTC")
+    _ = PredictGlucoseRequest(userProfile: profile, foods: [selection], startTime: Date(), cgmData: [reading], consumedFoods: [historicalFood], endUserID: user.endUserID, timezone: TimeZone(secondsFromGMT: 0))
     let prediction = GlucosePrediction(curve: [[0, 100]], scoring: .lowImpact, minimum: 100, maximum: 100)
     _ = SearchRestaurantsRequest(query: "cafe", latitude: 40, longitude: -74)
     _ = SearchRestaurantMenuItemsRequest(query: "salad", latitude: 40, longitude: -74)
@@ -570,7 +593,10 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     let transport = ContractProbeTransport(responses: responses)
     let client = try probeClient(transport)
     let userID = PartnerUserID(rawValue: "wire-user")
-    let user = FoodLogUserContext(endUserID: userID, timezone: "America/New_York")
+    let user = FoodLogUserContext(
+        endUserID: userID,
+        timezone: TimeZone(identifier: "America/New_York")!
+    )
     let food = FoodSelection(id: .init(rawValue: 42), serving: .init(id: .init(rawValue: 7), quantity: 1.5))
     let detection = FoodDetection(
         food: .init(
@@ -582,12 +608,12 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
         confidenceScore: .high
     )
 
-    _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
+    _ = try await client.foodAnalysis.analyzeDescription(.init(query: "one banana", endUserID: userID))
     _ = try await client.foods.suggestAlternatives(
         .init(foodID: .init(rawValue: 42), dietRestrictions: [.gluten], dietPreferences: [.vegan], endUserID: userID)
     )
-    _ = try await client.photoScanning.scan(.init(image: "https://example.com/meal.png", endUserID: userID))
-    _ = try await client.photoScanning.correct(
+    _ = try await client.foodAnalysis.analyzePhoto(.init(image: "https://example.com/meal.png", endUserID: userID))
+    _ = try await client.foodAnalysis.correct(
         .init(mealName: "Meal", detections: [detection], userInput: "Add banana", endUserID: userID)
     )
     _ = try await client.foodLogs.create(
@@ -609,7 +635,7 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
             foods: [food], startTime: Date(timeIntervalSince1970: 0),
             cgmData: [.init(timestamp: "2026-08-20T12:00:00Z", value: 100)],
             consumedFoods: [.init(timestamp: "2026-08-20T12:00:00Z", id: .init(rawValue: 42), serving: .init(id: .init(rawValue: 7), quantity: 1))],
-            endUserID: userID, timezone: "America/New_York"
+            endUserID: userID, timezone: TimeZone(identifier: "America/New_York")
         )
     )
 
@@ -672,7 +698,7 @@ func configuredClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
     ])
     let context = PartnerUserContext(
         endUserID: PartnerUserID(rawValue: "scoped-user"),
-        timezone: "America/New_York"
+        timezone: TimeZone(identifier: "America/New_York")
     )
     let client = try probeClient(transport, userContext: context)
     let food = FoodSelection(
@@ -689,7 +715,7 @@ func configuredClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
         foods: [food],
         startTime: Date(timeIntervalSince1970: 0),
         endUserID: PartnerUserID(rawValue: "request-user-is-replaced"),
-        timezone: "UTC"
+        timezone: TimeZone(secondsFromGMT: 0)
     ))
 
     let requests = await transport.requests()
@@ -723,12 +749,12 @@ func everyFoodsResponseVariantMapsThroughThePublicResource() async throws {
     ]
     for (status, category) in common {
         try await expectEndpointError(status: status, category: category) {
-            try await $0.photoScanning.searchByNaturalLanguage(.init(query: "banana"))
+            try await $0.foodAnalysis.analyzeDescription(.init(query: "banana"))
         }
     }
     for (status, category) in common + [(404, .notFound)] {
         try await expectEndpointError(status: status, category: category) {
-            try await $0.foods.lookupByBarcode(.init(upc: "049000006346"))
+            try await $0.foods.lookupBarcode(.init(upc: "049000006346"))
         }
         try await expectEndpointError(status: status, category: category) {
             try await $0.foods.suggestAlternatives(.init(foodID: .init(rawValue: 42)))
@@ -782,20 +808,23 @@ func everyPhotoScanningResponseVariantMapsThroughBothPublicOperations() async th
         (504, .timeout), (500, .server),
     ] {
         try await expectEndpointError(status: status, category: category) {
-            try await $0.photoScanning.scan(.init(image: "https://example.com/food.png"))
+            try await $0.foodAnalysis.analyzePhoto(.init(image: "https://example.com/food.png"))
         }
         try await expectEndpointError(status: status, category: category) {
-            try await $0.photoScanning.correct(.init(mealName: "Meal", detections: [detection], userInput: "Fix"))
+            try await $0.foodAnalysis.correct(.init(mealName: "Meal", detections: [detection], userInput: "Fix"))
         }
     }
     try await expectEndpointError(status: 413, category: .validation) {
-        try await $0.photoScanning.scan(.init(image: "fixture"))
+        try await $0.foodAnalysis.analyzePhoto(.init(image: "fixture"))
     }
 }
 
 @Test
 func everyFoodLogResponseVariantMapsThroughEveryPublicOperation() async throws {
-    let user = FoodLogUserContext(endUserID: .init(rawValue: "user"), timezone: "UTC")
+    let user = FoodLogUserContext(
+        endUserID: .init(rawValue: "user"),
+        timezone: TimeZone(secondsFromGMT: 0)!
+    )
     let food = FoodSelection(id: .init(rawValue: 42), serving: .init(id: .init(rawValue: 7), quantity: 1))
     let common: [(Int, ErrorCategory)] = [
         (400, .validation), (401, .authentication), (429, .rateLimited), (500, .server),

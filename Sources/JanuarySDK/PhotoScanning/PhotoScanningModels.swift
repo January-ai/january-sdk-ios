@@ -58,9 +58,6 @@ public struct FoodScan: Codable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey { case detections; case mealName = "meal_name"; case totalNutrients = "total_nutrients"; case glucoseImpact = "glucose_impact" }
 }
 
-@available(*, deprecated, renamed: "FoodScan")
-public typealias PhotoScan = FoodScan
-
 public struct CorrectPhotoScanRequest: Hashable, Sendable {
     public var mealName: String?
     public var detections: [FoodDetection]

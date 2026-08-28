@@ -356,14 +356,6 @@ package enum Servers {
             )
         }
     }
-    /// Production
-    @available(*, deprecated, renamed: "Servers.Server1.url")
-    package static func server1() throws -> Foundation.URL {
-        try Foundation.URL(
-            validatingOpenAPIServerURL: "https://partners.january.ai",
-            variables: []
-        )
-    }
 }
 
 /// Types generated from the components section of the OpenAPI document.

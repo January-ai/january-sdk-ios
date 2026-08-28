@@ -1,4 +1,4 @@
-import JanuarySDK
+import January
 import SwiftUI
 
 @MainActor

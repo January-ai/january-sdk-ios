@@ -35,11 +35,10 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 
 ```swift
 import Foundation
-import JanuarySDK
+import January
 
 let january = try JanuaryClient(
-    endUserID: partnerUserID,
-    timezone: TimeZone.current.identifier,
+    endUserID: signedInUser.id,
     clientTokenProvider: tokenProvider
 )
 let results = try await january.foods.search(.init(query: "greek yogurt"))
@@ -49,17 +48,17 @@ let results = try await january.foods.search(.init(query: "greek yogurt"))
 
 | API | Purpose |
 | --- | --- |
-| `JanuaryClient` | Configures authentication, one user context, and all resources |
+| `JanuaryClient` | Configures authentication, optional user context, and all resources |
 | `foods` | Food discovery, hydration, barcode lookup, meal parsing, and alternatives |
 | `restaurants` | Nearby restaurant and menu-item search |
-| `photoScanning` | Meal-photo analysis and corrections |
+| `foodAnalysis` | Meal-photo analysis and corrections |
 | `foodLogs` | Food-log CRUD operations |
 | `glucose` | Personalized glucose prediction |
-| `JanuaryMealScannerView` | iOS-only ready-made camera and barcode flow |
+| `JanuaryFoodScannerView` | iOS-only ready-made camera and barcode flow |
 | `JanuaryError` | Stable error categories and request metadata |
 
-The generated OpenAPI transport is an implementation detail. Integrate through the public types in `JanuarySDK`.
+The generated OpenAPI transport is an implementation detail. Integrate through the public types in `January`.
 
 ## Security boundary
 
-Production SDK authentication uses client tokens. Your backend authenticates the user, completes January's private server-side token exchange, and returns a short-lived client token to the app. A deprecated API-key initializer is available strictly for local development and must never be shipped. See [Authentication](getting-started/authentication.md) and [Backend token endpoint](getting-started/backend-token-endpoint.md).
+Production SDK authentication uses client tokens. Your backend authenticates the user, completes January's private server-side token exchange, and returns a short-lived client token to the app. A supported API-key initializer is available strictly for local development and must never be shipped. See [Authentication](getting-started/authentication.md) and [Backend token endpoint](getting-started/backend-token-endpoint.md).

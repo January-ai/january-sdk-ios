@@ -2,12 +2,18 @@
 
 Public SDK authentication begins with a short-lived client token. Put January's private token-issuance integration behind your own authenticated backend.
 
-```text
-iOS app ── app session ──▶ your backend ── private server exchange ──▶ January
-      ▲                                │
-      └──── { token: "ct-…", expiresIn: 1800 } ───────────────────┘
+```mermaid
+sequenceDiagram
+    participant App as iOS app
+    participant Backend as Your backend
+    participant January
 
-iOS app ── Authorization: Bearer ct-… ──▶ January Partner API
+    App->>Backend: Request a client token<br/>using the app session
+    Backend->>January: Exchange private server credentials
+    January-->>Backend: Short-lived client token
+    Backend-->>App: token + expiresIn
+    App->>January: API request<br/>Authorization: Bearer ct-…
+    January-->>App: API response
 ```
 
 ## What your backend owns

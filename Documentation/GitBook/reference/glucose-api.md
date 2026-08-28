@@ -19,7 +19,7 @@ public struct PredictGlucoseRequest: Hashable, Sendable {
         cgmData: [CgmReading]? = nil,
         consumedFoods: [ConsumedHistoricalFood]? = nil,
         endUserID: PartnerUserID? = nil,
-        timezone: String? = nil
+        timezone: TimeZone? = nil
     )
 }
 ```

@@ -19,13 +19,13 @@ public struct FoodLogsResource: Sendable {
             foods: foods,
             timestampUTC: timestampUTC,
             name: name,
-            user: try configuredUser()
+            user: configuredUser()
         ))
     }
 
     /// Lists food logs for the user configured on ``JanuaryClient``.
     public func list(start: String, end: String) async throws -> ListFoodLogsResponse {
-        try await list(.init(start: start, end: end, user: try configuredUser()))
+        try await list(.init(start: start, end: end, user: configuredUser()))
     }
 
     /// Updates a food log for the user configured on ``JanuaryClient``.
@@ -40,18 +40,18 @@ public struct FoodLogsResource: Sendable {
             foods: foods,
             timestampUTC: timestampUTC,
             name: name,
-            user: try configuredUser()
+            user: configuredUser()
         ))
     }
 
     /// Deletes a food log for the user configured on ``JanuaryClient``.
     public func delete(id: String) async throws -> DeleteFoodLogResponse {
-        try await delete(.init(id: id, user: try configuredUser()))
+        try await delete(.init(id: id, user: configuredUser()))
     }
 
     public func create(_ request: CreateFoodLogRequest) async throws -> FoodLog {
         var request = request
-        if let userContext { request.user = userContext }
+        request.user = resolvedUser(request.user)
         return try await performTransportRequest {
             let body = Components.Schemas.CreateFoodLogBody(
                 foods: try ModelBridge.convert(request.foods),
@@ -76,14 +76,14 @@ public struct FoodLogsResource: Sendable {
 
     public func list(_ request: ListFoodLogsRequest) async throws -> ListFoodLogsResponse {
         var request = request
-        if let userContext { request.user = userContext }
+        request.user = resolvedUser(request.user)
         return try await performTransportRequest {
             let output = try await client.listFoodLogs(
                 .init(
                     query: .init(start: request.start, end: request.end),
                     headers: .init(
-                        xEndUserId: request.user.endUserID.rawValue,
-                        xEndUserTimezone: request.user.timezone
+                        xEndUserId: request.user.endUserID?.rawValue ?? "",
+                        xEndUserTimezone: request.user.timezone.identifier
                     )
                 )
             )
@@ -104,7 +104,7 @@ public struct FoodLogsResource: Sendable {
 
     public func update(_ request: UpdateFoodLogRequest) async throws -> FoodLog {
         var request = request
-        if let userContext { request.user = userContext }
+        request.user = resolvedUser(request.user)
         return try await performTransportRequest {
             let body = Components.Schemas.UpdateFoodLogBody(
                 foods: try request.foods.map {
@@ -129,14 +129,14 @@ public struct FoodLogsResource: Sendable {
 
     public func delete(_ request: DeleteFoodLogRequest) async throws -> DeleteFoodLogResponse {
         var request = request
-        if let userContext { request.user = userContext }
+        request.user = resolvedUser(request.user)
         return try await performTransportRequest {
             let output = try await client.deleteFoodLog(
                 .init(
                     path: .init(logId: request.id),
                     headers: .init(
-                        xEndUserId: request.user.endUserID.rawValue,
-                        xEndUserTimezone: request.user.timezone
+                        xEndUserId: request.user.endUserID?.rawValue ?? "",
+                        xEndUserTimezone: request.user.timezone.identifier
                     )
                 )
             )
@@ -151,22 +151,23 @@ public struct FoodLogsResource: Sendable {
     }
 
     private func headers(_ user: FoodLogUserContext) -> Operations.CreateFoodLog.Input.Headers {
-        .init(xEndUserId: user.endUserID.rawValue, xEndUserTimezone: user.timezone)
+        .init(xEndUserId: user.endUserID?.rawValue ?? "", xEndUserTimezone: user.timezone.identifier)
     }
 
-    private func configuredUser() throws -> PartnerUserContext {
-        guard let userContext else {
-            throw JanuaryError(
-                category: .validation,
-                code: "missing_user_context",
-                message: "Configure an end-user ID on JanuaryClient before using Food Logs."
-            )
-        }
-        return userContext
+    private func configuredUser() -> PartnerUserContext {
+        userContext ?? PartnerUserContext()
+    }
+
+    private func resolvedUser(_ requestUser: PartnerUserContext) -> PartnerUserContext {
+        guard let userContext else { return requestUser }
+        return PartnerUserContext(
+            endUserID: userContext.endUserID ?? requestUser.endUserID,
+            timezone: userContext.timezone
+        )
     }
 
     private func updateHeaders(_ user: FoodLogUserContext) -> Operations.UpdateFoodLog.Input.Headers {
-        .init(xEndUserId: user.endUserID.rawValue, xEndUserTimezone: user.timezone)
+        .init(xEndUserId: user.endUserID?.rawValue ?? "", xEndUserTimezone: user.timezone.identifier)
     }
 
     private func mapFoodLog(_ value: Components.Schemas.FoodLog) throws -> FoodLog {
