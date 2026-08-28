@@ -18,10 +18,10 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 
 | Component | Requirement |
 | --- | --- |
-| SDK toolchain | Swift 5.9 or later |
 | SDK platform | iOS 15 or later |
+| SDK build tools | Xcode 15 or later and Swift 5.9 or later |
 | Runtime dependencies | None |
-| Demo app | Xcode 26 and an iOS 26 simulator or device |
+| Demo app | Xcode 26 and an iOS 26 simulator or device, independently of the SDK requirements |
 | Repository | GitHub access granted by January during Controlled Preview |
 | Production integration | A partner-controlled backend that issues short-lived January client tokens |
 
@@ -34,10 +34,15 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 5. Learn the [search → hydrate → portion](concepts/food-hydration-and-portions.md) workflow.
 
 ```swift
+import Foundation
 import JanuarySDK
 
 let january = try JanuaryClient(clientTokenProvider: tokenProvider)
-let results = try await january.foods.search(.init(query: "greek yogurt"))
+let user = january.forUser(
+    partnerUserID,
+    timezone: TimeZone.current.identifier
+)
+let results = try await user.foods.search(.init(query: "greek yogurt"))
 ```
 
 ## SDK entry points
@@ -45,6 +50,7 @@ let results = try await january.foods.search(.init(query: "greek yogurt"))
 | API | Purpose |
 | --- | --- |
 | `JanuaryClient` | Configures authentication and exposes resources |
+| `JanuaryUserClient` | Reuses one user's request context across all resources |
 | `foods` | Food discovery, hydration, barcode lookup, meal parsing, and alternatives |
 | `restaurants` | Nearby restaurant and menu-item search |
 | `photoScanning` | Meal-photo analysis and corrections |

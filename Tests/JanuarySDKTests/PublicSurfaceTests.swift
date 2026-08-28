@@ -5,6 +5,7 @@ import Testing
 
 private actor SurfaceTransport: ClientTransport {
     private var operations: [String] = []
+    private var endUserIDs: [String?] = []
 
     func send(
         _ request: HTTPRequest,
@@ -13,12 +14,14 @@ private actor SurfaceTransport: ClientTransport {
         operationID: String
     ) async throws -> (HTTPResponse, HTTPBody?) {
         operations.append(operationID)
+        endUserIDs.append(request.headerFields[HTTPField.Name("x-end-user-id")!])
         var response = HTTPResponse(status: .ok)
         response.headerFields[.contentType] = "application/json"
         return (response, HTTPBody(Data(responseJSON(for: operationID).utf8)))
     }
 
     func operationIDs() -> [String] { operations }
+    func capturedEndUserIDs() -> [String?] { endUserIDs }
 
     private func responseJSON(for operationID: String) -> String {
         switch operationID {
@@ -60,6 +63,7 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
     )
     let userID = PartnerUserID(rawValue: "fixture-user")
     let user = FoodLogUserContext(endUserID: userID, timezone: "America/New_York")
+    let userClient = client.forUser(user)
     let food = FoodSelection(
         id: FoodID(rawValue: 1),
         serving: ServingSelection(id: ServingID(rawValue: 2), quantity: 1)
@@ -73,26 +77,26 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
         )
     )
 
-    _ = try await client.foods.autocomplete(.init(query: "ban", endUserID: userID))
-    _ = try await client.foods.getFood(.init(foodID: FoodID(rawValue: 1), endUserID: userID))
-    _ = try await client.foods.search(.init(query: "banana", endUserID: userID))
-    _ = try await client.foods.lookupByBarcode(.init(upc: "049000006346", endUserID: userID))
-    _ = try await client.photoScanning.searchByNaturalLanguage(.init(query: "one banana", endUserID: userID))
-    _ = try await client.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1), endUserID: userID))
-    _ = try await client.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74, endUserID: userID))
-    _ = try await client.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74, endUserID: userID))
-    _ = try await client.photoScanning.scan(.init(image: "fixture-image", endUserID: userID))
-    _ = try await client.photoScanning.correct(
-        .init(mealName: "Meal", detections: [detection], userInput: "Add banana", endUserID: userID)
+    _ = try await userClient.foods.autocomplete(.init(query: "ban"))
+    _ = try await userClient.foods.getFood(.init(foodID: FoodID(rawValue: 1)))
+    _ = try await userClient.foods.search(.init(query: "banana"))
+    _ = try await userClient.foods.lookupByBarcode(.init(upc: "049000006346"))
+    _ = try await userClient.photoScanning.searchByNaturalLanguage(.init(query: "one banana"))
+    _ = try await userClient.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1)))
+    _ = try await userClient.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74))
+    _ = try await userClient.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74))
+    _ = try await userClient.photoScanning.scan(.init(image: "fixture-image"))
+    _ = try await userClient.photoScanning.correct(
+        .init(mealName: "Meal", detections: [detection], userInput: "Add banana")
     )
-    let created = try await client.foodLogs.create(.init(foods: [food], user: user))
-    _ = try await client.foodLogs.list(.init(start: "2026-08-21", end: "2026-08-23", user: user))
-    _ = try await client.foodLogs.update(.init(id: created.id, name: "Updated", user: user))
-    _ = try await client.foodLogs.delete(.init(id: created.id, user: user))
-    _ = try await client.glucose.predict(
+    let created = try await userClient.foodLogs.create(foods: [food])
+    _ = try await userClient.foodLogs.list(start: "2026-08-21", end: "2026-08-23")
+    _ = try await userClient.foodLogs.update(id: created.id, name: "Updated")
+    _ = try await userClient.foodLogs.delete(id: created.id)
+    _ = try await userClient.glucose.predict(
         .init(
             userProfile: .init(age: 35, gender: .male, height: 70, weight: 175),
-            foods: [food], startTime: Date(), endUserID: userID
+            foods: [food], startTime: Date()
         )
     )
 
@@ -102,4 +106,5 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
         "searchRestaurants", "searchRestaurantMenuItems", "scanFoodPhoto", "correctPhotoScan",
         "createFoodLog", "listFoodLogs", "updateFoodLog", "deleteFoodLog", "predictGlucose",
     ]))
+    #expect(await transport.capturedEndUserIDs().allSatisfy { $0 == "fixture-user" })
 }

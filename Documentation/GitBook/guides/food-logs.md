@@ -1,6 +1,6 @@
 # Food logs
 
-Use `client.foodLogs` to create, list, update, and delete entries for a partner-owned user.
+Use the `foodLogs` resource to create, list, update, and delete entries for a partner-owned user.
 
 For repeated operations, prefer a scoped client so identity and timezone cannot
 drift between requests:
@@ -14,43 +14,27 @@ let user = client.forUser(
 let logs = try await user.foodLogs.list(start: "2026-08-01", end: "2026-08-31")
 ```
 
-With client-token authentication, the token supplies the end-user identity and the SDK removes the `x-end-user-id` header. The context still carries the timezone. With development-key authentication, both ID and timezone are sent.
-
-## Build user context
-
-Food-log operations require an end-user ID. Provide an IANA timezone when available.
-
-```swift
-let user = FoodLogUserContext(
-    endUserID: PartnerUserID(rawValue: userID),
-    timezone: "America/New_York"
-)
-```
+With client-token authentication, the token supplies the end-user identity and the SDK removes the `x-end-user-id` header. The scoped context still supplies the timezone. With local development-key authentication, the scoped ID and timezone are sent.
 
 ## Select a food and serving
 
-Use identifiers returned by food or menu search:
+Search returns discovery records. Hydrate the selected food with `getFood(_:)`, then create a validated portion from one of its servings:
 
 ```swift
-let selectedFood = FoodSelection(
-    id: food.id,
-    serving: ServingSelection(
-        id: serving.id,
-        quantity: 1
-    )
-)
+let food = try await user.foods.getFood(.init(foodID: selectedFoodID))
+let portion = try food.portion(servingID: selectedServingID, quantity: 1)
+let selectedFood = portion.selection
 ```
+
+`portion.selection` is the exact `FoodSelection` accepted by Food Logs and glucose prediction.
 
 ## Create
 
 ```swift
-let log = try await client.foodLogs.create(
-    .init(
-        foods: [selectedFood],
-        timestampUTC: ISO8601DateFormatter().string(from: Date()),
-        name: "Breakfast",
-        user: user
-    )
+let log = try await user.foodLogs.create(
+    foods: [selectedFood],
+    timestampUTC: ISO8601DateFormatter().string(from: Date()),
+    name: "Breakfast"
 )
 ```
 
@@ -59,12 +43,9 @@ let log = try await client.foodLogs.create(
 Dates use `yyyy-MM-dd`:
 
 ```swift
-let logs = try await client.foodLogs.list(
-    .init(
-        start: "2026-08-01",
-        end: "2026-08-31",
-        user: user
-    )
+let logs = try await user.foodLogs.list(
+    start: "2026-08-01",
+    end: "2026-08-31"
 )
 ```
 
@@ -75,15 +56,14 @@ The start and end dates are inclusive calendar dates in the supplied timezone. T
 Only fields supplied in the request are changed.
 
 ```swift
-let updated = try await client.foodLogs.update(
-    .init(id: log.id, name: "Post-workout breakfast", user: user)
+let updated = try await user.foodLogs.update(
+    id: log.id,
+    name: "Post-workout breakfast"
 )
 ```
 
 ## Delete
 
 ```swift
-let result = try await client.foodLogs.delete(
-    .init(id: log.id, user: user)
-)
+let result = try await user.foodLogs.delete(id: log.id)
 ```

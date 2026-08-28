@@ -466,7 +466,7 @@ func userAgentIsSanitizedBoundedAndIncludesAvailableAppMetadata() {
     #expect(SDKUserAgent.token(String(repeating: "a", count: 200)).count == 128)
 
     let minimal = SDKUserAgent.make(
-        platform: "macOS", osVersion: "15", deviceFamily: "Mac",
+        platform: "iOS", osVersion: "15", deviceFamily: "iPhone",
         bundleIdentifier: "", appVersion: nil, appBuild: ""
     )
     #expect(!minimal.contains("App/"))

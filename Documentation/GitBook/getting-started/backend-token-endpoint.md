@@ -29,6 +29,10 @@ Your backend must:
 
 The SDK's `JanuaryClientToken` decoder also accepts `expires_in` when your backend relays January's snake-case response unchanged.
 
+The token is the authority for end-user identity on January requests. The iOS
+app must not be able to exchange its session for a token belonging to another
+user.
+
 ## Endpoint location is app configuration
 
 January's SDK cannot know your backend host, path, HTTP method, or session-authentication mechanism. Inject that configuration into your `JanuaryTokenProvider`; the SDK intentionally provides no token-endpoint URL or fallback.

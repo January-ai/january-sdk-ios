@@ -52,7 +52,16 @@ Add a nonempty `NSCameraUsageDescription` string to the host app's `Info.plist`.
 
 ## Demo refuses to start
 
-The documented demo path needs `PARTNER_TOKEN_URL` and optionally `JANUARY_END_USER_ID`. The token endpoint must authenticate the demo user and return the documented client-token response.
+The partner-backend path requires both `PARTNER_TOKEN_URL` and
+`PARTNER_APP_SESSION_TOKEN`. Set `JANUARY_END_USER_ID` to the stable test-user ID
+you want the demo to use; when omitted, the demo uses `local-ios-user`. The token
+endpoint must authenticate the demo user and return the documented client-token
+response.
+
+For a local Debug-only token exchange, set `JANUARY_DEMO_API_KEY` instead of the
+partner-backend variables. `JANUARY_END_USER_ID` is optional and
+`JANUARY_DEMO_TOKEN_TTL_SECONDS` defaults to `300`. Release builds disable this
+mode. Never commit the key or distribute a build containing it.
 
 ## Requests are rate limited
 

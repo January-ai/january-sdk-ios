@@ -52,10 +52,22 @@ struct AppTokenProvider: JanuaryTokenProvider {
             forHTTPHeaderField: "Authorization"
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw JanuaryTokenProviderError("Token endpoint is unavailable.", retryable: true)
+        }
         guard let response = response as? HTTPURLResponse,
               (200..<300).contains(response.statusCode) else {
-            throw URLError(.badServerResponse)
+            let status = (response as? HTTPURLResponse)?.statusCode
+            throw JanuaryTokenProviderError(
+                "Token endpoint rejected the request.",
+                retryable: status == 408 || status == 429 || (status ?? 0) >= 500
+            )
         }
         return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
     }
@@ -68,6 +80,26 @@ let provider = AppTokenProvider(
 let january = try JanuaryClient(clientTokenProvider: provider)
 ```
 
+Set the signed-in user once after creating the client, then use the scoped
+resources instead of repeating an ID in every request:
+
+```swift
+let user = january.forUser(
+    PartnerUserID(rawValue: signedInUser.stableID),
+    timezone: TimeZone.current.identifier
+)
+
+let results = try await user.foods.search(.init(query: "greek yogurt"))
+let logs = try await user.foodLogs.list(
+    start: "2026-08-01",
+    end: "2026-08-31"
+)
+```
+
+Recreate this lightweight scoped value when the active app account changes.
+With client-token authentication, January derives identity from the token and
+the SDK prevents a per-request ID from contradicting it.
+
 The endpoint is app configuration with no SDK default. Its stable response is:
 
 ```json
@@ -76,7 +108,46 @@ The endpoint is app configuration with no SDK default. Its stable response is:
 
 `JanuaryClientToken` also accepts `expires_in`. The SDK caches tokens in memory,
 refreshes before expiry, single-flights concurrent refreshes, and retries token
-provider failures with bounded exponential backoff.
+provider failures explicitly marked retryable with bounded exponential backoff.
+
+To verify this flow before your backend is ready, deploy the public
+[January token relay](https://github.com/January-ai/january-token-relay) and
+configure the demo app with your deployment URL, relay secret, and test user ID.
+Those values belong only in local Xcode scheme configuration and must never be
+committed. The SDK contains no hosted test-relay URL or shared test secret. Use
+an authenticated backend that derives the user identity server-side in
+production.
+
+## Test the client-token lifecycle locally
+
+`JanuaryDevelopmentTokenProvider` lets a local Debug build exercise the same
+mint, cache, refresh, and replay path without first implementing a partner
+backend. It exchanges a development API key for short-lived client tokens
+against January production. The token lifetime must be between 300 and 7,200
+seconds.
+
+> **Warning:** This provider sends the API key from the app process. Use it only
+> in a local Debug build. Never commit the key, include it in an app binary, or
+> distribute an app configured this way.
+
+```swift
+#if DEBUG
+guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
+      let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
+    fatalError("Set the local January development credentials in the Xcode scheme.")
+}
+
+let provider = try JanuaryDevelopmentTokenProvider(
+    apiKey: apiKey,
+    endUserID: PartnerUserID(rawValue: rawUserID),
+    ttlSeconds: 300
+)
+let january = try JanuaryClient(clientTokenProvider: provider)
+#endif
+```
+
+For production, replace this helper with the backend-backed
+`AppTokenProvider` shown above. No other client lifecycle code changes.
 
 ## Local development with an API key
 

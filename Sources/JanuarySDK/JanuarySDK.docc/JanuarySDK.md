@@ -24,10 +24,22 @@ struct AppTokenProvider: JanuaryTokenProvider {
             forHTTPHeaderField: "Authorization"
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw JanuaryTokenProviderError("Token endpoint is unavailable.", retryable: true)
+        }
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+            let status = (response as? HTTPURLResponse)?.statusCode
+            throw JanuaryTokenProviderError(
+                "Token endpoint rejected the request.",
+                retryable: status == 408 || status == 429 || (status ?? 0) >= 500
+            )
         }
         return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
     }
@@ -44,6 +56,47 @@ let january = try JanuaryClient(
 The provider owns its URL, session authentication, and network request. The SDK
 keeps the returned token in memory, refreshes it before expiry, and coordinates
 concurrent refreshes.
+
+Create one user-scoped client after authentication and reuse it across every
+resource:
+
+```swift
+let user = january.forUser(
+    PartnerUserID(rawValue: signedInUser.stableID),
+    timezone: TimeZone.current.identifier
+)
+let results = try await user.foods.search(.init(query: "banana"))
+```
+
+The scoped client exposes Foods, Restaurants, Photo Scanning, Food Logs, and
+Glucose. Recreate the lightweight value when the signed-in account changes.
+
+For a local end-to-end check, deploy the public
+[January token relay](https://github.com/January-ai/january-token-relay) and use
+its URL and relay secret only in local app configuration. No hosted test URL or
+shared secret is embedded in the SDK. Distributed apps should use an
+authenticated backend that derives the user identity from the app session.
+
+### Test client-token refresh locally
+
+``JanuaryDevelopmentTokenProvider`` lets a local Debug build exercise token
+minting, proactive refresh, and `token_expired` replay before a partner backend
+is available:
+
+```swift
+#if DEBUG
+let provider = try JanuaryDevelopmentTokenProvider(
+    apiKey: requiredLocalDevelopmentKey,
+    endUserID: PartnerUserID(rawValue: "local-test-user"),
+    ttlSeconds: 300
+)
+let january = try JanuaryClient(clientTokenProvider: provider)
+#endif
+```
+
+> Warning: This helper sends the API key from the app process. Never ship or
+> distribute an app configured this way. Production apps must replace it with
+> their own backend-backed ``JanuaryTokenProvider``.
 
 ### Local development only
 
@@ -89,6 +142,7 @@ if let match = results.items.first {
 - ``JanuaryTokenProvider``
 - ``JanuaryClientToken``
 - ``JanuaryTokenRetryPolicy``
+- ``JanuaryDevelopmentTokenProvider``
 
 ### User context
 

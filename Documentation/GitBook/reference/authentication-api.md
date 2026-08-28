@@ -47,9 +47,46 @@ public typealias JanuaryClientTokenProvider =
 public protocol JanuaryTokenProvider: Sendable {
     func fetchClientToken() async throws -> JanuaryClientToken
 }
+
+public struct JanuaryTokenProviderError: Error, LocalizedError, Sendable {
+    public let message: String
+    public let retryable: Bool
+
+    public init(_ message: String, retryable: Bool = false)
+    public var errorDescription: String? { get }
+}
 ```
 
 `JanuaryClientToken` encodes `expiresIn` and decodes either `expiresIn` or `expires_in`. Tokens must be nonempty and report more than 60 seconds of remaining lifetime.
+
+Throw `JanuaryTokenProviderError` with `retryable: true` only for transient
+failures such as timeouts, rate limits, and server errors. The SDK applies its
+bounded provider retry policy only to that explicit error. The default
+`retryable` value is `false`; ordinary errors, permanent authentication or
+validation failures, malformed token responses, and `CancellationError` stop
+immediately.
+
+## Local development token provider
+
+```swift
+public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
+    @available(*, deprecated, message: "Local debug testing only…")
+    public init(
+        apiKey: String,
+        endUserID: PartnerUserID,
+        ttlSeconds: Int = 300
+    ) throws
+
+    public func fetchClientToken() async throws -> JanuaryClientToken
+}
+```
+
+This provider exercises the production client-token lifecycle without a partner
+backend. It accepts a token lifetime from 300 through 7,200 seconds and emits an
+Xcode deprecation warning plus a runtime warning that never contains the key.
+It is strictly for a local Debug build. Never distribute an app containing a
+January API key; production apps implement `JanuaryTokenProvider` against their
+authenticated backend.
 
 ## Retry policy
 
@@ -94,4 +131,8 @@ public struct PartnerUserContext: Hashable, Sendable {
 }
 ```
 
-`JanuaryUserClient` exposes `context`, `foodLogs`, and `glucose`. Client-token authentication removes the end-user header because the token already carries identity.
+`JanuaryUserClient` exposes `context`, `foods`, `restaurants`, `photoScanning`,
+`foodLogs`, and `glucose`. Configure it once after authentication and use those
+scoped resources instead of repeating the user ID in individual requests.
+Client-token authentication removes the end-user header because the token
+already carries identity.

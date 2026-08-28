@@ -53,23 +53,10 @@ package enum SDKUserAgent {
     }
 
     private static var platform: String {
-        #if os(iOS)
         "iOS"
-        #elseif os(macOS)
-        "macOS"
-        #elseif os(tvOS)
-        "tvOS"
-        #elseif os(watchOS)
-        "watchOS"
-        #elseif os(visionOS)
-        "visionOS"
-        #else
-        "unknown"
-        #endif
     }
 
     private static var deviceFamily: String {
-        #if os(iOS)
         let model = ProcessInfo.processInfo.environment["SIMULATOR_MODEL_IDENTIFIER"] ?? machineIdentifier
         if model.hasPrefix("iPad") {
             return "iPad"
@@ -78,20 +65,8 @@ package enum SDKUserAgent {
             return "iPhone"
         }
         return "iOS"
-        #elseif os(macOS)
-        return "Mac"
-        #elseif os(tvOS)
-        return "AppleTV"
-        #elseif os(watchOS)
-        return "AppleWatch"
-        #elseif os(visionOS)
-        return "AppleVision"
-        #else
-        return "unknown"
-        #endif
     }
 
-    #if os(iOS)
     private static var machineIdentifier: String {
         var systemInfo = utsname()
         uname(&systemInfo)
@@ -101,7 +76,6 @@ package enum SDKUserAgent {
             }
         }
     }
-    #endif
 
     /// Restricts values to HTTP product-token-safe characters and prevents an
     /// application bundle value from injecting another header.

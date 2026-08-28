@@ -48,7 +48,7 @@ public struct GlucosePredictionProfile: Codable, Hashable, Sendable {
             height: Height(value: height, unit: .inches),
             weight: Weight(value: weight, unit: .pounds),
             activityLevel: activityLevel,
-            healthConditions: healthConditions?.filter { $0 != .noneOfTheAbove }
+            healthConditions: healthConditions?.filter { $0.rawValue != "none_of_the_above" }
         )
     }
     public var gender: Sex { sex }

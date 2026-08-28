@@ -56,6 +56,22 @@ public protocol JanuaryTokenProvider: Sendable {
     func fetchClientToken() async throws -> JanuaryClientToken
 }
 
+/// A token-provider failure with an explicit retry decision.
+///
+/// Mark only transient partner-backend failures—such as timeouts, rate limits,
+/// and server errors—as retryable. Ordinary errors stop immediately.
+public struct JanuaryTokenProviderError: Error, LocalizedError, Sendable {
+    public let message: String
+    public let retryable: Bool
+
+    public init(_ message: String, retryable: Bool = false) {
+        self.message = message
+        self.retryable = retryable
+    }
+
+    public var errorDescription: String? { message }
+}
+
 @available(*, deprecated, renamed: "JanuaryTokenProvider")
 public typealias JanuaryClientTokenProviding = JanuaryTokenProvider
 
@@ -74,7 +90,7 @@ package actor ClientTokenManager {
         provider: @escaping JanuaryClientTokenProvider,
         refreshLeeway: TimeInterval = 60,
         retryPolicy: JanuaryTokenRetryPolicy = .default,
-        now: @escaping @Sendable () -> Date = Date.init,
+        now: @escaping @Sendable () -> Date = { Date() },
         sleep: @escaping @Sendable (TimeInterval) async throws -> Void = { seconds in
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
         },
@@ -115,6 +131,10 @@ package actor ClientTokenManager {
                 } catch is CancellationError {
                     throw CancellationError()
                 } catch {
+                    guard let providerError = error as? JanuaryTokenProviderError,
+                          providerError.retryable else {
+                        throw error
+                    }
                     guard attempt < retryPolicy.maximumAttempts else {
                         throw JanuaryError(
                             category: .authentication,

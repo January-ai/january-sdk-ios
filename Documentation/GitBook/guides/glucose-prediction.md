@@ -1,12 +1,21 @@
 # Glucose prediction
 
-Use `client.glucose` to predict a personalized glucose curve for selected foods.
+Use the `glucose` resource to predict a personalized glucose curve for selected foods.
 
 {% hint style="warning" %}
 Glucose predictions and profile inputs are health data. Do not place request or response values in analytics, crash reports, or general-purpose logs.
 {% endhint %}
 
 ## Create a prediction
+
+Create a user-scoped client so the same identity and timezone are applied to each prediction:
+
+```swift
+let user = client.forUser(
+    PartnerUserID(rawValue: partnerUserID),
+    timezone: "America/New_York"
+)
+```
 
 ```swift
 let request = PredictGlucoseRequest(
@@ -19,12 +28,10 @@ let request = PredictGlucoseRequest(
         healthConditions: []
     ),
     foods: [selectedFood],
-    startTime: Date(),
-    endUserID: PartnerUserID(rawValue: partnerUserID),
-    timezone: "America/New_York"
+    startTime: Date()
 )
 
-let prediction = try await client.glucose.predict(request)
+let prediction = try await user.glucose.predict(request)
 ```
 
 The result contains:
@@ -37,11 +44,13 @@ The result contains:
 You can optionally provide recent `CgmReading` values and `ConsumedHistoricalFood` entries when available.
 
 `Height` accepts inches or centimeters; `Weight` accepts pounds or kilograms.
-The demo presents imperial height as feet plus inches and converts that display
-to the typed request value. Do not present a single raw-inch field to users.
+For imperial height, present separate feet and inches controls, then convert to
+total inches for the request—for example, `feet * 12 + inches`. Let users toggle
+between feet plus inches and centimeters, and between pounds and kilograms. Do
+not present a single raw-inch field.
 
 {% hint style="info" %}
 Predictions are informational and must not be presented as diagnosis or medical treatment guidance.
 {% endhint %}
 
-With client-token authentication, January derives identity from the token even if the request model contains an end-user ID. Prefer `client.forUser(...).glucose.predict(request)` when you also need to reuse timezone context.
+With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header. The scoped client still applies the timezone.

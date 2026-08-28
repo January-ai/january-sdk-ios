@@ -1,4 +1,3 @@
-#if os(iOS)
 @preconcurrency import AVFoundation
 import Dispatch
 import Foundation
@@ -390,8 +389,10 @@ final class MealCameraViewController: UIViewController {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            guard let self, self.isVisible, !self.isConfigured else { return }
-            self.authorizeAndConfigureCamera()
+            Task { @MainActor [weak self] in
+                guard let self, self.isVisible, !self.isConfigured else { return }
+                self.authorizeAndConfigureCamera()
+            }
         }
         observerTokens.append(token)
     }
@@ -633,4 +634,3 @@ final class MealCameraViewController: UIViewController {
         present(alert, animated: true)
     }
 }
-#endif

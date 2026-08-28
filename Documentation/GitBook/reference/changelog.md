@@ -11,8 +11,8 @@ The January SDK for iOS is in Controlled Preview. See [Versioning and support](v
 * Stable `JanuaryError` categories and request metadata
 * SwiftUI example application for development integration
 * Short-lived client-token providers with in-memory caching and single-flight refresh
-* Nine-attempt bounded exponential backoff with jitter for provider failures
-* User-scoped Food Logs and Glucose clients
+* Nine-attempt bounded exponential backoff with jitter for explicitly retryable provider failures
+* One user-scoped client covering foods, restaurants, photo scanning, Food Logs, and glucose
 * Food autocomplete, full-food hydration, and local portion calculations
 * Native photo/barcode scanner and image-preparation helpers
 * Typed imperial and metric height and weight values

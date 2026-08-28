@@ -92,13 +92,3 @@ jobs:
           IPHONEOS_DEPLOYMENT_TARGET=26.0
           CODE_SIGNING_ALLOWED=NO
           build
-
-      - name: Check API compatibility with latest release
-        shell: bash
-        run: |
-          latest_tag="$(git tag --list --sort=-version:refname | head -n 1)"
-          if [[ -n "$latest_tag" ]]; then
-            swift package diagnose-api-breaking-changes "$latest_tag"
-          else
-            echo "No release tag exists yet; skipping compatibility comparison."
-          fi

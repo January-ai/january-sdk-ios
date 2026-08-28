@@ -14,7 +14,9 @@ It has no third-party runtime dependencies.
 * iOS 15 or later
 * A GitHub account authorized for the private repository
 
-The example app uses the latest tab-bar APIs and targets iOS 26 independently of the SDK.
+The SDK supports iOS 15 with Xcode 15 and Swift 5.9. The January-owned example
+app uses newer tab-bar APIs and separately requires Xcode 26 and iOS 26; its
+deployment target does not change the SDK's minimum requirements.
 
 ## Xcode
 
@@ -29,8 +31,8 @@ The example app uses the latest tab-bar APIs and targets iOS 26 independently of
 
 Swift Package Manager does not provide a symbolic `latest` requirement in a
 package manifest. For manifest-only integrations, use the current release tag
-shown in the repository and add the `JanuarySDK` product. Do not depend on the
-`main` branch for a production application.
+shown under the repository's latest GitHub release, then add the `JanuarySDK`
+product. Do not depend on the `main` branch for a production application.
 
 ## Verify the package
 

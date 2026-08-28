@@ -24,9 +24,15 @@ Edit the `JanuaryQuickstart` scheme and add these Run environment variables:
 ```text
 PARTNER_TOKEN_URL=https://your-backend.example.com/january-token
 PARTNER_APP_SESSION_TOKEN=your-app-session-token
+JANUARY_END_USER_ID=your-stable-user-id
 ```
 
-`PARTNER_TOKEN_URL` has no default. Replace both values with your configured backend endpoint and a valid session credential for that backend. January's private server-side token-issuance credentials never belong in the app.
+`PARTNER_TOKEN_URL` has no default. Replace these values with your configured backend endpoint, a valid session credential, and the stable ID for the signed-in app user. January's private server-side token-issuance credentials never belong in the app.
+
+Use the same stable, non-identifying partner user ID that your backend binds to
+the token. The scoped client keeps request context together, but the client
+token remains authoritative for identity and the SDK removes `x-end-user-id`
+from January requests.
 
 ## 3. Add the app source
 
@@ -87,11 +93,28 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
             forHTTPHeaderField: "Authorization"
         )
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw JanuaryTokenProviderError(
+                "The partner token endpoint is unavailable.",
+                retryable: true
+            )
+        }
         guard let http = response as? HTTPURLResponse else {
             throw QuickstartError.invalidResponse
         }
         guard (200..<300).contains(http.statusCode) else {
+            if http.statusCode == 408 || http.statusCode == 429 || http.statusCode >= 500 {
+                throw JanuaryTokenProviderError(
+                    "The partner token endpoint is temporarily unavailable.",
+                    retryable: true
+                )
+            }
             throw QuickstartError.tokenRequestFailed(http.statusCode)
         }
         return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
@@ -121,6 +144,9 @@ final class QuickstartViewModel: ObservableObject {
             guard let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"] else {
                 throw QuickstartError.missingEnvironment("PARTNER_APP_SESSION_TOKEN")
             }
+            guard let endUserID = environment["JANUARY_END_USER_ID"] else {
+                throw QuickstartError.missingEnvironment("JANUARY_END_USER_ID")
+            }
 
             let provider = PartnerBackendTokenProvider(
                 endpoint: endpoint,
@@ -129,15 +155,19 @@ final class QuickstartViewModel: ObservableObject {
             let january = try JanuaryClient(
                 clientTokenProvider: provider
             )
+            let user = january.forUser(
+                PartnerUserID(rawValue: endUserID),
+                timezone: TimeZone.current.identifier
+            )
 
-            let results = try await january.foods.search(
+            let results = try await user.foods.search(
                 .init(query: "greek yogurt", category: .branded, limit: 10)
             )
             guard let match = results.items.first else {
                 throw QuickstartError.noFoods
             }
 
-            let food = try await january.foods.getFood(
+            let food = try await user.foods.getFood(
                 .init(foodID: match.id)
             )
             let portion = try food.portion(quantity: 1)

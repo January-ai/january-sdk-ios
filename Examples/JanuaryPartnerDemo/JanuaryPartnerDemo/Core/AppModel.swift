@@ -1,14 +1,13 @@
 import Foundation
-@_spi(JanuaryDevelopment) import JanuarySDK
+import JanuarySDK
 import Observation
 
 enum AuthenticationConfiguration: Sendable {
-    case developmentAPIKey(String, endUserID: String)
+    case developmentClientToken(String, endUserID: String, ttlSeconds: Int)
     case clientToken(
         partnerTokenURL: URL,
-        apiBaseURL: URL,
-        developmentEndUserID: String?,
-        appSessionToken: String?
+        appSessionToken: String,
+        endUserID: String
     )
     case invalid(String)
 }
@@ -46,7 +45,8 @@ final class AppModel {
 
         do {
             switch authentication {
-            case .developmentAPIKey(let apiKey, let endUserID):
+            case .developmentClientToken(let apiKey, let endUserID, let ttlSeconds):
+#if DEBUG
                 let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !normalizedAPIKey.isEmpty else {
                     state = .failed(
@@ -54,25 +54,29 @@ final class AppModel {
                     )
                     return
                 }
-                client = try JanuaryClient(
-                    developmentAPIKey: normalizedAPIKey,
-                    endUserID: PartnerUserID(rawValue: endUserID)
+                let provider = try JanuaryDevelopmentTokenProvider(
+                    apiKey: normalizedAPIKey,
+                    endUserID: PartnerUserID(rawValue: endUserID),
+                    ttlSeconds: ttlSeconds
                 )
+                client = try JanuaryClient(clientTokenProvider: provider)
+#else
+                state = .failed(
+                    "Development API keys are disabled in Release builds. Configure PARTNER_TOKEN_URL instead."
+                )
+                return
+#endif
             case .clientToken(
                 let partnerTokenURL,
-                let apiBaseURL,
-                let developmentEndUserID,
-                let appSessionToken
+                let appSessionToken,
+                let endUserID
             ):
                 let provider = PartnerBackendTokenProvider(
                     endpoint: partnerTokenURL,
-                    developmentEndUserID: developmentEndUserID,
-                    appSessionToken: appSessionToken
+                    appSessionToken: appSessionToken,
+                    endUserID: PartnerUserID(rawValue: endUserID)
                 )
-                client = try JanuaryClient(
-                    clientTokenProvider: provider,
-                    apiBaseURL: apiBaseURL
-                )
+                client = try JanuaryClient(clientTokenProvider: provider)
             case .invalid(let message):
                 state = .failed(message)
                 return

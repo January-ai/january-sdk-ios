@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 
 // This file intentionally contains the small HTTP runtime the generated
 // January transport needs. OpenAPI generation remains a maintainer tool; SDK
@@ -182,7 +179,7 @@ public struct URLSessionTransport: ClientTransport {
         }
 
         do {
-            let (data, response) = try await session.data(for: urlRequest)
+            let (data, response) = try await session.januaryData(for: urlRequest)
             guard let response = response as? HTTPURLResponse else {
                 throw TransportRuntimeError.invalidResponse
             }
@@ -201,6 +198,12 @@ public struct URLSessionTransport: ClientTransport {
         } catch {
             throw ClientError(underlyingError: error)
         }
+    }
+}
+
+private extension URLSession {
+    func januaryData(for request: URLRequest) async throws -> (Data, URLResponse) {
+        return try await data(for: request)
     }
 }
 

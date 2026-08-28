@@ -4,6 +4,7 @@
 .githooks/
 .build/
 .artifacts/
+.january-internal/
 .swiftpm/
 DerivedData/
 xcuserdata/

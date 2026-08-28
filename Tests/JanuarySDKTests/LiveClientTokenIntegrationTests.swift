@@ -1,23 +1,36 @@
 import Foundation
 import Testing
-@_spi(JanuaryDevelopment) @testable import JanuarySDK
+@testable import JanuarySDK
 
 private struct LivePartnerTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
+    let appSessionToken: String
     let endUserID: String
+    let performRequest: @Sendable (URLRequest) async throws -> (Data, URLResponse)
+
+    init(
+        endpoint: URL,
+        appSessionToken: String,
+        endUserID: String,
+        performRequest: @escaping @Sendable (URLRequest) async throws -> (Data, URLResponse) = {
+            try await URLSession.shared.data(for: $0)
+        }
+    ) {
+        self.endpoint = endpoint
+        self.appSessionToken = appSessionToken
+        self.endUserID = endUserID
+        self.performRequest = performRequest
+    }
 
     func fetchClientToken() async throws -> JanuaryClientToken {
-        guard var components = URLComponents(url: endpoint, resolvingAgainstBaseURL: false) else {
-            throw LiveIntegrationError.invalidConfiguration
-        }
-        components.queryItems = (components.queryItems ?? []) + [
-            URLQueryItem(name: "user", value: endUserID),
-        ]
-        guard let url = components.url else {
-            throw LiveIntegrationError.invalidConfiguration
-        }
-
-        let (data, response) = try await URLSession.shared.data(from: url)
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue(
+            "Bearer \(appSessionToken)",
+            forHTTPHeaderField: "Authorization"
+        )
+        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
+        let (data, response) = try await performRequest(request)
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
             throw LiveIntegrationError.tokenRequestFailed
@@ -26,9 +39,42 @@ private struct LivePartnerTokenProvider: JanuaryTokenProvider {
     }
 }
 
+private actor RelayRequestProbe {
+    private(set) var request: URLRequest?
+
+    func perform(_ request: URLRequest) async throws -> (Data, URLResponse) {
+        self.request = request
+        let response = HTTPURLResponse(
+            url: request.url!,
+            statusCode: 201,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        return (Data(#"{"token":"ct-relay","expiresIn":1800}"#.utf8), response)
+    }
+}
+
 private enum LiveIntegrationError: Error {
-    case invalidConfiguration
     case tokenRequestFailed
+}
+
+@Test
+func relayProviderUsesVerifiedRequestContract() async throws {
+    let probe = RelayRequestProbe()
+    let provider = LivePartnerTokenProvider(
+        endpoint: URL(string: "https://relay.example.test/api/january/client-token")!,
+        appSessionToken: "fixture-relay-secret",
+        endUserID: "fixture-user",
+        performRequest: { request in try await probe.perform(request) }
+    )
+
+    let token = try await provider.fetchClientToken()
+    let request = try #require(await probe.request)
+
+    #expect(token == JanuaryClientToken(token: "ct-relay", expiresIn: 1_800))
+    #expect(request.httpMethod == "POST")
+    #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer fixture-relay-secret")
+    #expect(request.value(forHTTPHeaderField: "x-end-user-id") == "fixture-user")
 }
 
 @Test
@@ -37,21 +83,22 @@ func livePartnerTokenProviderCallsPartnerBackendAndJanuaryWhenConfigured() async
     guard
         let rawTokenURL = environment["PARTNER_TOKEN_URL"],
         let tokenURL = URL(string: rawTokenURL),
-        let rawAPIBaseURL = environment["JANUARY_INTERNAL_API_BASE_URL"],
-        let apiBaseURL = URL(string: rawAPIBaseURL)
+        let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"],
+        !appSessionToken.isEmpty,
+        let endUserID = environment["JANUARY_END_USER_ID"],
+        !endUserID.isEmpty
     else {
         return
     }
-    let endUserID = environment["JANUARY_END_USER_ID"] ?? "local-ios-e2e-user"
-    let provider = LivePartnerTokenProvider(endpoint: tokenURL, endUserID: endUserID)
-    let client = try JanuaryClient(
-        clientTokenProvider: provider,
-        apiBaseURL: apiBaseURL,
-        tokenRetryPolicy: .none
+    let provider = LivePartnerTokenProvider(
+        endpoint: tokenURL,
+        appSessionToken: appSessionToken,
+        endUserID: endUserID
     )
+    let client = try JanuaryClient(clientTokenProvider: provider, tokenRetryPolicy: .none)
 
     let results = try await client.foods.search(
-        .init(query: "banana", limit: 1, endUserID: .init(rawValue: endUserID))
+        .init(query: "banana", limit: 1)
     )
 
     #expect(!results.items.isEmpty)

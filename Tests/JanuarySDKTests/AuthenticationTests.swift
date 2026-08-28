@@ -56,6 +56,7 @@ private struct ProviderFailure: Error {}
 private enum TokenProviderOutcome: Sendable {
     case token(String)
     case failure
+    case permanentFailure
 }
 
 private actor TokenProviderProbe {
@@ -83,6 +84,11 @@ private actor TokenProviderProbe {
         case .token(let value):
             return JanuaryClientToken(token: value, expiresIn: expiresIn)
         case .failure:
+            throw JanuaryTokenProviderError(
+                "temporary partner backend failure",
+                retryable: true
+            )
+        case .permanentFailure:
             throw ProviderFailure()
         }
     }
@@ -264,6 +270,28 @@ func providerFetchStopsAfterMaximumAttempts() async throws {
     #expect(await provider.callCount() == 9)
     #expect(await sleeper.delays() == [1, 2, 4, 8, 8, 8, 8, 8])
     #expect(await transport.requests().isEmpty)
+}
+
+@Test
+func ordinaryProviderFailureDoesNotRetry() async throws {
+    let provider = TokenProviderProbe(outcomes: [.permanentFailure])
+    let sleeper = SleepProbe()
+    let client = try JanuaryClient(
+        serverURL: URL(string: "https://example.invalid")!,
+        transport: AuthenticationTransport(),
+        clientTokenProvider: { try await provider.token() },
+        tokenRetryPolicy: .init(maximumAttempts: 9),
+        sleep: { await sleeper.sleep(for: $0) }
+    )
+
+    do {
+        _ = try await client.foods.search(.init(query: "banana"))
+        Issue.record("Expected permanent provider failure")
+    } catch let error as JanuaryError {
+        #expect(error.category == .transport)
+    }
+    #expect(await provider.callCount() == 1)
+    #expect(await sleeper.delays().isEmpty)
 }
 
 @Test

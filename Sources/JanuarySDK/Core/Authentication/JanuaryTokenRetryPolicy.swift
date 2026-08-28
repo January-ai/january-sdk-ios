@@ -4,8 +4,9 @@ import Foundation
 ///
 /// `maximumAttempts` includes the initial attempt. The default performs the initial
 /// request plus up to eight retries with exponential backoff and jitter. This policy
-/// applies only to fetching a token from the app's backend; a January API operation
-/// is still replayed at most once after `token_expired`.
+/// applies only when the provider throws ``JanuaryTokenProviderError`` with
+/// `retryable` set to `true`; a January API operation is still replayed at most
+/// once after `token_expired`.
 public struct JanuaryTokenRetryPolicy: Hashable, Sendable {
     public static let `default` = JanuaryTokenRetryPolicy()
     public static let none = JanuaryTokenRetryPolicy(maximumAttempts: 1)

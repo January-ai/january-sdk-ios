@@ -12,7 +12,9 @@ The default `JanuaryTokenRetryPolicy` allows nine total provider calls. With zer
 
 The default adds ±20% jitter and caps the result at 8 seconds. `maximumAttempts` includes the initial call.
 
-Provider-thrown errors are retried. `CancellationError` stops immediately. A successfully returned but empty or nearly expired token fails validation without retrying.
+Only `JanuaryTokenProviderError` values with `retryable: true` are retried.
+Ordinary errors and `CancellationError` stop immediately. A successfully
+returned but empty or nearly expired token fails validation without retrying.
 
 ```swift
 let noProviderRetry = try JanuaryClient(

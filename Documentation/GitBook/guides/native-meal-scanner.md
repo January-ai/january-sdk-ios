@@ -1,7 +1,7 @@
 # Native meal scanner
 
 {% hint style="info" %}
-The ready-made camera and barcode UI is available on iOS only. The lower-level photo-scanning resource and image preparation helpers are available to both supported platforms.
+The January SDK is iOS-only and supports iOS 15 or later. The ready-made scanner uses native SwiftUI, UIKit, AVFoundation, and Vision APIs.
 {% endhint %}
 
 ## Add camera permission
@@ -47,6 +47,8 @@ struct ScannerHost: View {
 ```
 
 The meal result includes the orientation-normalized, aspect-preserving JPEG sent to January and the `FoodScan`. Barcode mode performs the barcode lookup and then hydrates the first match with `getFood` before returning it.
+
+With client-token authentication, January derives identity from the token. You do not need to pass `endUserID` to the scanner; if supplied, the SDK removes that header before sending the request.
 
 ## UIKit
 

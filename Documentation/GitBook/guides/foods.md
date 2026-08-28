@@ -1,12 +1,20 @@
 # Foods
 
-Use `client.foods` to autocomplete and search the food database, retrieve a full food record, look up a barcode, parse a meal description, or request alternatives.
+Use the `foods` resource to autocomplete and search the food database, retrieve a full food record, look up a barcode, parse a meal description, or request alternatives.
+
+When multiple requests belong to the same signed-in user, create a scoped client once and reuse it:
+
+```swift
+let user = client.forUser(PartnerUserID(rawValue: partnerUserID))
+```
+
+With client-token authentication, January derives the end-user identity from the token. The scoped context keeps call sites consistent, while the SDK removes the `x-end-user-id` header before sending the request.
 
 ## Autocomplete
 
 ```swift
-let suggestions = try await client.foods.autocomplete(
-    .init(query: "ban", limit: 8, endUserID: userID)
+let suggestions = try await user.foods.autocomplete(
+    .init(query: "ban", limit: 8)
 )
 ```
 
@@ -15,16 +23,24 @@ Selecting one should place its name in the search field and run `search`. Search
 results are discovery records; call `getFood(_:)` before opening
 a serving picker so the selected food contains every available serving.
 
+```swift
+if let suggestion = suggestions.items.first {
+    let results = try await user.foods.search(
+        .init(query: suggestion.name, limit: 10)
+    )
+    // Render `results`; do not open a serving picker from the suggestion itself.
+}
+```
+
 Autocomplete accepts only `.general` and `.branded`. Name search additionally supports `.recipe`.
 
 ## Search by name
 
 ```swift
-let results = try await client.foods.search(
+let results = try await user.foods.search(
     .init(
         query: "banana",
-        limit: 10,
-        endUserID: userID
+        limit: 10
     )
 )
 ```
@@ -36,8 +52,8 @@ Filter with `.general`, `.branded`, or `.recipe` through the request's `category
 ```swift
 guard let match = results.items.first else { return }
 
-let food = try await client.foods.getFood(
-    .init(foodID: match.id, endUserID: userID)
+let food = try await user.foods.getFood(
+    .init(foodID: match.id)
 )
 let portion = try food.portion(quantity: 1.5)
 
@@ -53,8 +69,8 @@ changes the serving or quantity.
 ## Look up a barcode
 
 ```swift
-let results = try await client.foods.lookupByBarcode(
-    .init(upc: "049000006346", endUserID: userID)
+let results = try await user.foods.lookupByBarcode(
+    .init(upc: "049000006346")
 )
 ```
 
@@ -63,10 +79,9 @@ The barcode must contain 6–14 ASCII digits.
 ## Parse natural language
 
 ```swift
-let meal = try await client.foods.searchByNaturalLanguage(
+let meal = try await user.foods.searchByNaturalLanguage(
     .init(
-        query: "one banana and a bowl of oatmeal",
-        endUserID: userID
+        query: "one banana and a bowl of oatmeal"
     )
 )
 ```
@@ -76,12 +91,11 @@ The response contains detections and, when available, total nutrients for the de
 ## Suggest alternatives
 
 ```swift
-let response = try await client.foods.suggestAlternatives(
+let response = try await user.foods.suggestAlternatives(
     .init(
         foodID: food.id,
         dietRestrictions: [.gluten],
-        dietPreferences: [.highProtein],
-        endUserID: userID
+        dietPreferences: [.highProtein]
     )
 )
 ```

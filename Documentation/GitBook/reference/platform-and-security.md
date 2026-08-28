@@ -11,6 +11,9 @@
 
 The repository demo uses the latest tab-bar APIs and targets iOS 26 independently of the SDK deployment target.
 
+The SDK supports iOS 15 and later only. It does not support macOS, Mac Catalyst,
+tvOS, watchOS, or visionOS.
+
 ## Credential handling
 
 * Keep January's server-side token-issuance credentials outside the app and SDK integration.

@@ -204,7 +204,7 @@ public struct JanuaryClient: Sendable {
         userAgent: String = SDKUserAgent.current,
         refreshLeeway: TimeInterval = 60,
         tokenRetryPolicy: JanuaryTokenRetryPolicy = .default,
-        now: @escaping @Sendable () -> Date = Date.init,
+        now: @escaping @Sendable () -> Date = { Date() },
         sleep: @escaping @Sendable (TimeInterval) async throws -> Void = { seconds in
             try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
         },

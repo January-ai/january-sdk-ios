@@ -1,4 +1,3 @@
-#if os(iOS)
 import Foundation
 import OSLog
 import SwiftUI
@@ -283,4 +282,3 @@ private extension JanuaryProcessedMealImage {
         return JanuaryProcessedMealImage(image: image, jpegData: data)
     }
 }
-#endif

@@ -11,37 +11,46 @@ private enum AppConfiguration {
     static var authentication: AuthenticationConfiguration {
         if let rawURL = environment["PARTNER_TOKEN_URL"], let url = URL(string: rawURL) {
             guard
-                let rawAPIBaseURL = environment["JANUARY_INTERNAL_API_BASE_URL"],
-                let apiBaseURL = URL(string: rawAPIBaseURL)
+                let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"],
+                !appSessionToken.isEmpty
             else {
                 return .invalid(
-                    "Set JANUARY_INTERNAL_API_BASE_URL when PARTNER_TOKEN_URL is configured."
-                )
-            }
-            let usesDevelopmentStandIn = url.host == "127.0.0.1" || url.host == "localhost"
-            let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"]
-            if !usesDevelopmentStandIn && (appSessionToken?.isEmpty ?? true) {
-                return .invalid(
-                    "Set PARTNER_APP_SESSION_TOKEN for a non-local partner token endpoint."
+                    "Set PARTNER_APP_SESSION_TOKEN when PARTNER_TOKEN_URL is configured."
                 )
             }
             return .clientToken(
                 partnerTokenURL: url,
-                apiBaseURL: apiBaseURL,
-                developmentEndUserID: usesDevelopmentStandIn ? endUserID : nil,
-                appSessionToken: appSessionToken
+                appSessionToken: appSessionToken,
+                endUserID: endUserID
             )
         }
-        return .developmentAPIKey(
-            environment["JANUARY_DEMO_API_KEY"] ?? "",
-            endUserID: endUserID
+
+#if DEBUG
+        if let apiKey = environment["JANUARY_DEMO_API_KEY"], !apiKey.isEmpty {
+            let ttlSeconds = environment["JANUARY_DEMO_TOKEN_TTL_SECONDS"]
+                .flatMap(Int.init) ?? 300
+            return .developmentClientToken(
+                apiKey,
+                endUserID: endUserID,
+                ttlSeconds: ttlSeconds
+            )
+        }
+#endif
+
+        return .invalid(
+            "Set PARTNER_TOKEN_URL and PARTNER_APP_SESSION_TOKEN. " +
+            "For a local Debug run, set JANUARY_DEMO_API_KEY instead."
         )
     }
 
     static var authenticationLabel: String {
-        environment["PARTNER_TOKEN_URL"] == nil
-            ? "Development API key"
-            : "Short-lived token provider"
+        if environment["PARTNER_TOKEN_URL"] != nil {
+            return "Partner backend token provider"
+        }
+        if environment["JANUARY_DEMO_API_KEY"] != nil {
+            return "Development client-token provider"
+        }
+        return "Not configured"
     }
 }
 
