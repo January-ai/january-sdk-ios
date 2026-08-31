@@ -1,3 +1,4 @@
+import Foundation
 import JanuaryPartnerTransport
 
 public struct RestaurantsResource: Sendable {
@@ -42,6 +43,29 @@ public struct RestaurantsResource: Sendable {
             case .ok(let response): return map(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            }
+        }
+    }
+
+    /// Loads one page of a restaurant's menu by its search-result ID.
+    public func getMenuItems(_ request: GetRestaurantMenuItemsRequest) async throws -> SearchRestaurantMenuItemsResponse {
+        guard request.restaurantID.range(of: "^[A-Za-z0-9_-]{1,256}$", options: .regularExpression) != nil,
+              (1...100).contains(request.limit), (0...2_147_483_647).contains(request.offset) else {
+            throw JanuaryError(category: .validation, message: "A restaurant id and valid menu pagination are required.")
+        }
+        return try await performTransportRequest {
+            let output = try await client.getRestaurantMenuItems(.init(
+                path: .init(restaurantId: request.restaurantID),
+                query: .init(limit: request.limit, offset: request.offset),
+                headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
+            ))
+            switch output {
+            case .ok(let response): return map(try response.body.json)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }

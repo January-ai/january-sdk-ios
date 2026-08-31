@@ -1,5 +1,15 @@
 import Foundation
 
+public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
+    public var restaurantID: String
+    public var limit: Int
+    public var offset: Int
+    public var endUserID: PartnerUserID?
+    public init(restaurantID: String, limit: Int = 100, offset: Int = 0, endUserID: PartnerUserID? = nil) {
+        self.restaurantID = restaurantID; self.limit = limit; self.offset = offset; self.endUserID = endUserID
+    }
+}
+
 public struct SearchRestaurantsRequest: Hashable, Sendable {
     public var query: String
     public var latitude: Double

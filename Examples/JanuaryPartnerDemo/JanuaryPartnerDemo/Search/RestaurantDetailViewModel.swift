@@ -13,7 +13,6 @@ final class RestaurantDetailViewModel: ObservableObject {
     private let longitude: Double
     private let radius: Double
     private let resultLimit: Int
-    private let menuQuery: String
     private let endUserID: PartnerUserID?
     private var hasLoaded = false
 
@@ -24,7 +23,6 @@ final class RestaurantDetailViewModel: ObservableObject {
         longitude: Double,
         radius: Double,
         resultLimit: Int,
-        menuQuery: String,
         endUserID: PartnerUserID?
     ) {
         self.client = client
@@ -33,7 +31,6 @@ final class RestaurantDetailViewModel: ObservableObject {
         self.longitude = longitude
         self.radius = radius
         self.resultLimit = resultLimit
-        self.menuQuery = menuQuery
         self.endUserID = endUserID
     }
 
@@ -57,25 +54,41 @@ final class RestaurantDetailViewModel: ObservableObject {
         error = nil
 
         do {
-            let response = try await client.restaurants.searchMenuItems(.init(
-                query: menuQuery,
-                latitude: latitude,
-                longitude: longitude,
-                radius: radius,
-                limit: resultLimit,
-                endUserID: endUserID
-            ))
-            let selectedRestaurantName = normalizedRestaurantName(restaurant.name)
-            menuItems = response.items.filter {
-                let itemRestaurantName = normalizedRestaurantName($0.restaurantName)
-                return itemRestaurantName.contains(selectedRestaurantName)
-                    || selectedRestaurantName.contains(itemRestaurantName)
+            do {
+                var items: [RestaurantMenuItem] = []
+                while true {
+                    let page = try await client.restaurants.getMenuItems(.init(
+                        restaurantID: restaurant.id, offset: items.count, endUserID: endUserID
+                    ))
+                    items.append(contentsOf: page.items)
+                    if page.items.isEmpty || items.count >= page.totalCount { break }
+                }
+                menuItems = items
+            } catch let failure as JanuaryError where isMissingRestaurantMenuRoute(failure) {
+                let page = try await client.restaurants.searchMenuItems(.init(
+                    query: restaurant.name,
+                    latitude: latitude,
+                    longitude: longitude,
+                    radius: radius,
+                    limit: min(max(resultLimit, 1), 100),
+                    endUserID: endUserID
+                ))
+                let selectedName = normalizedRestaurantName(restaurant.name)
+                menuItems = page.items.filter {
+                    normalizedRestaurantName($0.restaurantName) == selectedName
+                }
             }
         } catch {
             self.error = error
         }
 
         isLoading = false
+    }
+
+    private func isMissingRestaurantMenuRoute(_ error: JanuaryError) -> Bool {
+        error.httpStatus == 404
+            && error.message.contains("No v1.2 endpoint matches GET /v1.2/restaurants/")
+            && error.message.contains("/menu-items")
     }
 
     private func normalizedRestaurantName(_ value: String) -> String {

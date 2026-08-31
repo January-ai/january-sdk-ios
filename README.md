@@ -217,3 +217,15 @@ January SDK for iOS is available under the [Apache License 2.0](LICENSE).
 
 For integration support, use your January partner support channel. Report
 security issues through that private channel rather than a public issue.
+
+## Menu items by restaurant ID
+
+Use the ID of a `restaurant` search result to load its menu, independently of search text and location.
+
+```swift
+let page = try await client.restaurants.getMenuItems(.init(restaurantID: restaurant.id, limit: 100, offset: 0))
+```
+
+The response contains `items` and `totalCount` (`total_count` on the wire). Request subsequent pages by advancing `offset` by the number of items received, until it reaches the total or a page is empty. An unknown restaurant returns 404; an existing restaurant with no menu returns an empty list.
+
+This operation requires the backend restaurant-ID menu endpoint; deployment is pending for this unreleased change.

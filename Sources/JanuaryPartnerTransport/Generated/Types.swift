@@ -109,6 +109,7 @@ package protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1.2/glucose/predictions`.
     /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)`.
     func predictGlucose(_ input: Operations.PredictGlucose.Input) async throws -> Operations.PredictGlucose.Output
+    func getRestaurantMenuItems(_ input: Operations.GetRestaurantMenuItems.Input) async throws -> Operations.GetRestaurantMenuItems.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -7951,6 +7952,440 @@ package enum Operations {
             /// - Throws: An error if `self` is not `.`default``.
             /// - SeeAlso: `.`default``.
             package var `default`: Operations.PredictGlucose.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+}
+
+// Generated from the restaurant-id menu operation.
+extension Operations {
+    package enum GetRestaurantMenuItems {
+        package static let id: Swift.String = "getRestaurantMenuItems"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/path`.
+            package struct Path: Sendable, Hashable {
+                /// The id from a restaurant search result.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/path/restaurant_id`.
+                package var restaurantId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - restaurantId: The id from a restaurant search result.
+                package init(restaurantId: Swift.String) {
+                    self.restaurantId = restaurantId
+                }
+            }
+            package var path: Operations.GetRestaurantMenuItems.Input.Path
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/query`.
+            package struct Query: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/query/limit`.
+                package var limit: Swift.Int?
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/query/offset`.
+                package var offset: Swift.Int?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - limit:
+                ///   - offset:
+                package init(
+                    limit: Swift.Int? = nil,
+                    offset: Swift.Int? = nil
+                ) {
+                    self.limit = limit
+                    self.offset = offset
+                }
+            }
+            package var query: Operations.GetRestaurantMenuItems.Input.Query
+            /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/header/x-end-user-id`.
+                package var xEndUserId: Swift.String?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetRestaurantMenuItems.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - xEndUserId: Optional: your stable ID for the end user this request acts on behalf of. Opaque to January.
+                ///   - accept:
+                package init(
+                    xEndUserId: Swift.String? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetRestaurantMenuItems.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.xEndUserId = xEndUserId
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.GetRestaurantMenuItems.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - query:
+            ///   - headers:
+            package init(
+                path: Operations.GetRestaurantMenuItems.Input.Path,
+                query: Operations.GetRestaurantMenuItems.Input.Query = .init(),
+                headers: Operations.GetRestaurantMenuItems.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.SearchRestaurantMenuItemsResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.SearchRestaurantMenuItemsResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetRestaurantMenuItems.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetRestaurantMenuItems.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            ///
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetRestaurantMenuItems.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.GetRestaurantMenuItems.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetRestaurantMenuItems.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetRestaurantMenuItems.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// A parameter is missing or invalid; the message names the parameter and the accepted values.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetRestaurantMenuItems.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.GetRestaurantMenuItems.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetRestaurantMenuItems.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetRestaurantMenuItems.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// The Authorization header is missing or the API key is invalid.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetRestaurantMenuItems.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.GetRestaurantMenuItems.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/404/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetRestaurantMenuItems.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetRestaurantMenuItems.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// No restaurant exists with this id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.GetRestaurantMenuItems.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            package var notFound: Operations.GetRestaurantMenuItems.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying; present when the window is known.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.GetRestaurantMenuItems.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetRestaurantMenuItems.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.GetRestaurantMenuItems.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.GetRestaurantMenuItems.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// A rate limit was exceeded. When Retry-After is present, wait that many seconds; a per-day allowance resets with the day.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.GetRestaurantMenuItems.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.GetRestaurantMenuItems.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetRestaurantMenuItems.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetRestaurantMenuItems.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { message, code, docs_url }. Retry only rate_limited and the transient 5xx codes — never not_implemented.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.GetRestaurantMenuItems.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.GetRestaurantMenuItems.Output.Default {
                 get throws {
                     switch self {
                     case let .`default`(_, response):

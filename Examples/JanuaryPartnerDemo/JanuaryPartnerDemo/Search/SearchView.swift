@@ -285,7 +285,6 @@ struct SearchView: View {
                         longitude: longitude,
                         radius: radius,
                         resultLimit: restaurantResultLimit,
-                        menuQuery: query,
                         endUserID: AppFormatting.endUserID(endUserID)
                     )
                 } label: {
@@ -1175,8 +1174,10 @@ private struct MenuItemRow: View {
         HStack(spacing: 12) {
             NetworkImage(
                 url: item.photoURL,
-                placeholder: Image(systemName: "takeoutbag.and.cup.and.straw")
+                placeholder: Image(systemName: "fork.knife")
             )
+                .font(.system(size: 24))
+                .foregroundStyle(AppPalette.green)
                 .frame(width: 56, height: 56).background(AppPalette.control).clipShape(RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.name).font(.headline)
@@ -1201,7 +1202,6 @@ private struct RestaurantDetailView: View {
         longitude: Double,
         radius: Double,
         resultLimit: Int,
-        menuQuery: String,
         endUserID: PartnerUserID?
     ) {
         self.client = client
@@ -1214,7 +1214,6 @@ private struct RestaurantDetailView: View {
             longitude: longitude,
             radius: radius,
             resultLimit: resultLimit,
-            menuQuery: menuQuery,
             endUserID: endUserID
         ))
     }
@@ -1267,6 +1266,7 @@ private struct RestaurantDetailView: View {
                 Text("Loading menu")
                     .font(.headline)
                     .foregroundStyle(AppPalette.muted)
+                Spacer(minLength: 0)
             }
             .appCard()
         } else if model.menuItems.isEmpty, let menuError = model.error {
@@ -1326,7 +1326,7 @@ private struct RestaurantMenuItemDetailView: View {
                     .overlay {
                         NetworkImage(
                             url: item.photoURL,
-                            placeholder: Image(systemName: "takeoutbag.and.cup.and.straw"),
+                            placeholder: Image(systemName: "fork.knife"),
                             contentMode: .fit
                         )
                         .padding(18)
