@@ -35,14 +35,12 @@ jobs:
           test "$(swift package dump-package | jq '.dependencies | length')" = "0"
 
       - name: Build SDK for iOS
-        run: >-
-          xcodebuild
-          -scheme January
-          -skip-testing:JanuarySDKTests
-          -destination 'generic/platform=iOS'
-          -configuration Release
-          CODE_SIGNING_ALLOWED=NO
-          build
+        run: |
+          swift build \
+            --configuration release \
+            --triple arm64-apple-ios15.0 \
+            --sdk "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            --target January
 
   quality:
     name: Build and test Swift SDK
