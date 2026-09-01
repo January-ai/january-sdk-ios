@@ -29,7 +29,7 @@ rmSync(resultBundle, { recursive: true, force: true });
 execFileSync(
   "xcodebuild",
   [
-    "-scheme", "JanuarySDK",
+    "-scheme", "January",
     "-destination", `platform=iOS Simulator,id=${simulator.udid}`,
     "-enableCodeCoverage", "YES",
     "-resultBundlePath", resultBundle,
@@ -46,9 +46,9 @@ const report = JSON.parse(
     encoding: "utf8",
   }),
 );
-const target = report.targets.find((candidate) => candidate.name === "JanuarySDK");
+const target = report.targets.find((candidate) => candidate.name === "January");
 if (!target) {
-  throw new Error("JanuarySDK was not present in the iOS coverage report.");
+  throw new Error("January was not present in the iOS coverage report.");
 }
 
 // Camera presentation is validated by compiling and launching the example app;

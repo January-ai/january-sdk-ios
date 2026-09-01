@@ -38,6 +38,7 @@ jobs:
         run: >-
           xcodebuild
           -scheme January
+          -skip-testing:JanuarySDKTests
           -destination 'generic/platform=iOS'
           -configuration Release
           CODE_SIGNING_ALLOWED=NO
@@ -64,6 +65,9 @@ jobs:
 
       - name: Verify public authentication
         run: node scripts/check-public-authentication.mjs
+
+      - name: Validate README and GitBook
+        run: node scripts/check-documentation.mjs
 
       - name: Run package tests and enforce coverage
         run: node scripts/check-coverage.mjs

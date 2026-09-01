@@ -16,5 +16,6 @@ The January SDK for iOS is in Controlled Preview. See [Versioning and support](v
 * Food autocomplete, full-food hydration, and local portion calculations
 * Native photo/barcode scanner and image-preparation helpers
 * Typed imperial and metric height and weight values
+* Restaurant-menu lookup by restaurant ID, ready for use after the backend route is deployed
 
 During Controlled Preview, use the latest release documented on [Installation](../getting-started/installation.md) and review changes before updating.
