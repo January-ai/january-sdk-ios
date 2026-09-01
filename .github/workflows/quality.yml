@@ -40,6 +40,8 @@ jobs:
             --configuration release \
             --triple arm64-apple-ios15.0 \
             --sdk "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -Xswiftc -target \
+            -Xswiftc arm64-apple-ios15.0 \
             --target January
 
   quality:
