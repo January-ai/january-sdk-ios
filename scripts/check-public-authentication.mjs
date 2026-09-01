@@ -17,16 +17,16 @@ const developmentProviderSource = await readFile(
   "utf8",
 );
 
-if (!/@available\(\*, deprecated, message: "[^"]*Local testing only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(\s*developmentAPIKey:\s*String,\s*endUserID:\s*PartnerUserID/.test(clientSource)) {
-  throw new Error("The API-key initializer must remain public with an explicit local-testing deprecation warning that directs production users to JanuaryTokenProvider.");
+if (!/@available\(\*, unavailable, message: "[^"]*Development API-key authentication[^"]*JanuaryTokenProvider[^"]*"\)[\s\S]{0,80}public init\(\s*developmentAPIKey:\s*String,\s*endUserID:\s*String/.test(clientSource)) {
+  throw new Error("The API-key initializer must remain public in debug builds and explicitly unavailable in release builds with guidance to JanuaryTokenProvider.");
 }
 
 if (!/authenticationLogger\.warning/.test(clientSource) || !/developmentAPIKeyWarning/.test(clientSource)) {
   throw new Error("A nonempty development API key must emit a runtime warning without logging the key.");
 }
 
-if (!/@available\(\*, deprecated, message: "[^"]*Local debug testing only\.[^"]*JanuaryTokenProvider[^"]*"\)\s+public init\(\s*apiKey:\s*String,\s*endUserID:\s*PartnerUserID,\s*ttlSeconds:\s*Int\s*=\s*300/.test(developmentProviderSource)) {
-  throw new Error("The development token provider must remain explicitly deprecated and direct production users to a backend-backed JanuaryTokenProvider.");
+if (!/@available\(\*, unavailable, message: "[^"]*JanuaryDevelopmentTokenProvider[^"]*JanuaryTokenProvider[^"]*"\)[\s\S]{0,80}public init\(apiKey:\s*String\)/.test(developmentProviderSource)) {
+  throw new Error("The development token provider must remain public in debug builds and explicitly unavailable in release builds with guidance to a backend-backed JanuaryTokenProvider.");
 }
 
 if (!/https:\/\/partners\.january\.ai\/v1\.2\/auth\/client-tokens/.test(developmentProviderSource)) {

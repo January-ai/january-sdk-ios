@@ -43,6 +43,7 @@ All initializers resolve an omitted or blank timezone to
 | `foods` | `suggestAlternatives(_:)` | Find dietary alternatives |
 | `restaurants` | `search(_:)` | Find nearby restaurants |
 | `restaurants` | `searchMenuItems(_:)` | Find nearby menu items |
+| `restaurants` | `getMenuItems(_:)` | Load a restaurant's menu by its search-result ID |
 | `foodAnalysis` | `analyzePhoto(_:)` | Analyze a food image |
 | `foodAnalysis` | `analyzeDescription(_:)` | Analyze a meal description |
 | `foodAnalysis` | `correct(_:)` | Correct a scan with text feedback |

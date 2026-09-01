@@ -35,13 +35,14 @@ jobs:
           test "$(swift package dump-package | jq '.dependencies | length')" = "0"
 
       - name: Build SDK for iOS
-        run: >-
-          xcodebuild
-          -scheme January
-          -destination 'generic/platform=iOS'
-          -configuration Release
-          CODE_SIGNING_ALLOWED=NO
-          build
+        run: |
+          swift build \
+            --configuration release \
+            --triple arm64-apple-ios15.0 \
+            --sdk "$(xcrun --sdk iphoneos --show-sdk-path)" \
+            -Xswiftc -target \
+            -Xswiftc arm64-apple-ios15.0 \
+            --target January
 
   quality:
     name: Build and test Swift SDK
@@ -64,6 +65,9 @@ jobs:
 
       - name: Verify public authentication
         run: node scripts/check-public-authentication.mjs
+
+      - name: Validate README and GitBook
+        run: node scripts/check-documentation.mjs
 
       - name: Run package tests and enforce coverage
         run: node scripts/check-coverage.mjs

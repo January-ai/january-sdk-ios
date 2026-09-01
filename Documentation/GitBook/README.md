@@ -50,7 +50,7 @@ let results = try await january.foods.search(.init(query: "greek yogurt"))
 | --- | --- |
 | `JanuaryClient` | Configures authentication, optional user context, and all resources |
 | `foods` | Food discovery, hydration, barcode lookup, meal parsing, and alternatives |
-| `restaurants` | Nearby restaurant and menu-item search |
+| `restaurants` | Nearby restaurant search, menu-item search, and menu lookup by restaurant ID |
 | `foodAnalysis` | Meal-photo analysis and corrections |
 | `foodLogs` | Food-log CRUD operations |
 | `glucose` | Personalized glucose prediction |

@@ -18,3 +18,5 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add food discovery and hydration, restaurant search, native meal scanning,
   food logs, and glucose prediction resources.
 - Add the example iOS app and integration documentation.
+- Add typed, paginated restaurant-menu lookup by restaurant ID. The backend
+  route remains deployment-gated during Controlled Preview.

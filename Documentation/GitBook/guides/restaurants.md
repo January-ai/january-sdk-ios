@@ -45,12 +45,50 @@ let menuItems = try await client.restaurants.searchMenuItems(
 
 Menu-item results may include nutrition, serving choices, photos, restaurant names, and distance.
 
+The production OpenAPI document currently lists restaurant search only. Treat
+both menu-item search and restaurant-ID menu lookup as controlled-preview
+operations until January confirms their backend routes are deployed.
+
+## Load one restaurant's menu
+
+Use the ID returned by restaurant search to load that restaurant's menu without
+repeating the search text or location:
+
+```swift
+var offset = 0
+let limit = 100
+
+repeat {
+    let page = try await client.restaurants.getMenuItems(
+        .init(
+            restaurantID: restaurant.id,
+            limit: limit,
+            offset: offset
+        )
+    )
+
+    consume(page.items)
+    offset += page.items.count
+
+    if page.items.isEmpty || offset >= page.totalCount {
+        break
+    }
+} while true
+```
+
+An unknown restaurant returns `404`. An existing restaurant with no menu
+returns an empty `items` array. This operation is available in the SDK ahead of
+the backend route; do not enable the flow in production until January confirms
+that `/v1.2/restaurants/{restaurant_id}/menu-items` is deployed.
+
 ## Input limits
 
+* Restaurant ID: nonblank
 * Query: 1–256 characters
 * Latitude: −90 through 90
 * Longitude: −180 through 180
 * Radius: 1–17,000
 * Limit: 1–100
+* Menu offset: 0 or greater
 
 Coordinate values are decimal degrees, and radius is expressed in meters. Both request types default to `8_000` meters (approximately 5 miles) when `radius` is omitted. The current SDK accepts values from 1 through 17,000 meters.
