@@ -69,7 +69,9 @@ let results = try await january.foods.search(.init(query: "banana"))
 ```
 
 `JanuaryClient` exposes Foods, Restaurants, Photo Scanning, Food Logs, and
-Glucose. Recreate the client when the signed-in account changes.
+Glucose. ``VoiceCaptureSession`` provides local microphone capture and Apple
+Speech transcription without requiring a client. Recreate the client when the
+signed-in account changes.
 
 For a local end-to-end check, deploy the public
 [January token relay](https://github.com/January-ai/january-token-relay) and use
@@ -153,3 +155,10 @@ if let match = results.items.first {
 - ``FoodAnalysisResource``
 - ``FoodLogsResource``
 - ``GlucoseResource``
+
+### Voice capture
+
+- ``VoiceCaptureSession``
+- ``VoiceCaptureState``
+- ``VoiceCaptureResult``
+- ``VoiceCaptureError``

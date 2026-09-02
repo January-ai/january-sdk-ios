@@ -8,15 +8,23 @@ private enum AppConfiguration {
     // MARK: Configure the demo here
 
     private static let environment = ProcessInfo.processInfo.environment
+    private static let bundle = Bundle.main
+    private static let localDefaults = UserDefaults.standard
 
     // Recommended: connect the demo to your authenticated token endpoint.
     static let partnerTokenURL = environment["JANUARY_PARTNER_TOKEN_URL"].flatMap(URL.init(string:))
     static let partnerAppSessionToken = environment["JANUARY_PARTNER_SESSION_TOKEN"] ?? ""
 
     // Local Debug testing only. Never commit or ship a development API key.
-    static let developmentAPIKey = environment["JANUARY_API_KEY"] ?? ""
+    static let developmentAPIKey = environment["JANUARY_API_KEY"]
+        ?? bundle.object(forInfoDictionaryKey: "JanuaryDevelopmentAPIKey") as? String
+        ?? localDefaults.string(forKey: "JanuaryDevelopmentAPIKey")
+        ?? ""
 
-    static let endUserID = environment["JANUARY_END_USER_ID"] ?? "your-ios-user-id"
+    static let endUserID = environment["JANUARY_END_USER_ID"]
+        ?? bundle.object(forInfoDictionaryKey: "JanuaryEndUserID") as? String
+        ?? localDefaults.string(forKey: "JanuaryEndUserID")
+        ?? "your-ios-user-id"
 
     static var authentication: AuthenticationConfiguration {
         let sessionToken = partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines)

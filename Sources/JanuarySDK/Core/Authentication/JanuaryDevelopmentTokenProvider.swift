@@ -13,6 +13,14 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
         string: "https://partners.january.ai/v1.2/auth/client-tokens"
     )!
     private static let tokenTTLSeconds = 300
+    private static let tokenScopes = [
+        "foods:read",
+        "food_analysis:write",
+        "food_logs:read",
+        "food_logs:write",
+        "glucose:read",
+        "restaurants:read",
+    ]
     private static let logger = Logger(
         subsystem: "ai.january.sdk",
         category: "authentication"
@@ -96,7 +104,8 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(MintRequest(
             endUserID: normalizedEndUserID,
-            ttlSeconds: ttlSeconds
+            ttlSeconds: ttlSeconds,
+            scopes: Self.tokenScopes
         ))
 
         let data: Data
@@ -164,9 +173,11 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
 private struct MintRequest: Encodable {
     let endUserID: String
     let ttlSeconds: Int
+    let scopes: [String]
 
     private enum CodingKeys: String, CodingKey {
         case endUserID = "end_user_id"
         case ttlSeconds = "ttl_seconds"
+        case scopes
     }
 }

@@ -22,6 +22,7 @@
 * [Restaurants](guides/restaurants.md)
 * [Food analysis](guides/photo-scanning.md)
 * [Native food scanner](guides/native-meal-scanner.md)
+* [Voice capture](guides/voice-capture.md)
 * [Food logs](guides/food-logs.md)
 * [Glucose prediction](guides/glucose-prediction.md)
 

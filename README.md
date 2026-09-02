@@ -186,6 +186,24 @@ if let match = results.items.first {
 Search results are lightweight. Call `get` before presenting serving choices
 so the selected food contains every available serving.
 
+## Add voice input
+
+`VoiceCaptureSession` records microphone audio and transcribes it with Apple
+Speech. It is independent of authentication and can be used with search, chat,
+or any text input:
+
+```swift
+@StateObject private var voiceCapture = VoiceCaptureSession()
+
+try await voiceCapture.startRecording()
+let result = try await voiceCapture.stopAndTranscribe()
+searchText = result.transcript
+```
+
+Add `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription`
+to the host app. Observe the session's state, audio level, and duration to render
+your own recording UI. See [Voice capture](Documentation/GitBook/guides/voice-capture.md).
+
 ## Documentation
 
 - [Installation](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/installation)

@@ -68,13 +68,10 @@ final class AppModel: ObservableObject {
                     state = .setupRequired(nil)
                     return
                 }
-                let provider = try JanuaryDevelopmentTokenProvider(
-                    apiKey: normalizedAPIKey
-                )
                 client = try JanuaryClient(
+                    developmentAPIKey: normalizedAPIKey,
                     endUserID: endUserID,
-                    timezone: TimeZone(identifier: userSession.timezone) ?? .current,
-                    clientTokenProvider: provider
+                    timezone: TimeZone(identifier: userSession.timezone) ?? .current
                 )
                 isUsingDevelopmentAuthentication = true
 #else
