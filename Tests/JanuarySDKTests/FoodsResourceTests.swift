@@ -27,7 +27,7 @@ private actor FixtureTransport: ClientTransport {
         baseURL: URL,
         operationID: String
     ) async throws -> (HTTPResponse, HTTPBody?) {
-        let endUserName = HTTPField.Name("x-end-user-id")!
+        let endUserName = HTTPField.Name("January-End-User-ID")!
         capturedRequests.append(
             CapturedRequest(
                 operationID: operationID,
@@ -94,7 +94,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     let request = try #require(await transport.requests().first)
     #expect(request.operationID == "searchFoods")
     #expect(request.authorization == "Bearer fixture-api-key")
-    #expect(request.endUserID == "test-user-123")
+    #expect(request.endUserID == nil)
     #expect(request.userAgent?.hasPrefix("JanuarySDK/0.1.0-beta.1 ") == true)
     #expect(request.userAgent?.contains("Swift/6") == true)
     #expect(request.userAgent?.contains("Platform/") == true)
@@ -106,8 +106,8 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     )
     #expect(components.path == "/v1.2/foods")
     #expect(query["query"] == "banana")
-    #expect(query["category"] == "branded")
-    #expect(query["limit"] == "10.0")
+    #expect(query["type"] == "branded")
+    #expect(query["limit"] == "10")
 }
 
 @Test

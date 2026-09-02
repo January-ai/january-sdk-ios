@@ -92,16 +92,16 @@ public struct GlucoseImpact: RawRepresentable, Codable, Hashable, Sendable {
 }
 
 public struct GlucoseChart: Codable, Hashable, Sendable {
-    public var min: Double
-    public var max: Double
-    public init(min: Double, max: Double) { self.min = min; self.max = max }
+    public var min: Double?
+    public var max: Double?
+    public init(min: Double?, max: Double?) { self.min = min; self.max = max }
 }
 
 public struct GlucosePrediction: Codable, Hashable, Sendable {
     public var prediction: [GlucosePredictionPoint]
-    public var impact: GlucoseImpact
+    public var impact: GlucoseImpact?
     public var chart: GlucoseChart
-    public init(prediction: [GlucosePredictionPoint], impact: GlucoseImpact, chart: GlucoseChart) {
+    public init(prediction: [GlucosePredictionPoint], impact: GlucoseImpact?, chart: GlucoseChart) {
         self.prediction = prediction; self.impact = impact; self.chart = chart
     }
     public init(curve: [[Double]], scoring: GlucoseImpact, minimum: Double, maximum: Double) {
@@ -113,8 +113,8 @@ public struct GlucosePrediction: Codable, Hashable, Sendable {
         self.chart = GlucoseChart(min: minimum, max: maximum)
     }
     public var curve: [[Double]] { prediction.map { [$0.minutes, $0.value] } }
-    public var scoring: GlucoseImpact { impact }
-    public var minimum: Double { chart.min }
-    public var maximum: Double { chart.max }
+    public var scoring: GlucoseImpact? { impact }
+    public var minimum: Double? { chart.min }
+    public var maximum: Double? { chart.max }
     enum CodingKeys: String, CodingKey { case prediction, chart; case impact = "impact_score" }
 }

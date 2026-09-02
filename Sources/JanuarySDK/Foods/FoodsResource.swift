@@ -21,7 +21,7 @@ public struct FoodsResource: Sendable {
                 message: "Food autocomplete query must contain at most 64 characters."
             )
         }
-        guard request.limit.rounded() == request.limit, (1...20).contains(request.limit) else {
+        guard (1...20).contains(request.limit) else {
             throw JanuaryError(
                 category: .validation,
                 message: "Food autocomplete limit must be an integer between 1 and 20."
@@ -33,10 +33,9 @@ public struct FoodsResource: Sendable {
                 .init(
                     query: .init(
                         query: request.query,
-                        category: request.category.map(Components.Schemas.AutocompleteFoodCategory.init),
+                        _type: request.category.map(Components.Schemas.AutocompleteFoodCategory.init),
                         limit: request.limit
-                    ),
-                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
+                    )
                 )
             )
         }
@@ -50,12 +49,13 @@ public struct FoodsResource: Sendable {
                         name: $0.name,
                         brandName: $0.brandName,
                         imageURL: $0.imageUrl,
-                        nutrients: $0.nutrients.map(map)
+                        nutrients: map($0.nutrients)
                     )
                 }
             )
         case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
         case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+        case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
         case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
         case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
         }
@@ -69,8 +69,7 @@ public struct FoodsResource: Sendable {
         let output = try await performTransportRequest {
             try await client.getFood(
                 .init(
-                    path: .init(foodId: id.rawValue),
-                    headers: .init(xEndUserId: resolvedEndUserID(endUserID)?.rawValue)
+                    path: .init(foodId: id.rawValue)
                 )
             )
         }
@@ -78,6 +77,7 @@ public struct FoodsResource: Sendable {
         case .ok(let response): return map(try response.body.json)
         case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
         case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+        case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
         case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
         case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
         case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
@@ -102,10 +102,9 @@ public struct FoodsResource: Sendable {
         let input = Operations.SearchFoods.Input(
             query: .init(
                 query: request.query,
-                category: request.category.map(Components.Schemas.FoodCategory.init),
+                _type: request.category.map(Components.Schemas.FoodCategory.init),
                 limit: request.limit
-            ),
-            headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
+            )
         )
 
         return try await performTransportRequest {
@@ -126,14 +125,14 @@ public struct FoodsResource: Sendable {
         return try await performTransportRequest {
             let output = try await client.lookupFoodByBarcode(
                 .init(
-                    path: .init(upc: request.upc),
-                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue)
+                    path: .init(barcode: request.upc)
                 )
             )
             switch output {
-            case .ok(let response): return map(try response.body.json)
+            case .ok(let response): return FoodSearchResults(totalCount: 1, items: [map(try response.body.json)])
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
@@ -155,7 +154,6 @@ public struct FoodsResource: Sendable {
             let output = try await client.suggestFoodAlternatives(
                 .init(
                     path: .init(foodId: request.foodID.rawValue),
-                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue),
                     body: .json(transportBody)
                 )
             )
@@ -163,6 +161,7 @@ public struct FoodsResource: Sendable {
             case .ok(let response): return try ModelBridge.convert(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
@@ -178,6 +177,8 @@ public struct FoodsResource: Sendable {
             throw apiError(.validation, status: 400, response: try response.body.json)
         case .unauthorized(let response):
             throw apiError(.authentication, status: 401, response: try response.body.json)
+        case .forbidden(let response):
+            throw apiError(.authorization, status: 403, response: try response.body.json)
         case .tooManyRequests(let response):
             throw apiError(.rateLimited, status: 429, response: try response.body.json)
         case .default(let status, _):
@@ -191,7 +192,7 @@ public struct FoodsResource: Sendable {
 
     private func map(_ value: Components.Schemas.FoodSearchResults) -> FoodSearchResults {
         FoodSearchResults(
-            totalCount: value.totalCount,
+            totalCount: value.items.count,
             items: value.items.map(map)
         )
     }
@@ -200,6 +201,7 @@ public struct FoodsResource: Sendable {
         FoodSearchItem(
             id: FoodID(rawValue: item.id),
             name: item.name,
+            type: FoodCategory(rawValue: item._type.rawValue) ?? .generic,
             brandName: item.brandName,
             nutrients: map(item.nutrients),
             calories: item.nutrients.calories?.value,
@@ -217,9 +219,10 @@ public struct FoodsResource: Sendable {
             glycemicIndex: item.glycemicIndex,
             glycemicLoad: item.glycemicLoad,
             photoURL: item.imageUrl,
+            barcode: item.barcode,
             servings: item.servings.map { serving in
                 ServingOption(
-                    id: ServingID(rawValue: serving.id),
+                    id: serving.id.map { ServingID(rawValue: $0) },
                     quantity: serving.quantity,
                     unit: serving.unit,
                     scalingFactor: serving.scalingFactor ?? 1.0,
@@ -260,7 +263,7 @@ private struct SuggestBody: Codable {
 private extension Components.Schemas.FoodCategory {
     init(_ category: FoodCategory) {
         switch category {
-        case .general: self = .general
+        case .generic: self = .generic
         case .branded: self = .branded
         case .recipe: self = .recipe
         }
@@ -270,7 +273,7 @@ private extension Components.Schemas.FoodCategory {
 private extension Components.Schemas.AutocompleteFoodCategory {
     init(_ category: AutocompleteFoodCategory) {
         switch category {
-        case .general: self = .general
+        case .generic: self = .generic
         case .branded: self = .branded
         }
     }

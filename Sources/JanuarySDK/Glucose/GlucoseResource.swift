@@ -13,7 +13,14 @@ public struct GlucoseResource: Sendable {
         try await performTransportRequest {
             let body = Components.Schemas.PredictGlucoseBody(
                 userProfile: try ModelBridge.convert(request.userProfile),
-                foods: try ModelBridge.convert(request.foods),
+                timezone: userContext?.timezone.identifier ?? request.timezone?.identifier ?? "UTC",
+                foods: request.foods.map {
+                    .init(
+                        foodId: $0.id.rawValue,
+                        servingId: $0.serving.id.rawValue,
+                        quantity: $0.serving.quantity
+                    )
+                },
                 startTime: request.startTime,
                 cgmData: try request.cgmData?.map {
                     .init(timestamp: try parseTimestamp($0.timestamp), value: $0.value)
@@ -21,24 +28,28 @@ public struct GlucoseResource: Sendable {
                 consumedFoods: try request.consumedFoods?.map {
                     .init(
                         timestamp: try parseTimestamp($0.timestamp),
-                        id: $0.id.rawValue,
-                        serving: .init(id: $0.serving.id.rawValue, quantity: $0.serving.quantity)
+                        foodId: $0.id.rawValue,
+                        servingId: $0.serving.id.rawValue,
+                        quantity: $0.serving.quantity
                     )
                 }
             )
             let output = try await client.predictGlucose(
                 .init(
-                    headers: .init(
-                        xEndUserId: (userContext?.endUserID ?? request.endUserID)?.rawValue,
-                        xEndUserTimezone: userContext?.timezone.identifier ?? request.timezone?.identifier
-                    ),
                     body: .json(body)
                 )
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response):
+                let value = try response.body.json
+                return GlucosePrediction(
+                    prediction: value.points.map { .init(minutes: Double($0.minutes), value: $0.value) },
+                    impact: value.impactScore.map { GlucoseImpact(rawValue: $0) },
+                    chart: .init(min: value.chart.min, max: value.chart.max)
+                )
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)

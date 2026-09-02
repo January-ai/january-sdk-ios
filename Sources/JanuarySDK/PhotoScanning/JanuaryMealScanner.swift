@@ -219,11 +219,11 @@ public struct JanuaryFoodScannerView: View {
                 throw ScannerLookupError.noBarcodeMatch
             }
             foodScannerWorkflowLogger.info(
-                "Barcode match selected; foodID=\(match.id.rawValue), name=\(match.name, privacy: .public)"
+                "Barcode match selected; foodID=\(match.id.rawValue), name=\(match.name ?? "", privacy: .public)"
             )
             let food = try await client.foods.get(id: match.id, endUserID: endUserID)
             foodScannerWorkflowLogger.info(
-                "Full food response received; foodID=\(food.id.rawValue), name=\(food.name, privacy: .public), servings=\(food.servings.count)"
+                "Full food response received; foodID=\(food.id.rawValue), name=\(food.name ?? "", privacy: .public), servings=\(food.servings.count)"
             )
             processingLabel = nil
             onResult(.barcode(value: barcode, food: food))

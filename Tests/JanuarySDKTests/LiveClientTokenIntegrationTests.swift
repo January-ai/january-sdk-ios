@@ -101,5 +101,5 @@ func livePartnerTokenProviderCallsPartnerBackendAndJanuaryWhenConfigured() async
     )
 
     #expect(!results.items.isEmpty)
-    #expect(results.items[0].name.lowercased().contains("banana"))
+    #expect(results.items[0].name?.lowercased().contains("banana") == true)
 }

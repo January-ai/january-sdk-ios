@@ -13,6 +13,19 @@
 		A10000000000000000000006 /* AppTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* AppTabView.swift */; };
 		A10000000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* Assets.xcassets */; };
 		A10000000000000000000008 /* January in Frameworks */ = {isa = PBXBuildFile; productRef = A90000000000000000000001 /* January */; };
+		A10000000000000000000011 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* SettingsView.swift */; };
+		A10000000000000000000012 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* SearchView.swift */; };
+		A10000000000000000000013 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* ScanView.swift */; };
+		A10000000000000000000014 /* FoodLogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* FoodLogsView.swift */; };
+		A10000000000000000000015 /* GlucoseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* GlucoseView.swift */; };
+		A10000000000000000000016 /* burger-and-fries.png in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* burger-and-fries.png */; };
+		A10000000000000000000017 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* LocationProvider.swift */; };
+		A10000000000000000000018 /* RestaurantDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018 /* RestaurantDetailViewModel.swift */; };
+		A10000000000000000000019 /* UserSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000019 /* UserSession.swift */; };
+		A10000000000000000000020 /* FoodLogTimeSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000020 /* FoodLogTimeSpan.swift */; };
+		A10000000000000000000021 /* HeightInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021 /* HeightInput.swift */; };
+		A10000000000000000000022 /* WeightInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000022 /* WeightInput.swift */; };
+		A77EF8793B286E40CF735AC3 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A0B241DC7D9BF53E3294606 /* Foundation.framework */; };
 		B10000000000000000000001 /* AppFoundations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* AppFoundations.swift */; };
 		B10000000000000000000002 /* ScreenShell.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* ScreenShell.swift */; };
 		B10000000000000000000003 /* LoadingSpinner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* LoadingSpinner.swift */; };
@@ -23,7 +36,6 @@
 		B10000000000000000000008 /* SearchField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* SearchField.swift */; };
 		B10000000000000000000009 /* EmptyStateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* EmptyStateCard.swift */; };
 		B1000000000000000000000A /* AppNavigationBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000A /* AppNavigationBar.swift */; };
-		B10000000000000000000017 /* AppNavigationButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000017 /* AppNavigationButton.swift */; };
 		B1000000000000000000000B /* ErrorNotice.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000B /* ErrorNotice.swift */; };
 		B1000000000000000000000C /* FoodRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000C /* FoodRow.swift */; };
 		B1000000000000000000000D /* MacroGrid.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2000000000000000000000D /* MacroGrid.swift */; };
@@ -34,34 +46,49 @@
 		B10000000000000000000014 /* QuantityButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000014 /* QuantityButtonStyle.swift */; };
 		B10000000000000000000015 /* ChipButtonStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000015 /* ChipButtonStyle.swift */; };
 		B10000000000000000000016 /* NetworkImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000016 /* NetworkImage.swift */; };
+		B10000000000000000000017 /* AppNavigationButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000017 /* AppNavigationButton.swift */; };
 		B10000000000000000000018 /* WorkflowGuideCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000018 /* WorkflowGuideCard.swift */; };
 		B10000000000000000000019 /* FoodLogUserCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000019 /* FoodLogUserCard.swift */; };
-		A10000000000000000000011 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000011 /* SettingsView.swift */; };
-		A10000000000000000000012 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000012 /* SearchView.swift */; };
-		A10000000000000000000013 /* ScanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000013 /* ScanView.swift */; };
-		A10000000000000000000014 /* FoodLogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* FoodLogsView.swift */; };
-		A10000000000000000000015 /* GlucoseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* GlucoseView.swift */; };
-		A10000000000000000000021 /* HeightInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000021 /* HeightInput.swift */; };
-		A10000000000000000000022 /* WeightInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000022 /* WeightInput.swift */; };
-		A10000000000000000000016 /* burger-and-fries.png in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* burger-and-fries.png */; };
-		A10000000000000000000017 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* LocationProvider.swift */; };
-		A10000000000000000000018 /* RestaurantDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018 /* RestaurantDetailViewModel.swift */; };
-		A10000000000000000000019 /* UserSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000019 /* UserSession.swift */; };
-		A10000000000000000000020 /* FoodLogTimeSpan.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000020 /* FoodLogTimeSpan.swift */; };
 		B10000000000000000000020 /* FoodLogTimeSpanPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000020 /* FoodLogTimeSpanPicker.swift */; };
 		B10000000000000000000021 /* EndAlignedNumberField.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000021 /* EndAlignedNumberField.swift */; };
 		C10000000000000000000001 /* ScanPhotoInstructions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000001 /* ScanPhotoInstructions.swift */; };
 		C10000000000000000000002 /* ScanImagePreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = C20000000000000000000002 /* ScanImagePreview.swift */; };
 		D10000000000000000000001 /* PartnerBackendTokenProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000001 /* PartnerBackendTokenProvider.swift */; };
+		D38633D94AD66C6767DEE93C /* RestaurantMenuUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 587698E8907CB85F0CC6C218 /* RestaurantMenuUITests.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		7474A9DC80D061A991B16DA6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A70000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000001;
+			remoteInfo = JanuaryPartnerDemo;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		587698E8907CB85F0CC6C218 /* RestaurantMenuUITests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RestaurantMenuUITests.swift; sourceTree = "<group>"; };
+		6559564A917E96E83CA044A2 /* JanuaryPartnerDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = JanuaryPartnerDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7A0B241DC7D9BF53E3294606 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		A20000000000000000000001 /* JanuaryPartnerDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JanuaryPartnerDemoApp.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		A20000000000000000000004 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* AppTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTabView.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A20000000000000000000008 /* JanuaryPartnerDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = JanuaryPartnerDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000012 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		A20000000000000000000013 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
+		A20000000000000000000014 /* FoodLogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000015 /* GlucoseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseView.swift; sourceTree = "<group>"; };
+		A20000000000000000000016 /* burger-and-fries.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "burger-and-fries.png"; path = "../../../Tests/JanuarySDKTests/Fixtures/PhotoScanning/burger-and-fries.png"; sourceTree = "<group>"; };
+		A20000000000000000000017 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
+		A20000000000000000000018 /* RestaurantDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantDetailViewModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000019 /* UserSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSession.swift; sourceTree = "<group>"; };
+		A20000000000000000000020 /* FoodLogTimeSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogTimeSpan.swift; sourceTree = "<group>"; };
+		A20000000000000000000021 /* HeightInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightInput.swift; sourceTree = "<group>"; };
+		A20000000000000000000022 /* WeightInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightInput.swift; sourceTree = "<group>"; };
 		B20000000000000000000001 /* AppFoundations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppFoundations.swift; sourceTree = "<group>"; };
 		B20000000000000000000002 /* ScreenShell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenShell.swift; sourceTree = "<group>"; };
 		B20000000000000000000003 /* LoadingSpinner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingSpinner.swift; sourceTree = "<group>"; };
@@ -72,7 +99,6 @@
 		B20000000000000000000008 /* SearchField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchField.swift; sourceTree = "<group>"; };
 		B20000000000000000000009 /* EmptyStateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateCard.swift; sourceTree = "<group>"; };
 		B2000000000000000000000A /* AppNavigationBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationBar.swift; sourceTree = "<group>"; };
-		B20000000000000000000017 /* AppNavigationButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationButton.swift; sourceTree = "<group>"; };
 		B2000000000000000000000B /* ErrorNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorNotice.swift; sourceTree = "<group>"; };
 		B2000000000000000000000C /* FoodRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodRow.swift; sourceTree = "<group>"; };
 		B2000000000000000000000D /* MacroGrid.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroGrid.swift; sourceTree = "<group>"; };
@@ -83,20 +109,9 @@
 		B20000000000000000000014 /* QuantityButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuantityButtonStyle.swift; sourceTree = "<group>"; };
 		B20000000000000000000015 /* ChipButtonStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChipButtonStyle.swift; sourceTree = "<group>"; };
 		B20000000000000000000016 /* NetworkImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkImage.swift; sourceTree = "<group>"; };
+		B20000000000000000000017 /* AppNavigationButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppNavigationButton.swift; sourceTree = "<group>"; };
 		B20000000000000000000018 /* WorkflowGuideCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkflowGuideCard.swift; sourceTree = "<group>"; };
 		B20000000000000000000019 /* FoodLogUserCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogUserCard.swift; sourceTree = "<group>"; };
-		A20000000000000000000011 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		A20000000000000000000012 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
-		A20000000000000000000013 /* ScanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanView.swift; sourceTree = "<group>"; };
-		A20000000000000000000014 /* FoodLogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogsView.swift; sourceTree = "<group>"; };
-		A20000000000000000000015 /* GlucoseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseView.swift; sourceTree = "<group>"; };
-		A20000000000000000000021 /* HeightInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeightInput.swift; sourceTree = "<group>"; };
-		A20000000000000000000022 /* WeightInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightInput.swift; sourceTree = "<group>"; };
-		A20000000000000000000016 /* burger-and-fries.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "burger-and-fries.png"; path = "../../../Tests/JanuarySDKTests/Fixtures/PhotoScanning/burger-and-fries.png"; sourceTree = "<group>"; };
-		A20000000000000000000017 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
-		A20000000000000000000018 /* RestaurantDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantDetailViewModel.swift; sourceTree = "<group>"; };
-		A20000000000000000000019 /* UserSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSession.swift; sourceTree = "<group>"; };
-		A20000000000000000000020 /* FoodLogTimeSpan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogTimeSpan.swift; sourceTree = "<group>"; };
 		B20000000000000000000020 /* FoodLogTimeSpanPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogTimeSpanPicker.swift; sourceTree = "<group>"; };
 		B20000000000000000000021 /* EndAlignedNumberField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndAlignedNumberField.swift; sourceTree = "<group>"; };
 		C20000000000000000000001 /* ScanPhotoInstructions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanPhotoInstructions.swift; sourceTree = "<group>"; };
@@ -105,6 +120,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		7C82BB151A0764720C2F2702 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A77EF8793B286E40CF735AC3 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A30000000000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -116,11 +139,30 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		73B1BD185DF362E2FBE9A4F2 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				7A0B241DC7D9BF53E3294606 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		962A707EB86C9BCCF342E15E /* JanuaryPartnerDemoUITests */ = {
+			isa = PBXGroup;
+			children = (
+				587698E8907CB85F0CC6C218 /* RestaurantMenuUITests.swift */,
+			);
+			name = JanuaryPartnerDemoUITests;
+			path = JanuaryPartnerDemoUITests;
+			sourceTree = "<group>";
+		};
 		A40000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
 				A40000000000000000000002 /* JanuaryPartnerDemo */,
 				A40000000000000000000008 /* Products */,
+				A4D6CAE32369B6EC371D65B1 /* Frameworks */,
+				962A707EB86C9BCCF342E15E /* JanuaryPartnerDemoUITests */,
 			);
 			sourceTree = "<group>";
 		};
@@ -162,36 +204,6 @@
 			path = Core;
 			sourceTree = "<group>";
 		};
-		B40000000000000000000001 /* DesignSystem */ = {
-			isa = PBXGroup;
-			children = (
-				B20000000000000000000001 /* AppFoundations.swift */,
-				B20000000000000000000002 /* ScreenShell.swift */,
-				B20000000000000000000010 /* CardStyle.swift */,
-				B20000000000000000000003 /* LoadingSpinner.swift */,
-				B20000000000000000000004 /* PrimaryButton.swift */,
-				B20000000000000000000005 /* SecondaryButtonStyle.swift */,
-				B20000000000000000000013 /* OutlinedButtonStyle.swift */,
-				B20000000000000000000014 /* QuantityButtonStyle.swift */,
-				B20000000000000000000015 /* ChipButtonStyle.swift */,
-				B20000000000000000000006 /* SegmentedControl.swift */,
-				B20000000000000000000007 /* SectionLabel.swift */,
-				B20000000000000000000008 /* SearchField.swift */,
-				B20000000000000000000009 /* EmptyStateCard.swift */,
-				B2000000000000000000000A /* AppNavigationBar.swift */,
-				B20000000000000000000017 /* AppNavigationButton.swift */,
-				B2000000000000000000000B /* ErrorNotice.swift */,
-				B20000000000000000000016 /* NetworkImage.swift */,
-				B20000000000000000000018 /* WorkflowGuideCard.swift */,
-				B2000000000000000000000C /* FoodRow.swift */,
-				B2000000000000000000000D /* MacroGrid.swift */,
-				B2000000000000000000000E /* NutritionList.swift */,
-				B2000000000000000000000F /* PredictionChart.swift */,
-				B20000000000000000000021 /* EndAlignedNumberField.swift */,
-			);
-			path = DesignSystem;
-			sourceTree = "<group>";
-		};
 		A40000000000000000000005 /* Root */ = {
 			isa = PBXGroup;
 			children = (
@@ -213,6 +225,7 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000008 /* JanuaryPartnerDemo.app */,
+				6559564A917E96E83CA044A2 /* JanuaryPartnerDemoUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -256,9 +269,65 @@
 			path = Glucose;
 			sourceTree = "<group>";
 		};
+		A4D6CAE32369B6EC371D65B1 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				73B1BD185DF362E2FBE9A4F2 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000001 /* DesignSystem */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000001 /* AppFoundations.swift */,
+				B20000000000000000000002 /* ScreenShell.swift */,
+				B20000000000000000000010 /* CardStyle.swift */,
+				B20000000000000000000003 /* LoadingSpinner.swift */,
+				B20000000000000000000004 /* PrimaryButton.swift */,
+				B20000000000000000000005 /* SecondaryButtonStyle.swift */,
+				B20000000000000000000013 /* OutlinedButtonStyle.swift */,
+				B20000000000000000000014 /* QuantityButtonStyle.swift */,
+				B20000000000000000000015 /* ChipButtonStyle.swift */,
+				B20000000000000000000006 /* SegmentedControl.swift */,
+				B20000000000000000000007 /* SectionLabel.swift */,
+				B20000000000000000000008 /* SearchField.swift */,
+				B20000000000000000000009 /* EmptyStateCard.swift */,
+				B2000000000000000000000A /* AppNavigationBar.swift */,
+				B20000000000000000000017 /* AppNavigationButton.swift */,
+				B2000000000000000000000B /* ErrorNotice.swift */,
+				B20000000000000000000016 /* NetworkImage.swift */,
+				B20000000000000000000018 /* WorkflowGuideCard.swift */,
+				B2000000000000000000000C /* FoodRow.swift */,
+				B2000000000000000000000D /* MacroGrid.swift */,
+				B2000000000000000000000E /* NutritionList.swift */,
+				B2000000000000000000000F /* PredictionChart.swift */,
+				B20000000000000000000021 /* EndAlignedNumberField.swift */,
+			);
+			path = DesignSystem;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		917A60CC77FCFA5964210261 /* JanuaryPartnerDemoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 552CCAC8A2AE1C3F41180976 /* Build configuration list for PBXNativeTarget "JanuaryPartnerDemoUITests" */;
+			buildPhases = (
+				80D21044C3CA37B8B6B715EF /* Sources */,
+				7C82BB151A0764720C2F2702 /* Frameworks */,
+				F794479C0D4BCB0CCB3B0004 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7DE70CD7BB6C047AE91780EF /* PBXTargetDependency */,
+			);
+			name = JanuaryPartnerDemoUITests;
+			productName = JanuaryPartnerDemoUITests;
+			productReference = 6559564A917E96E83CA044A2 /* JanuaryPartnerDemoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		A50000000000000000000001 /* JanuaryPartnerDemo */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A80000000000000000000002 /* Build configuration list for PBXNativeTarget "JanuaryPartnerDemo" */;
@@ -304,13 +373,14 @@
 			);
 			mainGroup = A40000000000000000000001;
 			packageReferences = (
-				A90000000000000000000002 /* XCLocalSwiftPackageReference "../.." */,
+				A90000000000000000000002 /* XCLocalSwiftPackageReference ".." */,
 			);
 			productRefGroup = A40000000000000000000008 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				A50000000000000000000001 /* JanuaryPartnerDemo */,
+				917A60CC77FCFA5964210261 /* JanuaryPartnerDemoUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -325,9 +395,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F794479C0D4BCB0CCB3B0004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		80D21044C3CA37B8B6B715EF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D38633D94AD66C6767DEE93C /* RestaurantMenuUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A60000000000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -380,7 +465,30 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		7DE70CD7BB6C047AE91780EF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = JanuaryPartnerDemo;
+			target = A50000000000000000000001 /* JanuaryPartnerDemo */;
+			targetProxy = 7474A9DC80D061A991B16DA6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		9D8D693FF0C838EF3DD256BE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.january.partner.demo.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = JanuaryPartnerDemo;
+			};
+			name = Debug;
+		};
 		A80000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -485,10 +593,10 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a meal photo for January to analyze.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.january.partner.demo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -519,10 +627,10 @@
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a meal photo for January to analyze.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.january.partner.demo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -536,9 +644,33 @@
 			};
 			name = Release;
 		};
+		C65EAFB1DBEF670FAC6B4110 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ai.january.partner.demo.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 6.0;
+				TEST_TARGET_NAME = JanuaryPartnerDemo;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		552CCAC8A2AE1C3F41180976 /* Build configuration list for PBXNativeTarget "JanuaryPartnerDemoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C65EAFB1DBEF670FAC6B4110 /* Release */,
+				9D8D693FF0C838EF3DD256BE /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A80000000000000000000001 /* Build configuration list for PBXProject "JanuaryPartnerDemo" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -560,7 +692,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		A90000000000000000000002 /* XCLocalSwiftPackageReference "../.." */ = {
+		A90000000000000000000002 /* XCLocalSwiftPackageReference ".." */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../..;
 		};
@@ -569,7 +701,7 @@
 /* Begin XCSwiftPackageProductDependency section */
 		A90000000000000000000001 /* January */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = A90000000000000000000002 /* XCLocalSwiftPackageReference "../.." */;
+			package = A90000000000000000000002 /* XCLocalSwiftPackageReference ".." */;
 			productName = January;
 		};
 /* End XCSwiftPackageProductDependency section */

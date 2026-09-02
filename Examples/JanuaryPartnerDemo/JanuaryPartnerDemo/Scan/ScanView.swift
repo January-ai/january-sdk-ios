@@ -310,7 +310,8 @@ private struct ScanResultContent: View {
             Text(result.mealName ?? "Meal analysis")
                 .font(.system(.largeTitle, design: .serif, weight: .bold))
 
-            if let nutrients = result.totalNutrients {
+            let nutrients = result.totalNutrients
+            Group {
                 MacroGrid(
                     calories: nutrients.calories?.value,
                     protein: nutrients.protein?.value,
@@ -326,7 +327,7 @@ private struct ScanResultContent: View {
                 ForEach(Array(result.detections.enumerated()), id: \.offset) { _, detection in
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text(detection.food.name).font(.headline)
+                            Text(detection.food.name ?? "Unnamed food").font(.headline)
                             Spacer()
                             if let confidence = detection.confidenceScore {
                                 Text("\(confidence.rawValue.capitalized) confidence")
@@ -403,7 +404,7 @@ private struct CorrectScanView: View {
                         SectionLabel("Current detections")
                         VStack(alignment: .leading, spacing: 0) {
                             ForEach(Array(scan.detections.enumerated()), id: \.offset) { index, detection in
-                                Text(detection.food.name)
+                                Text(detection.food.name ?? "Unnamed food")
                                     .font(AppTypography.bodyStrong)
                                     .foregroundStyle(AppPalette.ink)
                                     .padding(.vertical, AppSpacing.rowVertical)

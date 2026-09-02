@@ -161,7 +161,7 @@ func fixedClientTokenIsInjected() async throws {
 }
 
 @Test
-func developmentAPIKeyClientBindsEveryRequestToItsConfiguredEndUser() async throws {
+func developmentAPIKeyClientDoesNotSendTheRemovedLegacyUserHeader() async throws {
     let transport = AuthenticationTransport()
     let configuredUserID = PartnerUserID(rawValue: "configured-user")
     let client = try JanuaryClient(
@@ -178,7 +178,7 @@ func developmentAPIKeyClientBindsEveryRequestToItsConfiguredEndUser() async thro
     ))
 
     #expect(await transport.requests().map(\.authorization) == ["Bearer fixture-api-key"])
-    #expect(await transport.requests().map(\.endUserID) == ["configured-user"])
+    #expect(await transport.requests().map(\.endUserID) == [nil])
 }
 
 @Test

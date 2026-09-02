@@ -1,19 +1,19 @@
 /// A serving option returned with a food.
 public struct ServingOption: Codable, Hashable, Sendable {
-    public var id: ServingID
-    public var quantity: Double
-    public var unit: String
+    public var id: ServingID?
+    public var quantity: Double?
+    public var unit: String?
     public var scalingFactor: Double
     public var weightGrams: Double?
-    public var isPrimary: Bool
+    public var isPrimary: Bool?
 
     public init(
-        id: ServingID,
-        quantity: Double,
-        unit: String,
+        id: ServingID?,
+        quantity: Double?,
+        unit: String?,
         scalingFactor: Double,
         weightGrams: Double? = nil,
-        isPrimary: Bool
+        isPrimary: Bool?
     ) {
         self.id = id
         self.quantity = quantity
@@ -34,11 +34,11 @@ public struct ServingOption: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(ServingID.self, forKey: .id)
-        quantity = try container.decode(Double.self, forKey: .quantity)
-        unit = try container.decode(String.self, forKey: .unit)
+        id = try container.decodeIfPresent(ServingID.self, forKey: .id)
+        quantity = try container.decodeIfPresent(Double.self, forKey: .quantity)
+        unit = try container.decodeIfPresent(String.self, forKey: .unit)
         scalingFactor = try container.decodeIfPresent(Double.self, forKey: .scalingFactor) ?? 1.0
         weightGrams = try container.decodeIfPresent(Double.self, forKey: .weightGrams)
-        isPrimary = try container.decode(Bool.self, forKey: .isPrimary)
+        isPrimary = try container.decodeIfPresent(Bool.self, forKey: .isPrimary)
     }
 }

@@ -1,7 +1,7 @@
 {
-  "total_count": 1,
   "items": [{
-    "id": 84222716,
+    "id": "84222716",
+    "type": "branded",
     "name": "Banana",
     "brand_name": "One",
     "nutrients": {
@@ -21,6 +21,7 @@
     "glycemic_index": 34.9,
     "glycemic_load": 5.2,
     "image_url": null,
-    "servings": [{"id":67943292,"quantity":1,"unit":"bar","scaling_factor":1,"weight_grams":60,"is_primary":true}]
+    "barcode": "012345678905",
+    "servings": [{"id":"67943292","quantity":1,"unit":"bar","scaling_factor":1,"weight_grams":60,"is_primary":true}]
   }]
 }

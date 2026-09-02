@@ -60,22 +60,39 @@ final class RestaurantDetailViewModel: ObservableObject {
                     let page = try await client.restaurants.getMenuItems(.init(
                         restaurantID: restaurant.id, offset: items.count, endUserID: endUserID
                     ))
-                    items.append(contentsOf: page.items)
-                    if page.items.isEmpty || items.count >= page.totalCount { break }
+                    items.append(contentsOf: page.items.enumerated().map { index, entry in
+                        RestaurantMenuItem(
+                            id: entry.id ?? "menu-\(items.count + index)",
+                            name: entry.name,
+                            restaurantName: restaurant.name,
+                            calories: entry.calories,
+                            protein: entry.protein,
+                            carbohydrates: entry.carbohydrates,
+                            netCarbohydrates: entry.netCarbohydrates,
+                            totalFat: entry.totalFat,
+                            fiber: entry.fiber,
+                            totalSugars: entry.totalSugars,
+                            addedSugars: entry.addedSugars,
+                            glycemicIndex: entry.glycemicIndex,
+                            glycemicLoad: entry.glycemicLoad,
+                            servings: entry.servings
+                        )
+                    })
+                    if page.items.count < 100 { break }
                 }
                 menuItems = items
-            } catch let failure as JanuaryError where isMissingRestaurantMenuRoute(failure) {
+            } catch let failure as JanuaryError where isRestaurantMenuUnavailable(failure) {
                 let page = try await client.restaurants.searchMenuItems(.init(
-                    query: restaurant.name,
+                    query: restaurant.name ?? "Restaurant",
                     latitude: latitude,
                     longitude: longitude,
                     radius: radius,
                     limit: min(max(resultLimit, 1), 100),
                     endUserID: endUserID
                 ))
-                let selectedName = normalizedRestaurantName(restaurant.name)
+                let selectedName = normalizedRestaurantName(restaurant.name ?? "Restaurant")
                 menuItems = page.items.filter {
-                    normalizedRestaurantName($0.restaurantName) == selectedName
+                    normalizedRestaurantName($0.restaurantName ?? "") == selectedName
                 }
             }
         } catch {
@@ -85,10 +102,8 @@ final class RestaurantDetailViewModel: ObservableObject {
         isLoading = false
     }
 
-    private func isMissingRestaurantMenuRoute(_ error: JanuaryError) -> Bool {
+    private func isRestaurantMenuUnavailable(_ error: JanuaryError) -> Bool {
         error.httpStatus == 404
-            && error.message.contains("No v1.2 endpoint matches GET /v1.2/restaurants/")
-            && error.message.contains("/menu-items")
     }
 
     private func normalizedRestaurantName(_ value: String) -> String {

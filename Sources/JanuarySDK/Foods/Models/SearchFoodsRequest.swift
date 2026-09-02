@@ -2,13 +2,13 @@
 public struct SearchFoodsRequest: Hashable, Sendable {
     public var query: String
     public var category: FoodCategory?
-    public var limit: Double
+    public var limit: Int
     public var endUserID: PartnerUserID?
 
     public init(
         query: String,
         category: FoodCategory? = nil,
-        limit: Double = 10,
+        limit: Int = 10,
         endUserID: PartnerUserID? = nil
     ) {
         self.query = query

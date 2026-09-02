@@ -63,8 +63,9 @@ struct SearchView: View {
 
                         if !foodSuggestions.isEmpty {
                             FoodSuggestionList(items: foodSuggestions) { suggestion in
-                                autocompleteSuppressedQuery = suggestion.name
-                                query = suggestion.name
+                                guard let suggestionName = suggestion.name else { return }
+                                autocompleteSuppressedQuery = suggestionName
+                                query = suggestionName
                                 foodSuggestions = []
                                 Task { await submit() }
                             }
@@ -116,7 +117,7 @@ struct SearchView: View {
 
     private var autocompleteTaskID: String {
         let categoryValue = switch category {
-        case .general: "general"
+        case .generic: "generic"
         case .branded: "branded"
         case .recipe: "recipe"
         case nil: "all"
@@ -138,7 +139,7 @@ struct SearchView: View {
 
     private var autocompleteCategory: AutocompleteFoodCategory? {
         switch category {
-        case .general: .general
+        case .generic: .generic
         case .branded: .branded
         case .recipe, nil: nil
         }
@@ -168,7 +169,7 @@ struct SearchView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
                     categoryChip("All", category: nil)
-                    categoryChip("General", category: .general)
+                    categoryChip("General", category: .generic)
                     categoryChip("Branded", category: .branded)
                 }
                 HStack(spacing: 8) {
@@ -360,7 +361,7 @@ struct SearchView: View {
             if scope == .foods {
                 switch foodMode {
                 case .name:
-                    foodResults = try await client.foods.search(.init(query: value, category: category, limit: Double(foodResultLimit), endUserID: userID)).items
+                    foodResults = try await client.foods.search(.init(query: value, category: category, limit: foodResultLimit, endUserID: userID)).items
                 case .meal:
                     naturalResult = try await client.foodAnalysis.analyzeDescription(.init(query: value, endUserID: userID))
                 case .barcode:
@@ -434,7 +435,7 @@ struct FoodSuggestionList: View {
                 Button { onSelect(suggestion) } label: {
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(suggestion.name)
+                            Text(suggestion.name ?? "Unnamed food")
                                 .font(.body.weight(.medium))
                                 .foregroundStyle(AppPalette.ink)
                                 .multilineTextAlignment(.leading)
@@ -485,18 +486,17 @@ private struct NaturalMealResultView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Meal nutrition").font(.system(.title2, design: .serif, weight: .semibold))
-            if let nutrients = result.totalNutrients {
-                MacroGrid(
-                    calories: nutrients.calories?.value,
-                    protein: nutrients.protein?.value,
-                    carbohydrates: nutrients.carbohydrates?.value,
-                    fat: nutrients.totalFat?.value
-                )
-                .appCard()
-            }
+            let nutrients = result.totalNutrients
+            MacroGrid(
+                calories: nutrients.calories?.value,
+                protein: nutrients.protein?.value,
+                carbohydrates: nutrients.carbohydrates?.value,
+                fat: nutrients.totalFat?.value
+            )
+            .appCard()
             ForEach(Array(result.detections.enumerated()), id: \.offset) { _, detection in
                 VStack(alignment: .leading, spacing: 10) {
-                    Text(detection.food.name).font(.headline)
+                    Text(detection.food.name ?? "Unnamed food").font(.headline)
                     if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
                     MacroGrid(
                         calories: detection.food.nutrients.calories?.value,
@@ -524,9 +524,9 @@ struct FoodDetailView: View {
 
     init(client: JanuaryClient, food: FoodSearchItem, endUserID: PartnerUserID?) {
         self.client = client; self.food = food; self.endUserID = endUserID
-        let initialServing = food.servings.first(where: \.isPrimary) ?? food.servings.first
+        let initialServing = food.servings.first(where: { $0.isPrimary == true }) ?? food.servings.first
         _detailFood = State(initialValue: food)
-        _selectedServingID = State(initialValue: initialServing?.id ?? ServingID(rawValue: 0))
+        _selectedServingID = State(initialValue: initialServing?.id ?? ServingID(rawValue: "0"))
         _quantity = State(initialValue: initialServing?.quantity ?? 1)
     }
 
@@ -550,7 +550,7 @@ struct FoodDetailView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(detailFood.name).font(.system(.largeTitle, design: .serif, weight: .bold))
+                    Text(detailFood.name ?? "Unnamed food").font(.system(.largeTitle, design: .serif, weight: .bold))
                     if let brand = detailFood.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
                 }
 
@@ -559,8 +559,8 @@ struct FoodDetailView: View {
                         Menu {
                             ForEach(detailFood.servings, id: \.id) { serving in
                                 Button {
-                                    selectedServingID = serving.id
-                                    quantity = serving.quantity
+                                    if let servingID = serving.id { selectedServingID = servingID }
+                                    quantity = serving.quantity ?? 1
                                 } label: {
                                     if serving.id == selectedServingID {
                                         Label(servingLabel(serving), systemImage: "checkmark")
@@ -650,7 +650,7 @@ struct FoodDetailView: View {
                 FoodGlucoseSheet(
                     client: client,
                     foodID: detailFood.id,
-                    foodName: detailFood.name,
+                    foodName: detailFood.name ?? "Unnamed food",
                     serving: selectedServing,
                     quantity: quantity,
                     endUserID: endUserID
@@ -670,7 +670,7 @@ struct FoodDetailView: View {
     }
 
     private func servingLabel(_ serving: ServingOption) -> String {
-        var parts = [serving.unit]
+        var parts = [serving.unit ?? "serving"]
         if let grams = serving.weightGrams {
             parts.append("\(grams.formatted(.number.precision(.fractionLength(0...1)))) g")
         }
@@ -682,10 +682,10 @@ struct FoodDetailView: View {
         do {
             let fullFood = try await client.foods.get(id: food.id, endUserID: endUserID)
             detailFood = fullFood
-            let initialServing = fullFood.servings.first(where: \.isPrimary) ?? fullFood.servings.first
-            if let initialServing {
-                selectedServingID = initialServing.id
-                quantity = initialServing.quantity
+            let initialServing = fullFood.servings.first(where: { $0.isPrimary == true }) ?? fullFood.servings.first
+            if let initialServing, let servingID = initialServing.id {
+                selectedServingID = servingID
+                quantity = initialServing.quantity ?? 1
             }
             detailLoadError = nil
         } catch {
@@ -794,9 +794,9 @@ private struct FoodGlucoseSheet: View {
         }
 
         HStack {
-            Label(impactLabel(prediction.scoring), systemImage: "waveform.path.ecg")
+            Label(prediction.scoring.map(impactLabel) ?? "Unknown impact", systemImage: "waveform.path.ecg")
                 .font(.headline)
-                .foregroundStyle(impactColor(prediction.scoring))
+                .foregroundStyle(prediction.scoring.map(impactColor) ?? AppPalette.muted)
             Spacer()
             Text("Estimated impact")
                 .font(.subheadline)
@@ -860,6 +860,7 @@ private struct FoodGlucoseSheet: View {
 
     @MainActor
     private func predict() async {
+        guard let servingID = serving.id else { return }
         isLoading = true
         error = nil
         do {
@@ -867,7 +868,7 @@ private struct FoodGlucoseSheet: View {
                 userProfile: profile,
                 foods: [FoodSelection(
                     id: foodID,
-                    serving: ServingSelection(id: serving.id, quantity: quantity)
+                    serving: ServingSelection(id: servingID, quantity: quantity)
                 )],
                 startTime: .now,
                 endUserID: endUserID,
@@ -915,7 +916,7 @@ private struct AlternativesView: View {
                             Label("Personalized suggestions", systemImage: "leaf.fill")
                                 .font(AppTypography.eyebrow)
                                 .foregroundStyle(AppPalette.green)
-                            Text(food.name)
+                            Text(food.name ?? "Unnamed food")
                                 .font(AppTypography.sheetTitle)
                                 .foregroundStyle(AppPalette.ink)
                             Text("Choose any dietary needs that should shape January’s recommendations.")
@@ -954,18 +955,18 @@ private struct AlternativesView: View {
                             } else {
                                 SectionLabel("Suggestions · \(result.alternatives.count)")
                                 ForEach(Array(result.alternatives.enumerated()), id: \.offset) { _, alternative in
-                                    let loadedFood = alternative.food.id.flatMap { alternativeDetails[$0] }
-                                    let detailFood = loadedFood ?? alternativeDetailFood(alternative.food)
+                                    let loadedFood = alternative.id.flatMap { alternativeDetails[$0] }
+                                    let detailFood = loadedFood ?? alternativeDetailFood(alternative)
                                     Group {
                                         if let detailFood {
                                             NavigationLink {
                                                 FoodDetailView(client: client, food: detailFood, endUserID: endUserID)
                                             } label: {
-                                                AlternativeFoodRow(food: alternative.food, photoURL: detailFood.photoURL, isInteractive: true)
+                                                AlternativeFoodRow(food: alternative, photoURL: detailFood.photoURL, isInteractive: true)
                                             }
                                             .buttonStyle(.plain)
                                         } else {
-                                            AlternativeFoodRow(food: alternative.food, photoURL: nil, isInteractive: false)
+                                            AlternativeFoodRow(food: alternative, photoURL: nil, isInteractive: false)
                                         }
                                     }
                                     .appCard()
@@ -1004,7 +1005,7 @@ private struct AlternativesView: View {
 
     @MainActor
     private func loadAlternativeDetails(_ response: SuggestFoodAlternativesResponse) async {
-        let ids = Set(response.alternatives.compactMap(\.food.id))
+        let ids = Set(response.alternatives.compactMap(\.id))
         await withTaskGroup(of: (FoodID, FoodSearchItem)?.self) { group in
             for id in ids {
                 group.addTask {
@@ -1042,7 +1043,7 @@ private struct AlternativeFoodRow: View {
 
             VStack(alignment: .leading, spacing: 7) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(food.name)
+                    Text(food.name ?? "Unnamed food")
                         .font(.headline)
                         .foregroundStyle(AppPalette.ink)
                     if let brand = food.brandName, !brand.isEmpty {
@@ -1159,7 +1160,7 @@ private struct RestaurantRow: View {
         HStack {
             Image(systemName: "fork.knife.circle.fill").font(.title).foregroundStyle(AppPalette.green)
             VStack(alignment: .leading, spacing: 4) {
-                Text(restaurant.name).font(.headline)
+                Text(restaurant.name ?? "Restaurant").font(.headline)
                 Text([restaurant.city, restaurant.distance.map { "\(($0 / 1609.344).formatted(.number.precision(.fractionLength(1)))) mi" }].compactMap { $0 }.joined(separator: " · "))
                     .font(.subheadline).foregroundStyle(AppPalette.muted)
             }
@@ -1180,8 +1181,8 @@ private struct MenuItemRow: View {
                 .foregroundStyle(AppPalette.green)
                 .frame(width: 56, height: 56).background(AppPalette.control).clipShape(RoundedRectangle(cornerRadius: 14))
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.name).font(.headline)
-                Text(item.restaurantName).foregroundStyle(AppPalette.muted)
+                Text(item.name ?? "Unnamed menu item").font(.headline)
+                Text(item.restaurantName ?? "Restaurant").foregroundStyle(AppPalette.muted)
                 if let calories = item.calories { Text("\(calories.formatted(.number.precision(.fractionLength(0)))) cal").font(.caption) }
             }
             Spacer(); Image(systemName: "chevron.right").foregroundStyle(.tertiary)
@@ -1222,7 +1223,7 @@ private struct RestaurantDetailView: View {
         ScrollView {
             ScreenShell {
                 VStack(alignment: .leading, spacing: 20) {
-                    Text(restaurant.name)
+                    Text(restaurant.name ?? "Restaurant")
                         .font(.system(.largeTitle, design: .serif, weight: .bold))
                         .foregroundStyle(AppPalette.ink)
 
@@ -1311,7 +1312,7 @@ private struct RestaurantMenuItemDetailView: View {
         self.client = client
         self.item = item
         self.endUserID = endUserID
-        let initialServing = item.servings.first(where: \.isPrimary) ?? item.servings.first
+        let initialServing = item.servings.first(where: { $0.isPrimary == true }) ?? item.servings.first
         _selectedServingID = State(initialValue: initialServing?.id)
         _quantity = State(initialValue: initialServing?.quantity ?? 1)
     }
@@ -1335,8 +1336,8 @@ private struct RestaurantMenuItemDetailView: View {
                     }
                     .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
 
-                Text(item.name).font(.system(.largeTitle, design: .serif, weight: .bold))
-                Text(item.restaurantName).foregroundStyle(AppPalette.muted)
+                Text(item.name ?? "Unnamed menu item").font(.system(.largeTitle, design: .serif, weight: .bold))
+                Text(item.restaurantName ?? "Restaurant").foregroundStyle(AppPalette.muted)
                 MacroGrid(calories: item.calories, protein: item.protein, carbohydrates: item.carbohydrates, fat: item.totalFat).appCard()
                 NutritionList(rows: menuItemNutrients(item)).appCard()
                 if !item.servings.isEmpty {
@@ -1346,7 +1347,7 @@ private struct RestaurantMenuItemDetailView: View {
                             ForEach(item.servings, id: \.id) { serving in
                                 Button {
                                     selectedServingID = serving.id
-                                    quantity = serving.quantity
+                                    quantity = serving.quantity ?? 1
                                 } label: {
                                     if serving.id == selectedServingID {
                                         Label(servingLabel(serving), systemImage: "checkmark")
@@ -1397,7 +1398,7 @@ private struct RestaurantMenuItemDetailView: View {
                 FoodGlucoseSheet(
                     client: client,
                     foodID: glucoseFoodID,
-                    foodName: item.name,
+                    foodName: item.name ?? "Unnamed menu item",
                     serving: selectedServing,
                     quantity: quantity,
                     endUserID: endUserID
@@ -1409,7 +1410,7 @@ private struct RestaurantMenuItemDetailView: View {
     }
 
     private var glucoseFoodID: FoodID? {
-        Int64(item.id).map(FoodID.init(rawValue:))
+        FoodID(rawValue: item.id)
     }
 
     private var selectedServing: ServingOption? {
@@ -1417,7 +1418,7 @@ private struct RestaurantMenuItemDetailView: View {
     }
 
     private func servingLabel(_ serving: ServingOption) -> String {
-        var parts = [serving.unit]
+        var parts = [serving.unit ?? "serving"]
         if let grams = serving.weightGrams {
             parts.append("\(grams.formatted(.number.precision(.fractionLength(0...1)))) g")
         }

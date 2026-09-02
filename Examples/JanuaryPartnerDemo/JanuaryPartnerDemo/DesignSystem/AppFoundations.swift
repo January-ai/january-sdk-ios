@@ -57,7 +57,10 @@ struct SelectedFood: Identifiable, Hashable {
     var quantity: Double
 
     var selection: FoodSelection {
-        FoodSelection(id: food.id, serving: ServingSelection(id: serving.id, quantity: quantity))
+        guard let servingID = serving.id else {
+            preconditionFailure("Selected foods must have a serving ID.")
+        }
+        return FoodSelection(id: food.id, serving: ServingSelection(id: servingID, quantity: quantity))
     }
 }
 

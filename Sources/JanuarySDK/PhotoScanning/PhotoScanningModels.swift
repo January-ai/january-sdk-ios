@@ -22,9 +22,7 @@ public struct ScanFoodPhotoRequest: Hashable, Sendable {
 }
 
 public enum ConfidenceScore: String, Codable, Hashable, Sendable, CaseIterable {
-    case high
-    case medium
-    case low
+    case high, medium, low
 }
 
 public struct FoodDetection: Codable, Hashable, Sendable {
@@ -49,21 +47,38 @@ public struct PhotoScanGlucoseImpact: Codable, Hashable, Sendable {
 
 public struct FoodScan: Codable, Hashable, Sendable {
     public var mealName: String?
-    public var totalNutrients: CompleteScanNutritionFacts?
+    public var totalNutrients: CompleteScanNutritionFacts
     public var detections: [FoodDetection]
+    @available(*, deprecated, message: "Glucose impact is no longer returned by food analysis.")
     public var glucoseImpact: PhotoScanGlucoseImpact?
-    public init(mealName: String? = nil, totalNutrients: CompleteScanNutritionFacts? = nil, detections: [FoodDetection] = [], glucoseImpact: PhotoScanGlucoseImpact? = nil) {
-        self.mealName = mealName; self.totalNutrients = totalNutrients; self.detections = detections; self.glucoseImpact = glucoseImpact
+    public init(
+        mealName: String? = nil,
+        totalNutrients: CompleteScanNutritionFacts = .init(),
+        detections: [FoodDetection] = [],
+        glucoseImpact: PhotoScanGlucoseImpact? = nil
+    ) {
+        self.mealName = mealName; self.totalNutrients = totalNutrients
+        self.detections = detections; self.glucoseImpact = glucoseImpact
     }
-    enum CodingKeys: String, CodingKey { case detections; case mealName = "meal_name"; case totalNutrients = "total_nutrients"; case glucoseImpact = "glucose_impact" }
+    enum CodingKeys: String, CodingKey {
+        case detections; case mealName = "meal_name"; case totalNutrients = "total_nutrients"
+        case glucoseImpact = "glucose_impact"
+    }
 }
 
 public struct CorrectPhotoScanRequest: Hashable, Sendable {
-    public var mealName: String?
-    public var detections: [FoodDetection]
-    public var userInput: String
+    public var analysis: FoodScan
+    public var instruction: String
     public var endUserID: PartnerUserID?
+    public init(analysis: FoodScan, instruction: String, endUserID: PartnerUserID? = nil) {
+        self.analysis = analysis; self.instruction = instruction; self.endUserID = endUserID
+    }
+    @available(*, deprecated, message: "Pass the complete prior analysis and an instruction.")
     public init(mealName: String? = nil, detections: [FoodDetection], userInput: String, endUserID: PartnerUserID? = nil) {
-        self.mealName = mealName; self.detections = detections; self.userInput = userInput; self.endUserID = endUserID
+        self.init(
+            analysis: FoodScan(mealName: mealName, totalNutrients: .init(), detections: detections),
+            instruction: userInput,
+            endUserID: endUserID
+        )
     }
 }
