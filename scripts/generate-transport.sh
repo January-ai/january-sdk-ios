@@ -9,10 +9,13 @@ destination_root="$repository_root/Sources/JanuaryPartnerTransport/Generated"
 lock_path="${JANUARY_CONTRACT_LOCK:-$repository_root/.january-internal/sdk-contract.lock.json}"
 generator_openapi="$generator_root/Sources/JanuaryPartnerTransport/openapi.yaml"
 working_directory="$(mktemp -d)"
+generator_openapi_backup="$working_directory/openapi.yaml"
+
+cp "$generator_openapi" "$generator_openapi_backup"
 
 cleanup() {
+    cp "$generator_openapi_backup" "$generator_openapi"
     rm -rf "$working_directory" "$generated_root"
-    rm -f "$generator_openapi"
 }
 trap cleanup EXIT
 
@@ -71,8 +74,10 @@ if (schemaStart >= 0) {
 }
 
 const servingStart = source.indexOf("    ServingOption:\n");
-const servingEnd = source.indexOf("\n    FoodSearchItem:\n", servingStart);
-if (servingStart < 0 || servingEnd < 0) throw new Error("ServingOption schema was not found.");
+if (servingStart < 0) throw new Error("ServingOption schema was not found.");
+const servingRemainder = source.slice(servingStart + 1);
+const nextServingSchema = servingRemainder.search(/^    [A-Za-z0-9_]+:\n/m);
+const servingEnd = nextServingSchema < 0 ? source.length : servingStart + 1 + nextServingSchema;
 const servingSchema = source.slice(servingStart, servingEnd);
 const requiredScalingFactor = "        - scaling_factor\n";
 if (servingSchema.includes(requiredScalingFactor)) {
