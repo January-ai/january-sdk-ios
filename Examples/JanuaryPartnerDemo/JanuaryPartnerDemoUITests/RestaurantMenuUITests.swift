@@ -97,6 +97,27 @@ final class RestaurantMenuUITests: XCTestCase {
         }
     }
 
+    func testMealDescriptionShowsGlucosePredictionAndResets() {
+        let description = app.segmentedControls.buttons["Description"]
+        XCTAssertTrue(description.waitForExistence(timeout: 5), app.debugDescription)
+        description.tap()
+
+        let search = app.textFields["Describe what was eaten"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5), app.debugDescription)
+        search.tap()
+        search.typeText("pizza and pepper")
+        tap("Parse meal")
+        wait("Meal nutrition")
+        tap("Show glucose prediction")
+        wait("Medium impact")
+        attachScreenshot("meal-description-glucose")
+
+        tap("Analyze another meal")
+        XCTAssertFalse(app.staticTexts["Meal nutrition"].exists)
+        XCTAssertEqual(search.value as? String, "Describe what was eaten")
+        attachScreenshot("meal-description-reset")
+    }
+
     func testPhotoScanCorrectionAndRetry() async throws {
         tab("Scan")
         tap("Sample meal")
