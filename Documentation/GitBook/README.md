@@ -2,10 +2,6 @@
 
 Build food discovery, nutrition, meal logging, and glucose-prediction experiences with native Swift models and `async`/`await` APIs.
 
-{% hint style="warning" %}
-**Controlled Preview:** the Swift repository is private. Installation currently requires GitHub access granted by January. The SDK is not yet anonymously installable as a public package.
-{% endhint %}
-
 ## What you can build
 
 * Autocomplete, food search, barcode lookup, and full serving hydration
@@ -22,7 +18,7 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 | SDK build tools | Xcode 15 or later and Swift 5.9 or later |
 | Runtime dependencies | None |
 | Demo app | Xcode 26 and an iOS 26 simulator or device, independently of the SDK requirements |
-| Repository | GitHub access granted by January during Controlled Preview |
+| Distribution | Swift Package Manager using versioned repository releases |
 | Production integration | A partner-controlled backend that issues short-lived January client tokens |
 
 ## Start here
