@@ -112,12 +112,12 @@ struct GlucoseView: View {
                                 Divider()
                                 HStack(spacing: 10) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.food.name)
+                                        Text(item.food.name ?? "Unnamed food")
                                             .font(AppTypography.bodyStrong)
                                             .foregroundStyle(AppPalette.ink)
                                         Picker("Serving", selection: $item.serving) {
                                             ForEach(item.food.servings, id: \.id) { serving in
-                                                Text("\(serving.quantity.formatted()) \(serving.unit)").tag(serving)
+                                                Text("\((serving.quantity ?? 1).formatted()) \(serving.unit ?? "serving")").tag(serving)
                                             }
                                         }
                                         .labelsHidden()
@@ -323,9 +323,9 @@ private struct GlucoseResultView: View {
                         ForEach(Array(foods.enumerated()), id: \.element.id) { index, food in
                             HStack(alignment: .firstTextBaseline) {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(food.food.name)
+                                    Text(food.food.name ?? "Unnamed food")
                                         .font(AppTypography.bodyStrong)
-                                    Text("\(food.serving.quantity.formatted()) \(food.serving.unit) · quantity \(food.quantity.formatted())")
+                                    Text("\((food.serving.quantity ?? 1).formatted()) \(food.serving.unit ?? "serving") · quantity \(food.quantity.formatted())")
                                         .font(.system(size: 14))
                                         .foregroundStyle(AppPalette.muted)
                                 }
@@ -418,7 +418,7 @@ private struct GlucoseResultView: View {
         if prediction.scoring == .lowImpact { return "Low impact" }
         if prediction.scoring == .mediumImpact { return "Medium impact" }
         if prediction.scoring == .highImpact { return "High impact" }
-        return prediction.scoring.rawValue.capitalized
+        return prediction.scoring?.rawValue.capitalized ?? "Unknown impact"
     }
     private var chartColor: Color {
         prediction.scoring == .lowImpact ? AppPalette.green : AppPalette.rust

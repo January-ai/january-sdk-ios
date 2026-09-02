@@ -1,6 +1,6 @@
 /// Food categories supported by autocomplete.
 public enum AutocompleteFoodCategory: String, Codable, Hashable, Sendable {
-    case general
+    case generic
     case branded
 }
 
@@ -8,13 +8,13 @@ public enum AutocompleteFoodCategory: String, Codable, Hashable, Sendable {
 public struct AutocompleteFoodsRequest: Hashable, Sendable {
     public var query: String
     public var category: AutocompleteFoodCategory?
-    public var limit: Double
+    public var limit: Int
     public var endUserID: PartnerUserID?
 
     public init(
         query: String,
         category: AutocompleteFoodCategory? = nil,
-        limit: Double = 8,
+        limit: Int = 8,
         endUserID: PartnerUserID? = nil
     ) {
         self.query = query
@@ -27,14 +27,14 @@ public struct AutocompleteFoodsRequest: Hashable, Sendable {
 /// A lightweight food match returned while a user types.
 public struct FoodSuggestion: Codable, Hashable, Sendable {
     public var id: FoodID
-    public var name: String
+    public var name: String?
     public var brandName: String?
     public var imageURL: String?
     public var nutrients: NutritionFacts?
 
     public init(
         id: FoodID,
-        name: String,
+        name: String?,
         brandName: String? = nil,
         imageURL: String? = nil,
         nutrients: NutritionFacts? = nil
@@ -45,6 +45,11 @@ public struct FoodSuggestion: Codable, Hashable, Sendable {
         self.imageURL = imageURL
         self.nutrients = nutrients
     }
+}
+
+public extension AutocompleteFoodCategory {
+    @available(*, deprecated, renamed: "generic")
+    static var general: Self { .generic }
 }
 
 /// Food matches returned by autocomplete.

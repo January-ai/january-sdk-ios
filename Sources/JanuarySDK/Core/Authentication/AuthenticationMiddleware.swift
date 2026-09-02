@@ -24,12 +24,12 @@ struct AuthenticationMiddleware: ClientMiddleware {
         next: @Sendable (HTTPRequest, HTTPBody?, URL) async throws -> (HTTPResponse, HTTPBody?)
     ) async throws -> (HTTPResponse, HTTPBody?) {
         switch source {
-        case .developmentAPIKey(let apiKey, let endUserID):
+        case .developmentAPIKey(let apiKey, _):
             return try await next(
                 authenticatedRequest(
                     request,
                     bearerToken: apiKey,
-                    forcedEndUserID: endUserID
+                    omitEndUserID: true
                 ),
                 body,
                 baseURL

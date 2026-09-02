@@ -41,13 +41,13 @@ public enum RestaurantResultType: String, Codable, Hashable, Sendable { case res
 public struct Restaurant: Codable, Hashable, Sendable {
     public var type: RestaurantResultType
     public var id: String
-    public var name: String
+    public var name: String?
     public var isChain: Bool?
     public var distance: Double?
     public var city: String?
     public var address1: String?
     public var address2: String?
-    public init(type: RestaurantResultType, id: String, name: String, isChain: Bool? = nil, distance: Double? = nil, city: String? = nil, address1: String? = nil, address2: String? = nil) {
+    public init(type: RestaurantResultType, id: String, name: String?, isChain: Bool? = nil, distance: Double? = nil, city: String? = nil, address1: String? = nil, address2: String? = nil) {
         self.type = type; self.id = id; self.name = name; self.isChain = isChain; self.distance = distance
         self.city = city; self.address1 = address1; self.address2 = address2
     }
@@ -64,8 +64,8 @@ public struct SearchRestaurantsResponse: Codable, Hashable, Sendable {
 public struct RestaurantMenuItem: Codable, Hashable, Sendable {
     public var type: String
     public var id: String
-    public var name: String
-    public var restaurantName: String
+    public var name: String?
+    public var restaurantName: String?
     public var isChain: Bool?
     public var calories: Double?
     public var protein: Double?
@@ -81,6 +81,24 @@ public struct RestaurantMenuItem: Codable, Hashable, Sendable {
     public var distance: Double?
     public var servings: [ServingOption]
 
+    public init(
+        type: String = "menu_item", id: String, name: String?, restaurantName: String?,
+        isChain: Bool? = nil, calories: Double? = nil, protein: Double? = nil,
+        carbohydrates: Double? = nil, netCarbohydrates: Double? = nil,
+        totalFat: Double? = nil, fiber: Double? = nil, totalSugars: Double? = nil,
+        addedSugars: Double? = nil, glycemicIndex: Double? = nil,
+        glycemicLoad: Double? = nil, photoURL: String? = nil,
+        distance: Double? = nil, servings: [ServingOption]
+    ) {
+        self.type = type; self.id = id; self.name = name; self.restaurantName = restaurantName
+        self.isChain = isChain; self.calories = calories; self.protein = protein
+        self.carbohydrates = carbohydrates; self.netCarbohydrates = netCarbohydrates
+        self.totalFat = totalFat; self.fiber = fiber; self.totalSugars = totalSugars
+        self.addedSugars = addedSugars; self.glycemicIndex = glycemicIndex
+        self.glycemicLoad = glycemicLoad; self.photoURL = photoURL
+        self.distance = distance; self.servings = servings
+    }
+
     enum CodingKeys: String, CodingKey {
         case type, id, name, protein, fiber, distance, servings
         case restaurantName = "restaurant_name"; case isChain = "is_chain"; case calories = "energy"
@@ -88,6 +106,27 @@ public struct RestaurantMenuItem: Codable, Hashable, Sendable {
         case totalSugars = "sugars"; case addedSugars = "added_sugars"; case glycemicIndex = "gi"
         case glycemicLoad = "gl"; case photoURL = "photo_url"
     }
+}
+
+public struct RestaurantMenuEntry: Codable, Hashable, Sendable {
+    public var id: String?
+    public var name: String?
+    public var calories: Double?
+    public var protein: Double?
+    public var carbohydrates: Double?
+    public var netCarbohydrates: Double?
+    public var totalFat: Double?
+    public var fiber: Double?
+    public var totalSugars: Double?
+    public var addedSugars: Double?
+    public var glycemicIndex: Double?
+    public var glycemicLoad: Double?
+    public var servings: [ServingOption]
+}
+
+public struct GetRestaurantMenuItemsResponse: Codable, Hashable, Sendable {
+    public var items: [RestaurantMenuEntry]
+    public init(items: [RestaurantMenuEntry]) { self.items = items }
 }
 
 public struct SearchRestaurantMenuItemsResponse: Codable, Hashable, Sendable {

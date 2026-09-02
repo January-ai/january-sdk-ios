@@ -13,12 +13,13 @@ public struct FoodAnalysisResource: Sendable {
         try await performTransportRequest {
             let body = Components.Schemas.ScanFoodPhotoBody(image: request.image)
             let output = try await client.scanFoodPhoto(
-                .init(headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue), body: .json(body))
+                .init(body: .json(body))
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response): return try map(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .contentTooLarge(let response): throw apiError(.validation, status: 413, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, response: try response.body.json)
@@ -41,14 +42,14 @@ public struct FoodAnalysisResource: Sendable {
         return try await performTransportRequest {
             let output = try await client.searchFoodsByNaturalLanguage(
                 .init(
-                    headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue),
                     body: .json(.init(text: request.query))
                 )
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response): return try map(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
@@ -57,16 +58,18 @@ public struct FoodAnalysisResource: Sendable {
 
     public func correct(_ request: CorrectPhotoScanRequest) async throws -> FoodScan {
         try await performTransportRequest {
-            let body: Components.Schemas.CorrectPhotoScanBody = try ModelBridge.convert(
-                CorrectBody(mealName: request.mealName, detections: request.detections, userInput: request.userInput)
+            let body = Components.Schemas.CorrectPhotoScanBody(
+                analysis: try transport(request.analysis),
+                instruction: request.instruction
             )
             let output = try await client.correctPhotoScan(
-                .init(headers: .init(xEndUserId: resolvedEndUserID(request.endUserID)?.rawValue), body: .json(body))
+                .init(body: .json(body))
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .ok(let response): return try map(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
@@ -74,12 +77,59 @@ public struct FoodAnalysisResource: Sendable {
         }
     }
 
-    private func resolvedEndUserID(_ requestEndUserID: PartnerUserID?) -> PartnerUserID? {
-        userContext?.endUserID ?? requestEndUserID
+    private func map(_ value: Components.Schemas.FoodScan) throws -> FoodScan {
+        FoodScan(
+            mealName: value.mealName,
+            totalNutrients: try ModelBridge.convert(value.totalNutrients),
+            detections: try value.detections.map { detection in
+                FoodDetection(
+                    food: DetectedFood(
+                        id: detection.food.id.map { FoodID(rawValue: $0) },
+                        name: detection.food.name,
+                        brandName: detection.food.brandName,
+                        nutrients: try ModelBridge.convert(detection.food.nutrients),
+                        servings: detection.food.servings.map { serving in
+                            DetectedServing(
+                                id: serving.id.map { ServingID(rawValue: $0) },
+                                quantity: serving.quantity,
+                                unit: serving.unit,
+                                selectedQuantity: serving.selectedQuantity
+                            )
+                        }
+                    ),
+                    confidenceScore: detection.confidence.flatMap(ConfidenceScore.init(rawValue:))
+                )
+            }
+        )
+    }
+
+    private func transport(_ value: FoodScan) throws -> Components.Schemas.FoodScan {
+        .init(
+            mealName: value.mealName,
+            totalNutrients: try ModelBridge.convert(value.totalNutrients),
+            detections: try value.detections.map { detection in
+                .init(
+                    confidence: detection.confidenceScore?.rawValue,
+                    food: .init(
+                        id: detection.food.id?.rawValue,
+                        name: detection.food.name,
+                        brandName: detection.food.brandName,
+                        nutrients: try ModelBridge.convert(detection.food.nutrients),
+                        servings: detection.food.servings.orEmpty.map { serving in
+                            .init(
+                                id: serving.id?.rawValue,
+                                quantity: serving.quantity,
+                                unit: serving.unit,
+                                selectedQuantity: serving.selectedQuantity
+                            )
+                        }
+                    )
+                )
+            }
+        )
     }
 }
 
-private struct CorrectBody: Codable {
-    let mealName: String?; let detections: [FoodDetection]; let userInput: String
-    enum CodingKeys: String, CodingKey { case detections; case mealName = "meal_name"; case userInput = "user_input" }
+private extension Optional where Wrapped == [DetectedServing] {
+    var orEmpty: [DetectedServing] { self ?? [] }
 }

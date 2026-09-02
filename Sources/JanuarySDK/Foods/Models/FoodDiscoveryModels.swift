@@ -38,28 +38,28 @@ public struct SuggestFoodAlternativesRequest: Codable, Hashable, Sendable {
 }
 
 public struct DetectedServing: Codable, Hashable, Sendable {
-    public var id: ServingID
+    public var id: ServingID?
     public var quantity: Double?
-    public var unit: String
-    public init(id: ServingID, quantity: Double? = nil, unit: String) { self.id = id; self.quantity = quantity; self.unit = unit }
+    public var unit: String?
+    public var selectedQuantity: Double?
+    public init(id: ServingID?, quantity: Double? = nil, unit: String?, selectedQuantity: Double? = nil) {
+        self.id = id; self.quantity = quantity; self.unit = unit; self.selectedQuantity = selectedQuantity
+    }
 }
 
 public struct DetectedFood: Codable, Hashable, Sendable {
     public var id: FoodID?
-    public var name: String
+    public var name: String?
     public var brandName: String?
     public var nutrients: CompleteScanNutritionFacts
     public var servings: [DetectedServing]?
-    public init(id: FoodID? = nil, name: String, brandName: String? = nil, nutrients: CompleteScanNutritionFacts, servings: [DetectedServing]? = nil) {
+    public init(id: FoodID? = nil, name: String?, brandName: String? = nil, nutrients: CompleteScanNutritionFacts, servings: [DetectedServing]? = nil) {
         self.id = id; self.name = name; self.brandName = brandName; self.nutrients = nutrients; self.servings = servings
     }
     enum CodingKeys: String, CodingKey { case id, name, nutrients, servings; case brandName = "brand_name" }
 }
 
-public struct FoodAlternative: Codable, Hashable, Sendable {
-    public var food: DetectedFood
-    public init(food: DetectedFood) { self.food = food }
-}
+public typealias FoodAlternative = DetectedFood
 
 public struct SuggestFoodAlternativesResponse: Codable, Hashable, Sendable {
     public var alternatives: [FoodAlternative]

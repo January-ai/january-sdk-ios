@@ -1,8 +1,9 @@
 import Combine
 import Foundation
-import January
+@_spi(JanuaryDevelopment) import January
 
 enum AuthenticationConfiguration: Sendable {
+    case fixture(URL)
     case developmentClientToken(String, endUserID: String)
     case clientToken(
         partnerTokenURL: URL,
@@ -47,6 +48,19 @@ final class AppModel: ObservableObject {
 
         do {
             switch authentication {
+            case .fixture(let apiBaseURL):
+#if DEBUG
+                client = try JanuaryClient(
+                    endUserID: "ui-test-user",
+                    timezone: TimeZone(identifier: "America/New_York"),
+                    clientTokenProvider: { _ in JanuaryClientToken(token: "fixture-client-token", expiresIn: 3_600) },
+                    apiBaseURL: apiBaseURL
+                )
+                isUsingDevelopmentAuthentication = true
+#else
+                state = .setupRequired("UI fixtures are available only in Debug builds.")
+                return
+#endif
             case .developmentClientToken(let apiKey, let endUserID):
 #if DEBUG
                 let normalizedAPIKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)

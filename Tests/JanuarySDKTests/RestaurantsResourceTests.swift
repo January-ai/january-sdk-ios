@@ -16,7 +16,7 @@ private struct RestaurantFixtureTransport: ClientTransport {
         return (
             response,
             HTTPBody(
-                #"{"total_count":1,"items":[{"type":"menu_item","id":"228990954","name":"burger","restaurant_name":"morning due cafe","servings":[{"id":189343592,"quantity":1,"unit":"serving","weight_grams":null,"is_primary":true}]}]}"#
+                #"{"items":[{"type":"menu_item","id":"228990954","name":"burger","restaurant_name":"morning due cafe","nutrients":{},"servings":[{"id":"189343592","quantity":1,"unit":"serving","weight_grams":null,"is_primary":true}]}]}"#
             )
         )
     }

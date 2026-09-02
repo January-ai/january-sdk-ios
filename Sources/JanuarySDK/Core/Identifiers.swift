@@ -1,13 +1,17 @@
 /// A stable identifier for a January food record.
 public struct FoodID: RawRepresentable, Codable, Hashable, Sendable {
-    public let rawValue: Int64
+    public let rawValue: String
 
-    public init(rawValue: Int64) {
+    public init(rawValue: String) {
         self.rawValue = rawValue
     }
 
+    public init(rawValue: Int64) { self.rawValue = String(rawValue) }
+
     public init(from decoder: any Decoder) throws {
-        rawValue = try decoder.singleValueContainer().decode(Int64.self)
+        let container = try decoder.singleValueContainer()
+        if let value = try? container.decode(String.self) { rawValue = value }
+        else { rawValue = String(try container.decode(Int64.self)) }
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -18,14 +22,18 @@ public struct FoodID: RawRepresentable, Codable, Hashable, Sendable {
 
 /// A stable identifier for a serving option.
 public struct ServingID: RawRepresentable, Codable, Hashable, Sendable {
-    public let rawValue: Int64
+    public let rawValue: String
 
-    public init(rawValue: Int64) {
+    public init(rawValue: String) {
         self.rawValue = rawValue
     }
 
+    public init(rawValue: Int64) { self.rawValue = String(rawValue) }
+
     public init(from decoder: any Decoder) throws {
-        rawValue = try decoder.singleValueContainer().decode(Int64.self)
+        let container = try decoder.singleValueContainer()
+        if let value = try? container.decode(String.self) { rawValue = value }
+        else { rawValue = String(try container.decode(Int64.self)) }
     }
 
     public func encode(to encoder: any Encoder) throws {

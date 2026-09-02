@@ -12,7 +12,7 @@ public struct FoodPortion: Hashable, Sendable {
     public var selection: FoodSelection {
         FoodSelection(
             id: foodID,
-            serving: ServingSelection(id: serving.id, quantity: quantity)
+            serving: ServingSelection(id: serving.id!, quantity: quantity)
         )
     }
 
@@ -38,20 +38,21 @@ public struct FoodPortion: Hashable, Sendable {
             }
             selected = match
         } else {
-            selected = food.servings.first(where: \.isPrimary) ?? food.servings[0]
+            selected = food.servings.first(where: { $0.isPrimary == true }) ?? food.servings[0]
         }
 
-        guard selected.quantity.isFinite, selected.quantity > 0,
+        guard selected.id != nil, let servingQuantity = selected.quantity,
+              servingQuantity.isFinite, servingQuantity > 0,
               selected.scalingFactor.isFinite, selected.scalingFactor > 0 else {
             throw FoodPortionError.invalidServing(selected.id)
         }
 
-        let requestedQuantity = quantity ?? selected.quantity
+        let requestedQuantity = quantity ?? servingQuantity
         guard requestedQuantity.isFinite, requestedQuantity > 0, requestedQuantity <= 10_000 else {
             throw FoodPortionError.invalidQuantity
         }
 
-        let scale = requestedQuantity * selected.scalingFactor / selected.quantity
+        let scale = requestedQuantity * selected.scalingFactor / servingQuantity
         let baseNutrition = food.nutrients ?? NutritionFacts.legacyValues(from: food)
 
         self.foodID = food.id
@@ -59,7 +60,7 @@ public struct FoodPortion: Hashable, Sendable {
         self.quantity = requestedQuantity
         self.nutrition = baseNutrition.scaled(by: scale)
         self.totalWeightGrams = selected.weightGrams.map {
-            $0 * requestedQuantity / selected.quantity
+            $0 * requestedQuantity / servingQuantity
         }
         self.glycemicIndex = food.glycemicIndex
         self.glycemicLoad = food.glycemicLoad.map { $0 * scale }
@@ -69,7 +70,7 @@ public struct FoodPortion: Hashable, Sendable {
 public enum FoodPortionError: Error, Equatable, Sendable {
     case noServings
     case servingNotFound(ServingID)
-    case invalidServing(ServingID)
+    case invalidServing(ServingID?)
     case invalidQuantity
 }
 

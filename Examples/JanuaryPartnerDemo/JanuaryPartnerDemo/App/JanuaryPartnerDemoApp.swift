@@ -61,12 +61,16 @@ struct JanuaryPartnerDemoApp: App {
     @StateObject private var model: AppModel
 
     init() {
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("-ui-testing")
+        let authentication: AuthenticationConfiguration = isUITesting
+            ? .fixture(URL(string: "http://127.0.0.1:18768")!)
+            : AppConfiguration.authentication
         UserDefaults.standard.register(defaults: [
-            "demo.authenticationMode": AppConfiguration.authenticationLabel,
+            "demo.authenticationMode": isUITesting ? "UI test fixture" : AppConfiguration.authenticationLabel,
             "demo.endUserID": AppConfiguration.endUserID,
         ])
-        UserDefaults.standard.set(AppConfiguration.authenticationLabel, forKey: "demo.authenticationMode")
-        _model = StateObject(wrappedValue: AppModel(authentication: AppConfiguration.authentication))
+        UserDefaults.standard.set(isUITesting ? "UI test fixture" : AppConfiguration.authenticationLabel, forKey: "demo.authenticationMode")
+        _model = StateObject(wrappedValue: AppModel(authentication: authentication))
     }
 
     var body: some Scene {

@@ -17,7 +17,7 @@ struct FoodRow: View {
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(food.name).font(.headline).foregroundStyle(AppPalette.ink)
+                Text(food.name ?? "Unnamed food").font(.headline).foregroundStyle(AppPalette.ink)
                 if let brand = food.brandName, !brand.isEmpty {
                     Text(brand).font(.subheadline).foregroundStyle(AppPalette.muted)
                 }
@@ -25,8 +25,8 @@ struct FoodRow: View {
                     if let calories = food.calories {
                         Text("\(calories.formatted(.number.precision(.fractionLength(0)))) cal")
                     }
-                    if let serving = food.servings.first(where: \.isPrimary) ?? food.servings.first {
-                        Text("\(serving.quantity.formatted()) \(serving.unit)")
+                    if let serving = food.servings.first(where: { $0.isPrimary == true }) ?? food.servings.first {
+                        Text("\((serving.quantity ?? 1).formatted()) \(serving.unit ?? "serving")")
                     }
                 }
                 .font(.caption)

@@ -37,7 +37,9 @@ private actor ContractProbeTransport: ClientTransport {
                 body: data
             )
         )
-        var response = HTTPResponse(status: .ok)
+        let status: HTTPResponse.Status = operationID == "createFoodLog" ? .init(code: 201) :
+            (operationID == "deleteFoodLog" ? .init(code: 204) : .ok)
+        var response = HTTPResponse(status: status)
         response.headerFields[.contentType] = "application/json"
         let json = responses[operationID] ?? Self.defaultResponse(for: operationID)
         return (response, HTTPBody(json))
@@ -47,20 +49,22 @@ private actor ContractProbeTransport: ClientTransport {
 
     private static func defaultResponse(for operationID: String) -> String {
         switch operationID {
-        case "searchFoods", "lookupFoodByBarcode", "searchRestaurants", "searchRestaurantMenuItems":
-            #"{"total_count":0,"items":[]}"#
+        case "searchFoods", "searchRestaurants", "searchRestaurantMenuItems":
+            #"{"items":[]}"#
+        case "lookupFoodByBarcode":
+            #"{"id":"1","type":"generic","name":"Food","barcode":null,"nutrients":{},"servings":[]}"#
         case "searchFoodsByNaturalLanguage", "scanFoodPhoto", "correctPhotoScan":
-            #"{"detections":[]}"#
+            #"{"meal_name":null,"total_nutrients":{},"detections":[]}"#
         case "suggestFoodAlternatives":
             #"{"alternatives":[]}"#
         case "createFoodLog", "updateFoodLog":
-            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z"}"#
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z"}"#
         case "listFoodLogs":
-            #"{"total_count":0,"items":[]}"#
+            #"{"items":[]}"#
         case "deleteFoodLog":
-            #"{"status":"deleted"}"#
+            ""
         case "predictGlucose":
-            #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
+            #"{"points":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
         default:
             #"{}"#
         }
@@ -129,7 +133,7 @@ func alternativesAcceptEmptyPreferenceArrays() async throws {
     SearchRestaurantsRequest(query: "cafe", latitude: -91, longitude: 0),
     SearchRestaurantsRequest(query: "cafe", latitude: 0, longitude: 181),
     SearchRestaurantsRequest(query: "cafe", latitude: 0, longitude: 0, radius: 0),
-    SearchRestaurantsRequest(query: "cafe", latitude: 0, longitude: 0, radius: 17_001),
+    SearchRestaurantsRequest(query: "cafe", latitude: 0, longitude: 0, radius: 50_001),
     SearchRestaurantsRequest(query: "cafe", latitude: 0, longitude: 0, limit: 0),
     SearchRestaurantsRequest(query: "cafe", latitude: 0, longitude: 0, limit: 101),
 ])
@@ -149,7 +153,7 @@ func documentedEnumValuesRoundTripOnTheWire() throws {
     let decoder = JSONDecoder()
 
     let categories = FoodCategory.allCases
-    #expect(categories.map(\.rawValue) == ["general", "branded", "recipe"])
+    #expect(categories.map(\.rawValue) == ["generic", "branded", "recipe"])
     for value in categories {
         #expect(try decoder.decode(FoodCategory.self, from: encoder.encode(value)) == value)
     }
@@ -191,7 +195,7 @@ func documentedEnumValuesRoundTripOnTheWire() throws {
 
 @Test
 func foodLogCreateSendsAuthenticationUserTimezoneAndDocumentedBody() async throws {
-    let response = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z","name":"Lunch"}"#
+    let response = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z","name":"Lunch"}"#
     let transport = ContractProbeTransport(responses: ["createFoodLog": response])
     let client = try probeClient(transport)
     let user = FoodLogUserContext(
@@ -212,17 +216,15 @@ func foodLogCreateSendsAuthenticationUserTimezoneAndDocumentedBody() async throw
     #expect(request.operationID == "createFoodLog")
     #expect(request.path == "/v1.2/food-logs")
     #expect(request.headers[.authorization] == "Bearer fixture-api-key")
-    #expect(request.headers[HTTPField.Name("x-end-user-id")!] == "fixture-user")
-    #expect(request.headers[HTTPField.Name("x-end-user-timezone")!] == "America/New_York")
+    #expect(request.headers[HTTPField.Name("January-End-User-ID")!] == "fixture-user")
     let body = try #require(request.body)
     let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
-    #expect(json["timestamp_utc"] as? String == "2026-08-23T12:00:00Z")
+    #expect(json["eaten_at"] as? String == "2026-08-23T12:00:00Z")
     #expect(json["name"] as? String == "Lunch")
     let foods = try #require(json["foods"] as? [[String: Any]])
-    #expect(foods.first?["id"] as? Int == 42)
-    let serving = try #require(foods.first?["serving"] as? [String: Any])
-    #expect(serving["id"] as? Int == 7)
-    #expect(serving["quantity"] as? Double == 1.5)
+    #expect(foods.first?["food_id"] as? String == "42")
+    #expect(foods.first?["serving_id"] as? String == "7")
+    #expect(foods.first?["quantity"] as? Double == 1.5)
 }
 
 @Test
@@ -460,8 +462,8 @@ func transportBoundaryPreservesDirectStructuredFailures() async throws {
     }
 }
 
-@Test(arguments: [0.0, 41.0])
-func foodSearchRejectsLimitsOutsideTheDocumentedRange(_ limit: Double) async throws {
+@Test(arguments: [0, 41])
+func foodSearchRejectsLimitsOutsideTheDocumentedRange(_ limit: Int) async throws {
     let transport = ContractProbeTransport()
     let client = try probeClient(transport)
     await #expect(throws: JanuaryError.self) {
@@ -522,7 +524,7 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     )
     let detectedServing = DetectedServing(id: .init(rawValue: 7), quantity: 1, unit: "cup")
     let detectedFood = DetectedFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [detectedServing])
-    let alternatives = SuggestFoodAlternativesResponse(alternatives: [.init(food: detectedFood)])
+    let alternatives = SuggestFoodAlternativesResponse(alternatives: [detectedFood])
     let user = FoodLogUserContext(
         endUserID: .init(rawValue: "user"),
         timezone: TimeZone(secondsFromGMT: 0)!
@@ -535,7 +537,7 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     _ = ServingDetails(id: .init(rawValue: 7), quantity: 1, unit: "cup", weightGrams: 100)
     _ = FoodLog(id: UUID().uuidString, foods: [], timestampUTC: "2026-08-23T12:00:00Z", name: "Meal")
     _ = ListFoodLogsResponse(totalCount: 0, items: [])
-    _ = DeleteFoodLogResponse(status: "deleted")
+    _ = () as DeleteFoodLogResponse
     let profile = GlucosePredictionProfile(
         age: 35, sex: .male,
         height: .init(value: 70, unit: .inches),
@@ -568,9 +570,9 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     #expect(try decoder.decode(SuggestFoodAlternativesResponse.self, from: encoder.encode(alternatives)) == alternatives)
     #expect(try decoder.decode(GlucosePrediction.self, from: encoder.encode(prediction)) == prediction)
 
-    let loggedFoodJSON = #"{"id":42,"name":"Food","brand_name":"Brand","image_url":"https://example.com","glycemic_index":50,"glycemic_load":10,"nutrients":{},"consumed_serving":{"id":7,"quantity":1},"serving_details":{"id":7,"quantity":1,"unit":"cup","weight_grams":100}}"#
+    let loggedFoodJSON = #"{"id":"42","name":"Food","brand_name":"Brand","image_url":"https://example.com","glycemic_index":50,"glycemic_load":10,"nutrients":{},"consumed_serving":{"id":"7","quantity":1},"serving_details":{"id":"7","quantity":1,"unit":"cup","weight_grams":100}}"#
     let logged = try decoder.decode(LoggedFood.self, from: Data(loggedFoodJSON.utf8))
-    #expect(logged.id.rawValue == 42)
+    #expect(logged.id?.rawValue == "42")
     let menuJSON = #"{"type":"menu_item","id":"m1","name":"Burger","restaurant_name":"Cafe","is_chain":true,"energy":500,"carbs":40,"net_carbs":35,"fat":20,"protein":25,"fiber":5,"sugars":4,"added_sugars":1,"gi":50,"gl":20,"photo_url":"https://example.com","distance":1,"servings":[]}"#
     let menu = try decoder.decode(RestaurantMenuItem.self, from: Data(menuJSON.utf8))
     #expect(menu.restaurantName == "Cafe")
@@ -578,17 +580,17 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
 
 @Test
 func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async throws {
-    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z","name":"Meal"}"#
+    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z","name":"Meal"}"#
     let responses = [
-        "searchFoodsByNaturalLanguage": #"{"detections":[]}"#,
+        "searchFoodsByNaturalLanguage": #"{"meal_name":null,"total_nutrients":{},"detections":[]}"#,
         "suggestFoodAlternatives": #"{"alternatives":[]}"#,
-        "scanFoodPhoto": #"{"meal_name":"Meal","detections":[]}"#,
-        "correctPhotoScan": #"{"meal_name":"Meal","detections":[]}"#,
+        "scanFoodPhoto": #"{"meal_name":"Meal","total_nutrients":{},"detections":[]}"#,
+        "correctPhotoScan": #"{"meal_name":"Meal","total_nutrients":{},"detections":[]}"#,
         "createFoodLog": logJSON,
-        "listFoodLogs": #"{"total_count":0,"items":[]}"#,
+        "listFoodLogs": #"{"items":[]}"#,
         "updateFoodLog": logJSON,
-        "deleteFoodLog": #"{"status":"deleted"}"#,
-        "predictGlucose": #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#,
+        "deleteFoodLog": "",
+        "predictGlucose": #"{"points":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#,
     ]
     let transport = ContractProbeTransport(responses: responses)
     let client = try probeClient(transport)
@@ -641,10 +643,12 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
 
     let requests = await transport.requests()
     #expect(requests.count == 9)
-    for request in requests {
-        #expect(request.headers[.authorization] == "Bearer fixture-api-key")
-        #expect(request.headers[HTTPField.Name("x-end-user-id")!] == "wire-user")
-    }
+    for request in requests { #expect(request.headers[.authorization] == "Bearer fixture-api-key") }
+    let contextual = requests.filter { ["createFoodLog", "listFoodLogs", "updateFoodLog", "deleteFoodLog"].contains($0.operationID) }
+    #expect(contextual.allSatisfy { $0.headers[HTTPField.Name("January-End-User-ID")!] == "wire-user" })
+    #expect(requests.filter { !contextual.map(\.operationID).contains($0.operationID) }.allSatisfy {
+        $0.headers[HTTPField.Name("January-End-User-ID")!] == nil
+    })
 
     let alternatives = try #require(requests.first { $0.operationID == "suggestFoodAlternatives" })
     #expect(alternatives.path == "/v1.2/foods/42/alternatives")
@@ -654,14 +658,13 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
 
     let correction = try #require(requests.first { $0.operationID == "correctPhotoScan" })
     let correctionBody = try jsonObject(correction)
-    #expect(correctionBody["meal_name"] as? String == "Meal")
-    #expect(correctionBody["user_input"] as? String == "Add banana")
-    #expect((correctionBody["detections"] as? [[String: Any]])?.count == 1)
+    #expect(correctionBody["instruction"] as? String == "Add banana")
+    #expect(((correctionBody["analysis"] as? [String: Any])?["detections"] as? [[String: Any]])?.count == 1)
 
     let list = try #require(requests.first { $0.operationID == "listFoodLogs" })
-    #expect(list.path.contains("start=2026-08-22"))
-    #expect(list.path.contains("end=2026-08-24"))
-    #expect(list.headers[HTTPField.Name("x-end-user-timezone")!] == "America/New_York")
+    #expect(list.path.contains("start_date=2026-08-22"))
+    #expect(list.path.contains("end_date=2026-08-24"))
+    #expect(list.path.contains("timezone=America/New_York"))
 
     let update = try #require(requests.first { $0.operationID == "updateFoodLog" })
     #expect(update.path == "/v1.2/food-logs/00000000-0000-0000-0000-000000000001")
@@ -673,8 +676,8 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     #expect(delete.path == "/v1.2/food-logs/00000000-0000-0000-0000-000000000001")
 
     let glucose = try #require(requests.first { $0.operationID == "predictGlucose" })
-    #expect(glucose.headers[HTTPField.Name("x-end-user-timezone")!] == "America/New_York")
     let glucoseBody = try jsonObject(glucose)
+    #expect(glucoseBody["timezone"] as? String == "America/New_York")
     #expect((glucoseBody["foods"] as? [[String: Any]])?.count == 1)
     #expect((glucoseBody["cgm_data"] as? [[String: Any]])?.count == 1)
     #expect((glucoseBody["consumed_foods"] as? [[String: Any]])?.count == 1)
@@ -688,13 +691,13 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
 
 @Test
 func configuredClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
-    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-23T12:00:00Z","name":"Meal"}"#
+    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z","name":"Meal"}"#
     let transport = ContractProbeTransport(responses: [
         "createFoodLog": logJSON,
-        "listFoodLogs": #"{"total_count":0,"items":[]}"#,
+        "listFoodLogs": #"{"items":[]}"#,
         "updateFoodLog": logJSON,
-        "deleteFoodLog": #"{"status":"deleted"}"#,
-        "predictGlucose": #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#,
+        "deleteFoodLog": "",
+        "predictGlucose": #"{"points":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#,
     ])
     let context = PartnerUserContext(
         endUserID: PartnerUserID(rawValue: "scoped-user"),
@@ -707,9 +710,10 @@ func configuredClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
     )
 
     let created = try await client.foodLogs.create(foods: [food], name: "Meal")
+    let createdID = try #require(created.id)
     _ = try await client.foodLogs.list(start: "2026-08-22", end: "2026-08-24")
-    _ = try await client.foodLogs.update(id: created.id, foods: [food], name: "Updated")
-    _ = try await client.foodLogs.delete(id: created.id)
+    _ = try await client.foodLogs.update(id: createdID, foods: [food], name: "Updated")
+    _ = try await client.foodLogs.delete(id: createdID)
     _ = try await client.glucose.predict(.init(
         userProfile: .init(age: 35, gender: .female, height: 65, weight: 140),
         foods: [food],
@@ -720,10 +724,10 @@ func configuredClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
 
     let requests = await transport.requests()
     #expect(requests.count == 5)
-    for request in requests {
-        #expect(request.headers[HTTPField.Name("x-end-user-id")!] == "scoped-user")
-        #expect(request.headers[HTTPField.Name("x-end-user-timezone")!] == "America/New_York")
-    }
+    let logs = requests.filter { $0.operationID != "predictGlucose" }
+    #expect(logs.allSatisfy { $0.headers[HTTPField.Name("January-End-User-ID")!] == "scoped-user" })
+    #expect(requests.last?.headers[HTTPField.Name("January-End-User-ID")!] == nil)
+    #expect(requests.last?.body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }?["timezone"] as? String == "America/New_York")
 }
 
 private func expectEndpointError<Value: Sendable>(
@@ -767,7 +771,7 @@ func everyFoodsResponseVariantMapsThroughThePublicResource() async throws {
         _ = try await client.foods.search(.init(query: "banana", category: category))
     }
 
-    let missingScaleJSON = #"{"total_count":1,"items":[{"id":42,"name":"Food","nutrients":{"calories":{"value":160,"unit":"cal"},"protein":{"value":2,"unit":"g"},"carbohydrates":{"value":15,"unit":"g"},"total_fat":{"value":10,"unit":"g"}},"glycemic_index":34.9,"glycemic_load":5.2,"servings":[{"id":7,"quantity":1,"unit":"cup","weight_grams":60,"is_primary":true}]}]}"#
+    let missingScaleJSON = #"{"items":[{"id":"42","type":"generic","name":"Food","barcode":null,"nutrients":{"calories":{"value":160,"unit":"cal"},"protein":{"value":2,"unit":"g"},"carbohydrates":{"value":15,"unit":"g"},"total_fat":{"value":10,"unit":"g"}},"glycemic_index":34.9,"glycemic_load":5.2,"servings":[{"id":"7","quantity":1,"unit":"cup","weight_grams":60,"is_primary":true}]}]}"#
     let missingScale = try probeClient(ContractProbeTransport(responses: ["searchFoods": missingScaleJSON]))
     let result = try await missingScale.foods.search(.init(query: "food"))
     #expect(result.items[0].servings[0].scalingFactor == 1)
@@ -864,7 +868,7 @@ func everyGlucoseResponseVariantMapsThroughThePublicResource() async throws {
         }
     }
 
-    let liveResponse = #"{"prediction":[{"minutes":0,"value":101.5},{"minutes":15,"value":128.25}],"impact_score":"medium","chart":{"min":70,"max":140}}"#
+    let liveResponse = #"{"points":[{"minutes":0,"value":101.5},{"minutes":15,"value":128.25}],"impact_score":"medium","chart":{"min":70,"max":140}}"#
     let transport = ContractProbeTransport(responses: ["predictGlucose": liveResponse])
     let result = try await probeClient(transport).glucose.predict(request)
     #expect(result.curve == [[0, 101.5], [15, 128.25]])

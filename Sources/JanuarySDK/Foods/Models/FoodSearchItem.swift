@@ -1,7 +1,8 @@
 /// A food returned by a food-name search.
 public struct FoodSearchItem: Codable, Hashable, Sendable {
     public var id: FoodID
-    public var name: String
+    public var type: FoodCategory
+    public var name: String?
     public var brandName: String?
     /// The complete per-primary-serving nutrition returned by January.
     public var nutrients: NutritionFacts?
@@ -20,11 +21,13 @@ public struct FoodSearchItem: Codable, Hashable, Sendable {
     public var glycemicIndex: Double?
     public var glycemicLoad: Double?
     public var photoURL: String?
+    public var barcode: String?
     public var servings: [ServingOption]
 
     public init(
         id: FoodID,
-        name: String,
+        name: String?,
+        type: FoodCategory = .generic,
         brandName: String? = nil,
         nutrients: NutritionFacts? = nil,
         calories: Double? = nil,
@@ -42,9 +45,11 @@ public struct FoodSearchItem: Codable, Hashable, Sendable {
         glycemicIndex: Double? = nil,
         glycemicLoad: Double? = nil,
         photoURL: String? = nil,
+        barcode: String? = nil,
         servings: [ServingOption]
     ) {
         self.id = id
+        self.type = type
         self.name = name
         self.brandName = brandName
         self.nutrients = nutrients
@@ -63,6 +68,7 @@ public struct FoodSearchItem: Codable, Hashable, Sendable {
         self.glycemicIndex = glycemicIndex
         self.glycemicLoad = glycemicLoad
         self.photoURL = photoURL
+        self.barcode = barcode
         self.servings = servings
     }
 }

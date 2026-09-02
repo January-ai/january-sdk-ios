@@ -28,6 +28,11 @@ public struct FoodLogsResource: Sendable {
         try await list(.init(start: start, end: end, user: configuredUser()))
     }
 
+    /// Gets a single food log for the user configured on ``JanuaryClient``.
+    public func get(id: String) async throws -> FoodLog {
+        try await get(.init(id: id, user: configuredUser()))
+    }
+
     /// Updates a food log for the user configured on ``JanuaryClient``.
     public func update(
         id: String,
@@ -54,8 +59,8 @@ public struct FoodLogsResource: Sendable {
         request.user = resolvedUser(request.user)
         return try await performTransportRequest {
             let body = Components.Schemas.CreateFoodLogBody(
-                foods: try ModelBridge.convert(request.foods),
-                timestampUtc: try parseTimestamp(request.timestampUTC),
+                foods: request.foods.map(mapSelection),
+                eatenAt: try parseTimestamp(request.timestampUTC),
                 name: request.name
             )
             let output = try await client.createFoodLog(
@@ -65,9 +70,10 @@ public struct FoodLogsResource: Sendable {
                 )
             )
             switch output {
-            case .ok(let response): return try mapFoodLog(try response.body.json)
+            case .created(let response): return try mapFoodLog(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
@@ -80,22 +86,44 @@ public struct FoodLogsResource: Sendable {
         return try await performTransportRequest {
             let output = try await client.listFoodLogs(
                 .init(
-                    query: .init(start: request.start, end: request.end),
-                    headers: .init(
-                        xEndUserId: request.user.endUserID?.rawValue ?? "",
-                        xEndUserTimezone: request.user.timezone.identifier
-                    )
+                    query: .init(
+                        startDate: request.start,
+                        endDate: request.end,
+                        timezone: request.user.timezone.identifier
+                    ),
+                    headers: .init(januaryEndUserID: request.user.endUserID?.rawValue)
                 )
             )
             switch output {
             case .ok(let response):
                 let value = try response.body.json
                 return ListFoodLogsResponse(
-                    totalCount: Int(value.totalCount),
+                    totalCount: value.items.count,
                     items: try value.items.map(mapFoodLog)
                 )
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            }
+        }
+    }
+
+    public func get(_ request: GetFoodLogRequest) async throws -> FoodLog {
+        var request = request
+        request.user = resolvedUser(request.user)
+        return try await performTransportRequest {
+            let output = try await client.getFoodLog(.init(
+                path: .init(logId: request.id),
+                headers: .init(januaryEndUserID: request.user.endUserID?.rawValue)
+            ))
+            switch output {
+            case .ok(let response): return try mapFoodLog(try response.body.json)
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
+            case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
@@ -107,10 +135,8 @@ public struct FoodLogsResource: Sendable {
         request.user = resolvedUser(request.user)
         return try await performTransportRequest {
             let body = Components.Schemas.UpdateFoodLogBody(
-                foods: try request.foods.map {
-                    try ModelBridge.convert($0, to: [Components.Schemas.FoodLogInputFood].self)
-                },
-                timestampUtc: request.timestampUTC,
+                foods: request.foods?.map(mapSelection),
+                eatenAt: try parseTimestamp(request.timestampUTC),
                 name: request.name
             )
             let output = try await client.updateFoodLog(
@@ -120,6 +146,7 @@ public struct FoodLogsResource: Sendable {
             case .ok(let response): return try mapFoodLog(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
@@ -134,16 +161,14 @@ public struct FoodLogsResource: Sendable {
             let output = try await client.deleteFoodLog(
                 .init(
                     path: .init(logId: request.id),
-                    headers: .init(
-                        xEndUserId: request.user.endUserID?.rawValue ?? "",
-                        xEndUserTimezone: request.user.timezone.identifier
-                    )
+                    headers: .init(januaryEndUserID: request.user.endUserID?.rawValue)
                 )
             )
             switch output {
-            case .ok(let response): return try ModelBridge.convert(try response.body.json)
+            case .noContent: return ()
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
             }
@@ -151,7 +176,7 @@ public struct FoodLogsResource: Sendable {
     }
 
     private func headers(_ user: FoodLogUserContext) -> Operations.CreateFoodLog.Input.Headers {
-        .init(xEndUserId: user.endUserID?.rawValue ?? "", xEndUserTimezone: user.timezone.identifier)
+        .init(januaryEndUserID: user.endUserID?.rawValue)
     }
 
     private func configuredUser() -> PartnerUserContext {
@@ -167,16 +192,50 @@ public struct FoodLogsResource: Sendable {
     }
 
     private func updateHeaders(_ user: FoodLogUserContext) -> Operations.UpdateFoodLog.Input.Headers {
-        .init(xEndUserId: user.endUserID?.rawValue ?? "", xEndUserTimezone: user.timezone.identifier)
+        .init(januaryEndUserID: user.endUserID?.rawValue)
     }
 
     private func mapFoodLog(_ value: Components.Schemas.FoodLog) throws -> FoodLog {
         FoodLog(
             id: value.id,
-            foods: try ModelBridge.convert(value.foods),
-            timestampUTC: value.timestampUtc,
+            foods: try value.foods.map { food in
+                LoggedFood(
+                    id: food.foodId.map { FoodID(rawValue: $0) },
+                    name: food.name,
+                    brandName: food.brandName,
+                    imageURL: food.imageUrl,
+                    glycemicIndex: food.glycemicIndex,
+                    glycemicLoad: food.glycemicLoad,
+                    nutrients: try ModelBridge.convert(food.nutrients),
+                    consumedServing: .init(
+                        id: food.serving.id.map { ServingID(rawValue: $0) },
+                        quantity: food.quantity
+                    ),
+                    servingDetails: .init(
+                        id: food.serving.id.map { ServingID(rawValue: $0) },
+                        quantity: food.serving.quantity,
+                        unit: food.serving.unit,
+                        weightGrams: food.serving.weightGrams
+                    )
+                )
+            },
+            timestampUTC: formatTimestamp(value.eatenAt),
             name: value.name
         )
+    }
+
+    private func mapSelection(_ selection: FoodSelection) -> Components.Schemas.FoodLogInputFood {
+        .init(
+            foodId: selection.id.rawValue,
+            servingId: selection.serving.id.rawValue,
+            quantity: selection.serving.quantity
+        )
+    }
+
+    private func formatTimestamp(_ value: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: value)
     }
 
     private func parseTimestamp(_ value: String?) throws -> Date? {

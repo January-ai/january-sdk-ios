@@ -15,9 +15,11 @@ private actor SurfaceTransport: ClientTransport {
         operationID: String
     ) async throws -> (HTTPResponse, HTTPBody?) {
         operations.append(operationID)
-        endUserIDs.append(request.headerFields[HTTPField.Name("x-end-user-id")!])
-        timezones.append(request.headerFields[HTTPField.Name("x-end-user-timezone")!])
-        var response = HTTPResponse(status: .ok)
+        endUserIDs.append(request.headerFields[HTTPField.Name("January-End-User-ID")!])
+        timezones.append(request.path?.contains("timezone=") == true ? "query" : nil)
+        let status: HTTPResponse.Status = operationID == "createFoodLog" ? .init(code: 201) :
+            (operationID == "deleteFoodLog" ? .init(code: 204) : .ok)
+        var response = HTTPResponse(status: status)
         response.headerFields[.contentType] = "application/json"
         return (response, HTTPBody(Data(responseJSON(for: operationID).utf8)))
     }
@@ -28,28 +30,34 @@ private actor SurfaceTransport: ClientTransport {
 
     private func responseJSON(for operationID: String) -> String {
         switch operationID {
-        case "searchFoods", "lookupFoodByBarcode":
-            #"{"total_count":0,"items":[]}"#
+        case "searchFoods":
+            #"{"items":[]}"#
+        case "lookupFoodByBarcode":
+            #"{"type":"generic","id":"1","name":"Banana","barcode":"049000006346","nutrients":{},"servings":[]}"#
         case "autocompleteFoods":
             #"{"items":[]}"#
         case "getFood":
-            #"{"id":1,"name":"Banana","nutrients":{},"servings":[{"id":2,"quantity":1,"unit":"serving","scaling_factor":1,"weight_grams":100,"is_primary":true}]}"#
+            #"{"type":"generic","id":"1","name":"Banana","barcode":null,"nutrients":{},"servings":[{"id":"2","quantity":1,"unit":"serving","is_primary":true}]}"#
         case "searchFoodsByNaturalLanguage":
-            #"{"detections":[]}"#
+            #"{"meal_name":null,"total_nutrients":{},"detections":[]}"#
         case "suggestFoodAlternatives":
             #"{"alternatives":[]}"#
         case "searchRestaurants", "searchRestaurantMenuItems":
-            #"{"total_count":0,"items":[]}"#
+            #"{"items":[]}"#
+        case "getRestaurantMenuItems":
+            #"{"items":[]}"#
         case "scanFoodPhoto", "correctPhotoScan":
-            #"{"meal_name":"Fixture meal","detections":[]}"#
+            #"{"meal_name":"Fixture meal","total_nutrients":{},"detections":[]}"#
         case "createFoodLog", "updateFoodLog":
-            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"timestamp_utc":"2026-08-22T12:00:00Z","name":"Fixture"}"#
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
+        case "getFoodLog":
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
         case "listFoodLogs":
-            #"{"total_count":0,"items":[]}"#
+            #"{"items":[]}"#
         case "deleteFoodLog":
-            #"{"status":"deleted"}"#
+            ""
         case "predictGlucose":
-            #"{"prediction":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
+            #"{"points":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
         default:
             #"{}"#
         }
@@ -69,7 +77,7 @@ func optionalUserIDAndDefaultTimezoneApplyToFoodLogs() async throws {
     _ = try await client.foodLogs.list(start: "2026-08-21", end: "2026-08-23")
 
     #expect(await transport.capturedEndUserIDs() == [nil])
-    #expect(await transport.capturedTimezones() == [TimeZone.current.identifier])
+    #expect(await transport.capturedTimezones() == ["query"])
 }
 
 @Test
@@ -106,15 +114,18 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
     _ = try await client.foodAnalysis.analyzeDescription(.init(query: "one banana"))
     _ = try await client.foods.suggestAlternatives(.init(foodID: FoodID(rawValue: 1)))
     _ = try await client.restaurants.search(.init(query: "cafe", latitude: 40, longitude: -74))
+    _ = try await client.restaurants.getMenuItems(.init(restaurantID: "cafe-123"))
     _ = try await client.restaurants.searchMenuItems(.init(query: "salad", latitude: 40, longitude: -74))
     _ = try await client.foodAnalysis.analyzePhoto(.init(image: "fixture-image"))
     _ = try await client.foodAnalysis.correct(
         .init(mealName: "Meal", detections: [detection], userInput: "Add banana")
     )
     let created = try await client.foodLogs.create(foods: [food])
+    let createdID = try #require(created.id)
     _ = try await client.foodLogs.list(start: "2026-08-21", end: "2026-08-23")
-    _ = try await client.foodLogs.update(id: created.id, name: "Updated")
-    _ = try await client.foodLogs.delete(id: created.id)
+    _ = try await client.foodLogs.get(id: createdID)
+    _ = try await client.foodLogs.update(id: createdID, name: "Updated")
+    _ = try await client.foodLogs.delete(id: createdID)
     _ = try await client.glucose.predict(
         .init(
             userProfile: .init(age: 35, gender: .male, height: 70, weight: 175),
@@ -125,8 +136,11 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
     #expect(Set(await transport.operationIDs()) == Set([
         "autocompleteFoods", "getFood", "searchFoods", "lookupFoodByBarcode",
         "searchFoodsByNaturalLanguage", "suggestFoodAlternatives",
-        "searchRestaurants", "searchRestaurantMenuItems", "scanFoodPhoto", "correctPhotoScan",
-        "createFoodLog", "listFoodLogs", "updateFoodLog", "deleteFoodLog", "predictGlucose",
+        "searchRestaurants", "getRestaurantMenuItems", "searchRestaurantMenuItems",
+        "scanFoodPhoto", "correctPhotoScan", "createFoodLog", "listFoodLogs", "getFoodLog",
+        "updateFoodLog", "deleteFoodLog", "predictGlucose",
     ]))
-    #expect(await transport.capturedEndUserIDs().allSatisfy { $0 == "fixture-user" })
+    let captured = await transport.capturedEndUserIDs()
+    #expect(captured.compactMap { $0 }.count == 5)
+    #expect(captured.compactMap { $0 }.allSatisfy { $0 == "fixture-user" })
 }

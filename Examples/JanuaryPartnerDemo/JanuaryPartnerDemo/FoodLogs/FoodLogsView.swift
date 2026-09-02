@@ -162,7 +162,7 @@ private struct FoodLogRow: View {
             Image(systemName: "fork.knife.circle.fill").font(.largeTitle).foregroundStyle(AppPalette.green)
             VStack(alignment: .leading, spacing: 5) {
                 Text(log.name?.isEmpty == false ? log.name! : "Meal").font(.headline)
-                Text(log.foods.map(\.name).joined(separator: ", ")).lineLimit(2).foregroundStyle(AppPalette.body)
+                Text(log.foods.map { $0.name ?? "Unnamed food" }.joined(separator: ", ")).lineLimit(2).foregroundStyle(AppPalette.body)
                 HStack {
                     Text(localDate(log.timestampUTC))
                     Text("· \(log.foods.count) food\(log.foods.count == 1 ? "" : "s")")
@@ -248,7 +248,7 @@ private struct FoodLogEditorView: View {
                                             .font(.title2)
                                             .foregroundStyle(AppPalette.green)
                                         VStack(alignment: .leading, spacing: 3) {
-                                            Text(item.food.name)
+                                            Text(item.food.name ?? "Unnamed food")
                                                 .font(AppTypography.bodyStrong)
                                             if let brand = item.food.brandName, !brand.isEmpty {
                                                 Text(brand)
@@ -257,7 +257,7 @@ private struct FoodLogEditorView: View {
                                             }
                                         }
                                         Spacer(minLength: 8)
-                                        Button("Remove \(item.food.name)", systemImage: "trash", role: .destructive) {
+                                        Button("Remove \(item.food.name ?? "food")", systemImage: "trash", role: .destructive) {
                                             foods.removeAll { $0.id == item.id }
                                         }
                                         .labelStyle(.iconOnly)
@@ -271,7 +271,7 @@ private struct FoodLogEditorView: View {
                                         Spacer(minLength: 12)
                                         Picker("Serving", selection: $item.serving) {
                                             ForEach(item.food.servings, id: \.id) { serving in
-                                                Text("\(serving.quantity.formatted()) \(serving.unit)").tag(serving)
+                                                Text("\((serving.quantity ?? 1).formatted()) \(serving.unit ?? "serving")").tag(serving)
                                             }
                                         }
                                         .labelsHidden()
@@ -336,7 +336,7 @@ private struct FoodLogEditorView: View {
             let normalizedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
             if let existing {
                 _ = try await client.foodLogs.update(.init(
-                    id: existing.id,
+                    id: existing.id ?? "",
                     foods: foods.map(\.selection),
                     timestampUTC: AppFormatting.apiDate.string(from: timestamp),
                     name: normalizedName.isEmpty ? nil : normalizedName,
@@ -376,9 +376,9 @@ private struct FoodLogDetailView: View {
                 Text(localDate(log.timestampUTC)).foregroundStyle(AppPalette.muted)
                 ForEach(log.foods, id: \.id) { food in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(food.name).font(.headline)
+                        Text(food.name ?? "Unnamed food").font(.headline)
                         if let brand = food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
-                        Text("\(food.consumedServing.quantity.formatted()) × \(food.servingDetails.quantity.formatted()) \(food.servingDetails.unit)")
+                        Text("\((food.consumedServing.quantity ?? 1).formatted()) × \((food.servingDetails.quantity ?? 1).formatted()) \(food.servingDetails.unit ?? "serving")")
                             .font(.subheadline)
                         MacroGrid(
                             calories: food.nutrients.calories?.value,
@@ -389,7 +389,7 @@ private struct FoodLogDetailView: View {
                         NutritionList(rows: nutritionRows(food.nutrients))
                     }.appCard()
                 }
-                DisclosureGroup("Technical details") { LabeledContent("Log ID", value: log.id) }.font(.footnote)
+                DisclosureGroup("Technical details") { LabeledContent("Log ID", value: log.id ?? "Unavailable") }.font(.footnote)
                 HStack {
                     Spacer(minLength: 0)
                     Button("Delete food log", role: .destructive) { isConfirmingDelete = true }
@@ -426,7 +426,7 @@ private struct FoodLogDetailView: View {
 
     @MainActor private func delete() async {
         isDeleting = true; error = nil
-        do { _ = try await client.foodLogs.delete(.init(id: log.id, user: context)); onChanged(); dismiss() }
+        do { _ = try await client.foodLogs.delete(.init(id: log.id ?? "", user: context)); onChanged(); dismiss() }
         catch { self.error = error }
         isDeleting = false
     }
@@ -458,8 +458,9 @@ struct FoodPickerView: View {
 
                             if !suggestions.isEmpty {
                                 FoodSuggestionList(items: suggestions) { suggestion in
-                                    autocompleteSuppressedQuery = suggestion.name
-                                    query = suggestion.name
+                                    guard let suggestionName = suggestion.name else { return }
+                                    autocompleteSuppressedQuery = suggestionName
+                                    query = suggestionName
                                     suggestions = []
                                     Task { await search() }
                                 }
@@ -609,14 +610,14 @@ private struct ServingSelectionSheet: View {
 
     init(food: FoodSearchItem, onSelect: @escaping (SelectedFood) -> Void) {
         self.food = food; self.onSelect = onSelect
-        _serving = State(initialValue: food.servings.first(where: \.isPrimary) ?? food.servings.first ?? .init(id: .init(rawValue: 0), quantity: 1, unit: "serving", scalingFactor: 1, isPrimary: true))
+        _serving = State(initialValue: food.servings.first(where: { $0.isPrimary == true }) ?? food.servings.first ?? .init(id: .init(rawValue: "0"), quantity: 1, unit: "serving", scalingFactor: 1, isPrimary: true))
     }
 
     var body: some View {
         NavigationStack {
             ScreenShell {
                 VStack(alignment: .leading, spacing: 14) {
-                            Text(food.name)
+                            Text(food.name ?? "Unnamed food")
                                 .font(AppTypography.sheetTitle)
                                 .foregroundStyle(AppPalette.ink)
 
@@ -627,7 +628,7 @@ private struct ServingSelectionSheet: View {
                                     Spacer(minLength: 8)
                                     Picker("Serving", selection: $serving) {
                                         ForEach(food.servings, id: \.id) {
-                                            Text("\($0.quantity.formatted()) \($0.unit)").tag($0)
+                                            Text("\(($0.quantity ?? 1).formatted()) \($0.unit ?? "serving")").tag($0)
                                         }
                                     }
                                     .labelsHidden()
@@ -699,7 +700,7 @@ private struct ServingSelectionSheet: View {
     }
 
     private var nutritionScale: Double {
-        let baseQuantity = serving.quantity == 0 ? 1 : serving.quantity
+        let baseQuantity = (serving.quantity ?? 1) == 0 ? 1 : (serving.quantity ?? 1)
         return quantity * serving.scalingFactor / baseQuantity
     }
 
@@ -735,7 +736,7 @@ private func selectedFood(_ logged: LoggedFood) -> SelectedFood {
         isPrimary: true
     )
     let food = FoodSearchItem(
-        id: logged.id,
+        id: logged.id ?? .init(rawValue: "missing-food-id"),
         name: logged.name,
         brandName: logged.brandName,
         calories: logged.nutrients.calories?.value,
@@ -755,7 +756,7 @@ private func selectedFood(_ logged: LoggedFood) -> SelectedFood {
         photoURL: logged.imageURL,
         servings: [serving]
     )
-    return .init(food: food, serving: serving, quantity: logged.consumedServing.quantity)
+    return .init(food: food, serving: serving, quantity: logged.consumedServing.quantity ?? 1)
 }
 
 private func nutritionRows(_ value: NutritionFacts) -> [NutrientRow] {
