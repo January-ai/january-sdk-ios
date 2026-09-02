@@ -25,7 +25,15 @@ if [[ ! -f "$lock_path" ]]; then
 fi
 
 lock_value() {
-    node -e 'process.stdout.write(String(require(process.argv[1])[process.argv[2]]))' "$lock_path" "$1"
+    node -e '
+const lock = require(process.argv[1]);
+const key = process.argv[2];
+if (!Object.prototype.hasOwnProperty.call(lock, key) || lock[key] === "") {
+    console.error(`Contract lock is missing required key: ${key}`);
+    process.exit(1);
+}
+process.stdout.write(String(lock[key]));
+' "$lock_path" "$1"
 }
 
 contract_version="$(lock_value contractVersion)"
@@ -36,9 +44,19 @@ archive_path="${JANUARY_CONTRACT_ARCHIVE:-$repository_root/../partner-api-contra
 
 if [[ ! -f "$archive_path" ]]; then
     archive_path="$working_directory/$archive_name"
-    gh api -H "Accept: application/vnd.github.raw+json" \
-        "repos/January-ai/partner-api-contract/contents/artifacts/releases/$contract_version/$archive_name" \
-        > "$archive_path"
+    archive_response="$working_directory/archive-response.json"
+    gh api "repos/January-ai/partner-api-contract/contents/artifacts/releases/$contract_version/$archive_name" \
+        > "$archive_response"
+    node --input-type=module - "$archive_response" "$archive_path" <<'NODE'
+import fs from "node:fs";
+
+const [responsePath, archivePath] = process.argv.slice(2);
+const response = JSON.parse(fs.readFileSync(responsePath, "utf8"));
+if (response.encoding !== "base64" || typeof response.content !== "string") {
+    throw new Error("GitHub did not return Base64 archive content.");
+}
+fs.writeFileSync(archivePath, Buffer.from(response.content, "base64"));
+NODE
 fi
 
 actual_sha256="$(shasum -a 256 "$archive_path" | awk '{print $1}')"
