@@ -8,9 +8,10 @@ Confirm that:
 2. Xcode selected the latest release described on [Installation](../getting-started/installation.md); and
 3. the `January` product is linked to the correct target.
 
-If Xcode resolves the package but says **Unable to load the Read Me**, reset
-package caches and retry resolution. The repository contains a root
-`README.md`; this message does not indicate a missing package README.
+If Xcode resolves the package but says **Unable to load the Read Me**, choose
+**File > Packages > Reset Package Caches**, then **File > Packages > Resolve
+Package Versions**. The repository contains a root `README.md`; this message
+does not indicate a missing package README.
 
 ## Authentication or authorization errors
 
