@@ -1,4 +1,4 @@
-name: release
+name: Release
 
 on:
   push:
@@ -7,6 +7,10 @@ on:
 
 permissions:
   contents: write
+
+concurrency:
+  group: swift-release-${{ github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   release:
@@ -19,15 +23,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: Validate release tag and repository metadata
+      - name: Validate release tag, source commit, and repository metadata
         shell: bash
         run: |
-          [[ "$GITHUB_REF_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]
+          semver_regex='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?(\+[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)*)?$'
+          [[ "$GITHUB_REF_NAME" =~ $semver_regex ]]
+          git merge-base --is-ancestor HEAD origin/main
           test -f README.md
           test -f LICENSE
           test -f CHANGELOG.md
           test -f SECURITY.md
+
+      - name: Validate Swift package manifest
+        run: swift package dump-package >/dev/null
 
       - name: Reject committed Partner API keys
         run: node scripts/check-no-committed-secrets.mjs
@@ -57,6 +67,52 @@ jobs:
           IPHONEOS_DEPLOYMENT_TARGET=26.0
           CODE_SIGNING_ALLOWED=NO
           build
+
+      - name: Run complete example-app UI suite
+        run: scripts/test-demo-ui.sh
+
+      - name: Verify public Swift Package Manager consumption
+        if: ${{ github.event.repository.private == false }}
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          smoke_dir="$(mktemp -d)"
+          cd "$smoke_dir"
+          mkdir -p Sources/JanuaryReleaseSmoke
+          cat > Package.swift <<EOF
+          // swift-tools-version: 5.9
+          import PackageDescription
+
+          let package = Package(
+              name: "JanuaryReleaseSmoke",
+              platforms: [.iOS(.v15)],
+              dependencies: [
+                  .package(
+                      url: "https://github.com/January-ai/january-sdk-ios.git",
+                      exact: "$RELEASE_TAG"
+                  ),
+              ],
+              targets: [
+                  .executableTarget(
+                      name: "JanuaryReleaseSmoke",
+                      dependencies: [
+                          .product(name: "January", package: "january-sdk-ios"),
+                      ]
+                  ),
+              ]
+          )
+          EOF
+          cat > Sources/JanuaryReleaseSmoke/main.swift <<'EOF'
+          import January
+          print("January SDK resolved")
+          EOF
+          swift package resolve
+          xcodebuild \
+            -scheme JanuaryReleaseSmoke \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
 
       - name: Publish GitHub release
         env:

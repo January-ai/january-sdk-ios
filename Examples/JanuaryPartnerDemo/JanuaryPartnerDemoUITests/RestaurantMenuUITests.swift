@@ -192,6 +192,13 @@ final class RestaurantMenuUITests: XCTestCase {
         app.buttons["Search nearby"].tap()
         let result = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Fixture Cafe")).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 5))
+        if app.keyboards.firstMatch.exists {
+            app.swipeDown()
+        }
+        for _ in 0..<5 where !result.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(result.isHittable, "Expected restaurant result to be visible\n\(app.debugDescription)")
         result.tap()
     }
 
