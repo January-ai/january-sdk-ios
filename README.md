@@ -188,11 +188,11 @@ so the selected food contains every available serving.
 
 ## Documentation
 
-- [Installation](Documentation/GitBook/getting-started/installation.md)
-- [Backend token endpoint](Documentation/GitBook/getting-started/backend-token-endpoint.md)
-- [Authentication](Documentation/GitBook/getting-started/authentication.md)
-- [First iOS request](Documentation/GitBook/getting-started/quick-start.md)
-- [API reference](Documentation/GitBook/reference/client-and-resources.md)
+- [Installation](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/installation)
+- [Backend token endpoint](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/backend-token-endpoint)
+- [Authentication](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/authentication)
+- [First iOS request](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/quick-start)
+- [API reference](https://docs.january.ai/ios-sdk/ios-sdk/reference/client-and-resources)
 - [Example app](Examples/JanuaryPartnerDemo/README.md) (iOS 26)
 
 ## Development
