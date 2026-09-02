@@ -73,7 +73,8 @@ private func makeSession(
     permissions: StubVoicePermissions? = nil,
     recorder: StubVoiceRecorder? = nil,
     transcriber: StubVoiceTranscriber? = nil,
-    url: URL = FileManager.default.temporaryDirectory.appendingPathComponent("voice-capture-test.m4a")
+    url: URL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("voice-capture-test-\(UUID().uuidString).m4a")
 ) -> VoiceCaptureSession {
     VoiceCaptureSession(
         permissions: permissions ?? StubVoicePermissions(),

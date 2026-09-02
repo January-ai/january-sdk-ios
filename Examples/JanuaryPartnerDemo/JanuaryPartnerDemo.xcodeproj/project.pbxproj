@@ -596,9 +596,7 @@
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take a meal photo for January to analyze.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Use your location to find nearby restaurants and menu items.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use your voice to enter food, meal, and restaurant searches.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a meal photo for January to analyze.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Turn your recorded voice into search text.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -634,9 +632,7 @@
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Take a meal photo for January to analyze.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Use your location to find nearby restaurants and menu items.";
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Use your voice to enter food, meal, and restaurant searches.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose a meal photo for January to analyze.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Turn your recorded voice into search text.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
