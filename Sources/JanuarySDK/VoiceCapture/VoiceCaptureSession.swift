@@ -79,10 +79,15 @@ public final class VoiceCaptureSession: ObservableObject {
         } catch {
             guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
             finishCapture()
+            if Task.isCancelled { throw VoiceCaptureError.cancelled }
             throw error
         }
 
         guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
+        guard !Task.isCancelled else {
+            finishCapture()
+            throw VoiceCaptureError.cancelled
+        }
 
         let recordingURL = recordingURLProvider()
         try? fileManager.removeItem(at: recordingURL)
@@ -125,6 +130,10 @@ public final class VoiceCaptureSession: ObservableObject {
             let transcript = try await transcriber.transcribe(audioAt: recordingURL)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
+            guard !Task.isCancelled else {
+                finishCapture()
+                throw VoiceCaptureError.cancelled
+            }
             guard !transcript.isEmpty else { throw VoiceCaptureError.emptyTranscript }
 
             let result = VoiceCaptureResult(
@@ -136,6 +145,7 @@ public final class VoiceCaptureSession: ObservableObject {
         } catch {
             guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
             finishCapture()
+            if Task.isCancelled { throw VoiceCaptureError.cancelled }
             if let voiceError = error as? VoiceCaptureError { throw voiceError }
             throw VoiceCaptureError.transcriptionFailed(error.localizedDescription)
         }

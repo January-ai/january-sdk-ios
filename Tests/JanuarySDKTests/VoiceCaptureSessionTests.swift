@@ -14,6 +14,25 @@ private final class StubVoicePermissions: VoiceCapturePermissionProviding {
 }
 
 @MainActor
+private final class SuspendedVoicePermissions: VoiceCapturePermissionProviding {
+    private var continuation: CheckedContinuation<Void, Never>?
+    private(set) var isWaiting = false
+
+    func requestPermissions() async throws {
+        await withCheckedContinuation { continuation in
+            self.continuation = continuation
+            isWaiting = true
+        }
+    }
+
+    func grant() {
+        continuation?.resume()
+        continuation = nil
+        isWaiting = false
+    }
+}
+
+@MainActor
 private final class StubVoiceRecorder: VoiceCaptureRecording {
     var averagePower: Float = -25
     var currentTime: TimeInterval = 2.75
@@ -63,6 +82,12 @@ private final class SuspendedVoiceTranscriber: VoiceCaptureTranscribing {
 
     func cancel() {
         continuation?.resume(throwing: VoiceCaptureError.cancelled)
+        continuation = nil
+        isWaiting = false
+    }
+
+    func complete(with transcript: String) {
+        continuation?.resume(returning: transcript)
         continuation = nil
         isWaiting = false
     }
@@ -124,6 +149,39 @@ func permissionFailureReturnsSessionToIdle() async {
 
     #expect(session.state == .idle)
     #expect(recorder.startedURLs.isEmpty)
+}
+
+@Test @MainActor
+func cancellingPermissionTaskDoesNotStartRecording() async throws {
+    let permissions = SuspendedVoicePermissions()
+    let recorder = StubVoiceRecorder()
+    let session = VoiceCaptureSession(
+        permissions: permissions,
+        recorder: recorder,
+        transcriber: StubVoiceTranscriber(),
+        recordingURLProvider: {
+            FileManager.default.temporaryDirectory
+                .appendingPathComponent("cancel-permission-\(UUID().uuidString).m4a")
+        },
+        fileManager: .default
+    )
+
+    let start = Task { @MainActor in
+        try await session.startRecording()
+    }
+    for _ in 0..<100 where !permissions.isWaiting {
+        await Task.yield()
+    }
+    try #require(permissions.isWaiting)
+
+    start.cancel()
+    permissions.grant()
+
+    await #expect(throws: VoiceCaptureError.cancelled) {
+        try await start.value
+    }
+    #expect(recorder.startedURLs.isEmpty)
+    #expect(session.state == .idle)
 }
 
 @Test @MainActor
@@ -189,6 +247,39 @@ func cancelResumesAnInFlightTranscription() async throws {
         try await transcription.value
     }
     #expect(session.state == .idle)
+}
+
+@Test @MainActor
+func cancellingTranscriptionTaskDeletesRecordingAndReturnsToIdle() async throws {
+    let transcriber = SuspendedVoiceTranscriber()
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("task-cancel-transcription-\(UUID().uuidString).m4a")
+    let session = VoiceCaptureSession(
+        permissions: StubVoicePermissions(),
+        recorder: StubVoiceRecorder(),
+        transcriber: transcriber,
+        recordingURLProvider: { url },
+        fileManager: .default
+    )
+
+    try await session.startRecording()
+    try Data([1]).write(to: url)
+    let transcription = Task { @MainActor in
+        try await session.stopAndTranscribe()
+    }
+    for _ in 0..<100 where !transcriber.isWaiting {
+        await Task.yield()
+    }
+    try #require(transcriber.isWaiting)
+
+    transcription.cancel()
+    transcriber.complete(with: "greek yogurt")
+
+    await #expect(throws: VoiceCaptureError.cancelled) {
+        try await transcription.value
+    }
+    #expect(session.state == .idle)
+    #expect(!FileManager.default.fileExists(atPath: url.path))
 }
 
 @Test @MainActor
