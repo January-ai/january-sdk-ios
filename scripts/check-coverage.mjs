@@ -51,14 +51,15 @@ if (!target) {
   throw new Error("January was not present in the iOS coverage report.");
 }
 
-// Camera presentation is validated by compiling and launching the example app;
-// deterministic unit coverage applies to the SDK's transport and model logic.
-const uiPresentationFiles = new Set([
+// Native camera and voice adapters are validated by compiling and launching the
+// example app; deterministic unit coverage applies to their reusable SDK logic.
+const coverageExcludedFiles = new Set([
   "JanuaryMealScanner.swift",
   "MealCameraViewController.swift",
   "ScannerLoadingSpinner.swift",
+  "SystemVoiceCapture.swift",
 ]);
-const coveredFiles = target.files.filter((file) => !uiPresentationFiles.has(file.name));
+const coveredFiles = target.files.filter((file) => !coverageExcludedFiles.has(file.name));
 const coveredLines = coveredFiles.reduce((total, file) => total + file.coveredLines, 0);
 const executableLines = coveredFiles.reduce((total, file) => total + file.executableLines, 0);
 const linePercent = (coveredLines / executableLines) * 100;

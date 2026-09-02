@@ -1,0 +1,5 @@
+// Safe defaults. Local credentials belong in the ignored Secrets.xcconfig file.
+JANUARY_DEMO_API_KEY =
+JANUARY_DEMO_END_USER_ID = your-ios-user-id
+
+#include? "Secrets.xcconfig"

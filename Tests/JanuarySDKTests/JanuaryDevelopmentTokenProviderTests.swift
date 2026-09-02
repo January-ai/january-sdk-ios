@@ -52,6 +52,14 @@ func developmentTokenProviderMintsAndDecodesClientToken() async throws {
     #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
     #expect(json["end_user_id"] as? String == "demo-user")
     #expect(json["ttl_seconds"] as? Int == 300)
+    #expect(Set(json["scopes"] as? [String] ?? []) == Set([
+        "foods:read",
+        "food_analysis:write",
+        "food_logs:read",
+        "food_logs:write",
+        "glucose:read",
+        "restaurants:read",
+    ]))
     #expect(warnings == [JanuaryDevelopmentTokenProvider.warning])
     #expect(!warnings[0].contains("fixture-development-key"))
 }

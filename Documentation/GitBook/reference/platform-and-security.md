@@ -8,6 +8,7 @@
 | `PhotoScanImage` preparation | Yes |
 | `JanuaryFoodScannerView` | Yes |
 | `JanuaryFoodScanner.makeViewController` | Yes |
+| `VoiceCaptureSession` | Yes |
 
 The repository demo uses the latest tab-bar APIs and targets iOS 26 independently of the SDK deployment target.
 
@@ -31,3 +32,11 @@ Use partner-owned opaque IDs rather than email addresses or names. Client tokens
 ## Camera privacy
 
 The iOS native scanner requires `NSCameraUsageDescription`. Present a clear purpose string that matches the actual feature. Do not request camera permission before the user initiates scanning.
+
+## Microphone and speech privacy
+
+Voice capture requires both `NSMicrophoneUsageDescription` and
+`NSSpeechRecognitionUsageDescription`. `VoiceCaptureSession` requests access
+only after `startRecording()` is called. Captured audio stays in a temporary
+local file only while Apple Speech is transcribing it, then the SDK deletes the
+file. The SDK does not send voice audio or transcripts to January.

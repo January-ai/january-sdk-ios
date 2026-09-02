@@ -181,6 +181,65 @@ final class RestaurantMenuUITests: XCTestCase {
         tab("Search"); wait("Search foods")
     }
 
+    func testSearchShowcasesVoiceCapture() {
+        let voiceButton = app.buttons["voice-capture-button"]
+        XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(voiceButton.label, "Use voice input")
+        attachScreenshot("search-voice-capture")
+    }
+
+    func testVoiceCaptureEntersAndCancelsRecording() {
+        addUIInterruptionMonitor(withDescription: "Voice capture permissions") { alert in
+            for label in ["Allow", "Continue", "OK"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            return false
+        }
+
+        let voiceButton = app.buttons["voice-capture-button"]
+        XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
+        voiceButton.tap()
+
+        let stopButton = app.buttons["Stop and transcribe"]
+        for _ in 0..<3 where !stopButton.exists {
+            app.tap()
+            _ = stopButton.waitForExistence(timeout: 2)
+        }
+
+        XCTAssertTrue(stopButton.exists, app.debugDescription)
+        XCTAssertTrue(app.buttons["Cancel voice input"].exists)
+        attachScreenshot("search-voice-recording")
+
+        app.buttons["Cancel voice input"].tap()
+        XCTAssertTrue(voiceButton.waitForExistence(timeout: 3), app.debugDescription)
+    }
+
+    func testDeniedMicrophonePermissionOffersSettings() {
+        app.resetAuthorizationStatus(for: .microphone)
+        app.terminate()
+        app.launch()
+
+        addUIInterruptionMonitor(withDescription: "Deny microphone permission") { alert in
+            for label in ["Don’t Allow", "Don't Allow"] where alert.buttons[label].exists {
+                alert.buttons[label].tap()
+                return true
+            }
+            return false
+        }
+
+        let voiceButton = app.buttons["voice-capture-button"]
+        XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
+        voiceButton.tap()
+        app.tap()
+
+        XCTAssertTrue(app.alerts["Microphone Access Denied"].waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertTrue(app.staticTexts["Please enable microphone access in Settings."].exists)
+        XCTAssertTrue(app.alerts.buttons["Settings"].exists)
+        XCTAssertTrue(app.alerts.buttons["Cancel"].exists)
+        attachScreenshot("search-voice-permission-denied")
+    }
+
     private func openRestaurant() {
         let restaurants = app.segmentedControls.buttons["Restaurants"]
         XCTAssertTrue(restaurants.waitForExistence(timeout: 5))

@@ -57,7 +57,11 @@ struct SearchView: View {
             ScrollView {
                 ScreenShell {
                     LazyVStack(alignment: .leading, spacing: 18) {
-                        SearchField(prompt: searchPrompt, text: queryBinding) {
+                        SearchField(
+                            prompt: searchPrompt,
+                            text: queryBinding,
+                            voiceCaptureEnabled: foodMode != .barcode
+                        ) {
                             Task { await submit() }
                         }
 

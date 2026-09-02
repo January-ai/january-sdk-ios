@@ -5,6 +5,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add reusable microphone capture, live audio metering, and Apple Speech
+  transcription through `VoiceCaptureSession`.
 - Add the initial Swift Package Manager distribution for iOS 15 and later.
 - Support Swift 5.9 and Xcode 15 with no third-party runtime dependencies.
 - Distribute the SDK under the Apache License 2.0.

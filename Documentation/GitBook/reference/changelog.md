@@ -4,6 +4,7 @@ See [Versioning and support](versioning-and-support.md) before installing or upd
 
 ## Unreleased
 
+* Reusable microphone capture, live audio metering, and Apple Speech transcription
 * Native Swift 5.9 package for iOS 15+
 * No third-party runtime dependencies
 * Typed `async`/`await` resource APIs

@@ -70,3 +70,7 @@ server-side.
 
 The visual tokens, reusable SwiftUI components, layout rules, and screen
 requirements are documented in [DESIGN_SPEC.md](DESIGN_SPEC.md).
+
+The Search tab includes a microphone button for every text-based search mode.
+It demonstrates `VoiceCaptureSession` permission handling, live recording
+feedback, cancellation, and appending the Apple Speech transcript to the query.
