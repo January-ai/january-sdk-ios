@@ -4,17 +4,14 @@
 
 Confirm that:
 
-1. your GitHub account can resolve the package repository;
-2. Xcode is authenticated to that account;
-3. the package URL is exactly `https://github.com/January-ai/january-sdk-ios.git`;
-4. Xcode selected the latest release described on [Installation](../getting-started/installation.md); and
-5. the `January` product is linked to the correct target.
+1. the package URL is exactly `https://github.com/January-ai/january-sdk-ios.git`;
+2. Xcode selected the latest release described on [Installation](../getting-started/installation.md); and
+3. the `January` product is linked to the correct target.
 
-If Xcode resolves the package but says **Unable to load the Read Me**, check the
-warning indicator beside the GitHub account in the Add Package window. Sign out
-and back in under **Xcode → Settings → Accounts**. The repository contains a
-root `README.md`; this message indicates an account-resolution failure, not a
-missing package README.
+If Xcode resolves the package but says **Unable to load the Read Me**, choose
+**File > Packages > Reset Package Caches**, then **File > Packages > Resolve
+Package Versions**. The repository contains a root `README.md`; this message
+does not indicate a missing package README.
 
 ## Authentication or authorization errors
 
