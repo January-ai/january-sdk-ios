@@ -52,9 +52,12 @@ import fs from "node:fs";
 
 const path = process.argv[2];
 let source = fs.readFileSync(path, "utf8");
-const developmentServer = "  - url: https://partners.dev.january.ai\n    description: Development\n";
-if (!source.includes(developmentServer)) throw new Error("Development server block was not found.");
-source = source.replace(developmentServer, "");
+const serversStart = source.indexOf("servers:\n");
+const tagsStart = source.indexOf("tags:\n", serversStart);
+if (serversStart < 0 || tagsStart < 0) throw new Error("OpenAPI servers block was not found.");
+const servers = source.slice(serversStart + "servers:\n".length, tagsStart).trimEnd().split(/(?=^  - url:)/m);
+if (servers.length < 1) throw new Error("Production server was not found.");
+source = source.slice(0, serversStart) + "servers:\n" + servers[0].trimEnd() + "\n" + source.slice(tagsStart);
 const schemaStart = source.indexOf("    CompleteScanNutritionFacts:\n");
 if (schemaStart >= 0) {
     const remainder = source.slice(schemaStart + 1);
