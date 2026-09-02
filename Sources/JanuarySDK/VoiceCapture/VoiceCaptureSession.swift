@@ -191,7 +191,14 @@ public final class VoiceCaptureSession: ObservableObject {
     deinit {
         meterCancellable?.cancel()
         if let activeRecordingURL {
-            try? fileManager.removeItem(at: activeRecordingURL)
+            let recorder = recorder
+            let transcriber = transcriber
+            let fileManager = fileManager
+            Task { @MainActor in
+                recorder.stopRecording()
+                transcriber.cancel()
+                try? fileManager.removeItem(at: activeRecordingURL)
+            }
         }
     }
 }

@@ -140,6 +140,24 @@ func cancelStopsAndDiscardsActiveCapture() async throws {
 }
 
 @Test @MainActor
+func deinitializingAnActiveSessionStopsAndDeletesTheRecording() async throws {
+    let recorder = StubVoiceRecorder()
+    let transcriber = StubVoiceTranscriber()
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("deinit-voice-capture-\(UUID().uuidString).m4a")
+    var session: VoiceCaptureSession? = makeSession(recorder: recorder, transcriber: transcriber, url: url)
+
+    try await session?.startRecording()
+    try Data([1]).write(to: url)
+    session = nil
+    await Task.yield()
+
+    #expect(recorder.stopCount == 1)
+    #expect(transcriber.cancelCount == 1)
+    #expect(!FileManager.default.fileExists(atPath: url.path))
+}
+
+@Test @MainActor
 func cancelResumesAnInFlightTranscription() async throws {
     let transcriber = SuspendedVoiceTranscriber()
     let session = VoiceCaptureSession(
