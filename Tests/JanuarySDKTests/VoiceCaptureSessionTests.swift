@@ -120,6 +120,36 @@ func permissionFailureReturnsSessionToIdle() async {
 }
 
 @Test @MainActor
+func permissionFailurePreservesThePreviousSuccessfulRecording() async throws {
+    let permissions = StubVoicePermissions()
+    let firstURL = FileManager.default.temporaryDirectory.appendingPathComponent("retained-voice-capture.m4a")
+    let secondURL = FileManager.default.temporaryDirectory.appendingPathComponent("next-voice-capture.m4a")
+    var urls = [firstURL, secondURL]
+    let session = VoiceCaptureSession(
+        permissions: permissions,
+        recorder: StubVoiceRecorder(),
+        transcriber: StubVoiceTranscriber(),
+        recordingURLProvider: { urls.removeFirst() },
+        fileManager: .default
+    )
+    defer {
+        try? FileManager.default.removeItem(at: firstURL)
+        try? FileManager.default.removeItem(at: secondURL)
+    }
+
+    try await session.startRecording()
+    try Data([1]).write(to: firstURL)
+    _ = try await session.stopAndTranscribe()
+
+    permissions.result = .failure(VoiceCaptureError.microphonePermissionDenied)
+    await #expect(throws: VoiceCaptureError.microphonePermissionDenied) {
+        try await session.startRecording()
+    }
+
+    #expect(FileManager.default.fileExists(atPath: firstURL.path))
+}
+
+@Test @MainActor
 func cancelStopsAndDiscardsActiveCapture() async throws {
     let recorder = StubVoiceRecorder()
     let transcriber = StubVoiceTranscriber()

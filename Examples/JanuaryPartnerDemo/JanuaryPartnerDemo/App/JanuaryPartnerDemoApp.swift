@@ -21,10 +21,17 @@ private enum AppConfiguration {
         ?? localDefaults.string(forKey: "JanuaryDevelopmentAPIKey")
         ?? ""
 
-    static let endUserID = environment["JANUARY_END_USER_ID"]
-        ?? bundle.object(forInfoDictionaryKey: "JanuaryEndUserID") as? String
-        ?? localDefaults.string(forKey: "JanuaryEndUserID")
-        ?? "your-ios-user-id"
+    static let endUserID: String = {
+        let candidates = [
+            environment["JANUARY_END_USER_ID"],
+            bundle.object(forInfoDictionaryKey: "JanuaryEndUserID") as? String,
+            localDefaults.string(forKey: "JanuaryEndUserID"),
+        ]
+        return candidates.compactMap { candidate in
+            let normalized = candidate?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return normalized.isEmpty ? nil : normalized
+        }.first ?? "your-ios-user-id"
+    }()
 
     static var authentication: AuthenticationConfiguration {
         let sessionToken = partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines)

@@ -26,7 +26,7 @@ public final class VoiceCaptureSession: ObservableObject {
     private let transcriber: any VoiceCaptureTranscribing
     private let recordingURLProvider: () -> URL
     private let fileManager: FileManager
-    private var meterTimer: Timer?
+    private var meterCancellable: AnyCancellable?
     private var activeCaptureID: UUID?
     private var activeRecordingURL: URL?
     private var retainedResultURL: URL?
@@ -70,7 +70,6 @@ public final class VoiceCaptureSession: ObservableObject {
     public func startRecording() async throws {
         guard state == .idle else { throw VoiceCaptureError.invalidState }
 
-        removeRetainedResult()
         let captureID = UUID()
         activeCaptureID = captureID
         state = .requestingPermissions
@@ -86,7 +85,9 @@ public final class VoiceCaptureSession: ObservableObject {
         guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
 
         let recordingURL = recordingURLProvider()
-        try? fileManager.removeItem(at: recordingURL)
+        if recordingURL != retainedResultURL {
+            try? fileManager.removeItem(at: recordingURL)
+        }
 
         do {
             try recorder.startRecording(to: recordingURL)
@@ -97,6 +98,11 @@ public final class VoiceCaptureSession: ObservableObject {
             if let voiceError = error as? VoiceCaptureError { throw voiceError }
             throw VoiceCaptureError.recordingFailed(error.localizedDescription)
         }
+
+        if let retainedResultURL, retainedResultURL != recordingURL {
+            try? fileManager.removeItem(at: retainedResultURL)
+        }
+        retainedResultURL = nil
 
         activeRecordingURL = recordingURL
         audioLevel = 0
@@ -162,19 +168,19 @@ public final class VoiceCaptureSession: ObservableObject {
     }
 
     private func startMetering() {
-        meterTimer?.invalidate()
-        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
+        meterCancellable?.cancel()
+        meterCancellable = Timer.publish(every: 0.05, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
             guard let self, self.state == .recording else { return }
             self.audioLevel = Self.normalizedLevel(decibels: self.recorder.averagePower)
             self.recordingDuration = self.recorder.currentTime
         }
-        RunLoop.main.add(timer, forMode: .common)
-        meterTimer = timer
     }
 
     private func stopMetering() {
-        meterTimer?.invalidate()
-        meterTimer = nil
+        meterCancellable?.cancel()
+        meterCancellable = nil
     }
 
     private func finishCapture() {
@@ -186,12 +192,6 @@ public final class VoiceCaptureSession: ObservableObject {
         state = .idle
     }
 
-    private func removeRetainedResult() {
-        guard let retainedResultURL else { return }
-        try? fileManager.removeItem(at: retainedResultURL)
-        self.retainedResultURL = nil
-    }
-
     nonisolated internal static func normalizedLevel(decibels: Float) -> Float {
         let minimumDecibels: Float = -50
         guard decibels.isFinite, decibels > minimumDecibels else { return 0 }
@@ -200,7 +200,7 @@ public final class VoiceCaptureSession: ObservableObject {
     }
 
     deinit {
-        meterTimer?.invalidate()
+        meterCancellable?.cancel()
         if let activeRecordingURL {
             try? fileManager.removeItem(at: activeRecordingURL)
         }
