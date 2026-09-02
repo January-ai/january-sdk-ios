@@ -13,13 +13,13 @@ struct RootView: View {
                     .foregroundStyle(AppPalette.body)
             case .ready:
                 if let client = model.client {
-                    AppTabView(client: client)
-                        .environmentObject(model.userSession)
-                        .safeAreaInset(edge: .top, spacing: 0) {
-                            if model.isUsingDevelopmentAuthentication {
-                                DevelopmentAuthenticationBanner()
-                            }
+                    VStack(spacing: 0) {
+                        if model.isUsingDevelopmentAuthentication {
+                            DevelopmentAuthenticationBanner()
                         }
+                        AppTabView(client: client)
+                            .environmentObject(model.userSession)
+                    }
                 }
             case .setupRequired(let detail):
                 DemoSetupView(detail: detail)

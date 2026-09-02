@@ -209,10 +209,6 @@ xcodebuild -scheme January -destination 'generic/platform=iOS' \
 See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), and
 [SECURITY.md](SECURITY.md) for project policies.
 
-## License
-
-January SDK for iOS is available under the [Apache License 2.0](LICENSE).
-
 ## Support
 
 For integration support, use your January partner support channel. Report
@@ -229,3 +225,7 @@ let page = try await client.restaurants.getMenuItems(.init(restaurantID: restaur
 The response contains `items` and `totalCount` (`total_count` on the wire). Request subsequent pages by advancing `offset` by the number of items received, until it reaches the total or a page is empty. An unknown restaurant returns 404; an existing restaurant with no menu returns an empty list.
 
 This operation requires the backend restaurant-ID menu endpoint; deployment is pending for this unreleased change.
+
+## License
+
+The Apache 2.0 license applies to the source code in this repository. It does not grant rights to nutrition data, food images, or other content returned by the January API, which are subject to the January API Developer Terms.

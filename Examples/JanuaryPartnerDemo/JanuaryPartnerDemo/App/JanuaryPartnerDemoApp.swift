@@ -1,19 +1,22 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 #warning("January demo authentication: development API keys are for local Debug testing only. Never commit or ship one. Use JanuaryTokenProvider for production authentication.")
 
 private enum AppConfiguration {
     // MARK: Configure the demo here
 
+    private static let environment = ProcessInfo.processInfo.environment
+
     // Recommended: connect the demo to your authenticated token endpoint.
-    static let partnerTokenURL: URL? = nil
-    static let partnerAppSessionToken = ""
+    static let partnerTokenURL = environment["JANUARY_PARTNER_TOKEN_URL"].flatMap(URL.init(string:))
+    static let partnerAppSessionToken = environment["JANUARY_PARTNER_SESSION_TOKEN"] ?? ""
 
     // Local Debug testing only. Never commit or ship a development API key.
-    static let developmentAPIKey = ""
+    static let developmentAPIKey = environment["JANUARY_API_KEY"] ?? ""
 
-    static let endUserID = "your-ios-user-id"
+    static let endUserID = environment["JANUARY_END_USER_ID"] ?? "your-ios-user-id"
 
     static var authentication: AuthenticationConfiguration {
         let sessionToken = partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,6 +65,9 @@ struct JanuaryPartnerDemoApp: App {
 
     init() {
         let isUITesting = ProcessInfo.processInfo.arguments.contains("-ui-testing")
+        if isUITesting {
+            UIView.setAnimationsEnabled(false)
+        }
         let authentication: AuthenticationConfiguration = isUITesting
             ? .fixture(URL(string: "http://127.0.0.1:18768")!)
             : AppConfiguration.authentication
