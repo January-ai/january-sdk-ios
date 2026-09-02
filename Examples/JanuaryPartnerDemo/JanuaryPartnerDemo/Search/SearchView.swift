@@ -205,7 +205,14 @@ struct SearchView: View {
         requestState
 
         if let naturalResult {
-            NaturalMealResultView(result: naturalResult)
+            NaturalMealResultView(
+                client: client,
+                result: naturalResult,
+                endUserID: AppFormatting.endUserID(endUserID),
+                timezone: TimeZone(identifier: userSession.timezone) ?? .current,
+                onAnalyzeAnother: resetMealAnalysis
+            )
+            .id(naturalResult)
         } else if !foodResults.isEmpty {
             HStack(alignment: .firstTextBaseline) {
                 SectionLabel("Results · January food database")
@@ -416,6 +423,12 @@ struct SearchView: View {
         foodSuggestions = []; foodResults = []; naturalResult = nil; restaurants = []; menuItems = []
         if !keepError { error = nil }
     }
+
+    private func resetMealAnalysis() {
+        query = ""
+        autocompleteSuppressedQuery = nil
+        resetResults()
+    }
 }
 
 struct FoodSuggestionList: View {
@@ -485,7 +498,39 @@ private struct SearchPromptCard: View {
 }
 
 private struct NaturalMealResultView: View {
+    let client: JanuaryClient
     let result: FoodScan
+    let endUserID: PartnerUserID?
+    let timezone: TimeZone
+    let onAnalyzeAnother: () -> Void
+
+    @State private var prediction: GlucosePrediction?
+    @State private var isPredicting = false
+    @State private var predictionError: Error?
+
+    private let profile = GlucosePredictionProfile(
+        age: 42,
+        sex: .female,
+        height: .init(value: 66, unit: .inches),
+        weight: .init(value: 150, unit: .pounds),
+        activityLevel: .moderatelyActive,
+        healthConditions: []
+    )
+
+    private var foods: [FoodSelection] {
+        result.detections.compactMap { detection in
+            guard let foodID = detection.food.id,
+                  let serving = detection.food.servings?.first(where: { $0.id != nil }),
+                  let servingID = serving.id else { return nil }
+            return FoodSelection(
+                id: foodID,
+                serving: ServingSelection(
+                    id: servingID,
+                    quantity: serving.selectedQuantity ?? serving.quantity ?? 1
+                )
+            )
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -511,7 +556,94 @@ private struct NaturalMealResultView: View {
                 }
                 .appCard()
             }
+
+            PrimaryButton(
+                title: prediction == nil ? "Show glucose prediction" : "Refresh glucose prediction",
+                systemImage: "waveform.path.ecg",
+                isLoading: isPredicting,
+                isDisabled: foods.isEmpty
+            ) {
+                Task { await predict() }
+            }
+
+            if let predictionError {
+                ErrorNotice(error: predictionError) {
+                    Task { await predict() }
+                }
+            }
+
+            if let prediction {
+                mealPrediction(prediction)
+            }
+
+            Button("Analyze another meal", action: onAnalyzeAnother)
+                .buttonStyle(OutlinedButtonStyle())
         }
+    }
+
+    @ViewBuilder
+    private func mealPrediction(_ prediction: GlucosePrediction) -> some View {
+        let peak = prediction.prediction.max(by: { $0.value < $1.value })
+        let impact = prediction.impact
+        let lineColor = impact.map(impactColor) ?? AppPalette.rust
+
+        VStack(alignment: .leading, spacing: 8) {
+            SectionLabel("Likely meal peak")
+            Text(peak?.value.formatted(.number.precision(.fractionLength(0))) ?? "—")
+                .font(.system(size: 48, weight: .bold, design: .monospaced))
+                .foregroundStyle(lineColor)
+            Text("mg/dL" + (peak.map { " · about \($0.minutes.formatted(.number.precision(.fractionLength(0)))) minutes after the meal" } ?? ""))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppPalette.muted)
+            if let impact {
+                Text(impactLabel(impact))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(lineColor)
+            }
+        }
+        .appCard()
+
+        PredictionChart(
+            points: prediction.prediction.map { .init(minutes: $0.minutes, value: $0.value) },
+            lowerBound: prediction.minimum,
+            upperBound: prediction.maximum,
+            lineColor: lineColor
+        )
+
+        Text("Prediction for all detected foods. This estimate is for demonstration purposes, not medical advice.")
+            .font(.footnote)
+            .foregroundStyle(AppPalette.muted)
+    }
+
+    @MainActor
+    private func predict() async {
+        guard !foods.isEmpty else { return }
+        isPredicting = true
+        predictionError = nil
+        do {
+            prediction = try await client.glucose.predict(.init(
+                userProfile: profile,
+                foods: foods,
+                startTime: .now,
+                endUserID: endUserID,
+                timezone: timezone
+            ))
+        } catch {
+            predictionError = error
+        }
+        isPredicting = false
+    }
+
+    private func impactLabel(_ impact: GlucoseImpact) -> String {
+        let value = impact.rawValue.replacingOccurrences(of: "_", with: " ").capitalized
+        return value.localizedCaseInsensitiveContains("impact") ? value : "\(value) impact"
+    }
+
+    private func impactColor(_ impact: GlucoseImpact) -> Color {
+        if impact == .lowImpact { return AppPalette.green }
+        if impact == .mediumImpact { return AppPalette.yellow }
+        if impact == .highImpact { return AppPalette.rust }
+        return AppPalette.muted
     }
 }
 
