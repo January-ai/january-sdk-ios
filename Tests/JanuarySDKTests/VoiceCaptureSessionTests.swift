@@ -90,7 +90,8 @@ func voiceCaptureRecordsAndReturnsTrimmedTranscript() async throws {
     let recorder = StubVoiceRecorder()
     let transcriber = StubVoiceTranscriber()
     transcriber.result = .success("  greek yogurt  ")
-    let url = FileManager.default.temporaryDirectory.appendingPathComponent("successful-voice-capture.m4a")
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("successful-voice-capture-\(UUID().uuidString).m4a")
     let session = makeSession(recorder: recorder, transcriber: transcriber, url: url)
 
     try await session.startRecording()
@@ -150,7 +151,9 @@ func deinitializingAnActiveSessionStopsAndDeletesTheRecording() async throws {
     try await session?.startRecording()
     try Data([1]).write(to: url)
     session = nil
-    await Task.yield()
+    for _ in 0..<100 where recorder.stopCount == 0 {
+        await Task.yield()
+    }
 
     #expect(recorder.stopCount == 1)
     #expect(transcriber.cancelCount == 1)
@@ -165,7 +168,8 @@ func cancelResumesAnInFlightTranscription() async throws {
         recorder: StubVoiceRecorder(),
         transcriber: transcriber,
         recordingURLProvider: {
-            FileManager.default.temporaryDirectory.appendingPathComponent("cancel-transcription.m4a")
+            FileManager.default.temporaryDirectory
+                .appendingPathComponent("cancel-transcription-\(UUID().uuidString).m4a")
         },
         fileManager: .default
     )
@@ -174,7 +178,10 @@ func cancelResumesAnInFlightTranscription() async throws {
     let transcription = Task { @MainActor in
         try await session.stopAndTranscribe()
     }
-    while !transcriber.isWaiting { await Task.yield() }
+    for _ in 0..<100 where !transcriber.isWaiting {
+        await Task.yield()
+    }
+    try #require(transcriber.isWaiting)
 
     #expect(session.state == .transcribing)
     session.cancel()
