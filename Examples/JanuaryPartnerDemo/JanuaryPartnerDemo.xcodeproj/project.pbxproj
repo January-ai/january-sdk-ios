@@ -615,6 +615,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = JanuaryPartnerDemo/Info.plist;
+				JANUARY_DEMO_API_KEY = "";
+				JANUARY_DEMO_END_USER_ID = "";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = ai.january.partner.demo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
