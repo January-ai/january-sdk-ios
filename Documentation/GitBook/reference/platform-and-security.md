@@ -38,5 +38,5 @@ The iOS native scanner requires `NSCameraUsageDescription`. Present a clear purp
 Voice capture requires both `NSMicrophoneUsageDescription` and
 `NSSpeechRecognitionUsageDescription`. `VoiceCaptureSession` requests access
 only after `startRecording()` is called. Captured audio stays in a temporary
-local file and transcription uses Apple Speech; the SDK does not send voice
-audio or transcripts to January.
+local file only while Apple Speech is transcribing it, then the SDK deletes the
+file. The SDK does not send voice audio or transcripts to January.

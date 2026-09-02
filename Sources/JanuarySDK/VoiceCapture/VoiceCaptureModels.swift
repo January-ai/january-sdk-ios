@@ -16,16 +16,11 @@ public enum VoiceCaptureState: Equatable, Sendable {
 public struct VoiceCaptureResult: Equatable, Sendable {
     /// The recognized text, trimmed of leading and trailing whitespace.
     public let transcript: String
-    /// The local AAC recording produced by the capture.
-    ///
-    /// Copy this file before starting another capture if the app needs to keep it.
-    public let audioURL: URL
     /// The length of the recording in seconds.
     public let duration: TimeInterval
 
-    public init(transcript: String, audioURL: URL, duration: TimeInterval) {
+    public init(transcript: String, duration: TimeInterval) {
         self.transcript = transcript
-        self.audioURL = audioURL
         self.duration = duration
     }
 }

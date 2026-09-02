@@ -94,9 +94,9 @@ the user to Settings.
 ## Captured audio lifecycle
 
 `stopAndTranscribe()` returns a `VoiceCaptureResult` containing the transcript,
-recording duration, and local AAC file URL. The SDK keeps that temporary file
-until the next capture starts or the session is released. Copy the file before
-then if the app needs to upload or retain it.
+and recording duration. The SDK deletes its temporary AAC file immediately after
+Apple Speech finishes transcription, before `stopAndTranscribe()` returns. It
+also deletes the file after failed or cancelled transcription.
 
 Call `cancel()` while recording or transcribing to stop work and delete the
 in-progress file. Permission denial, unavailable speech recognition, an empty

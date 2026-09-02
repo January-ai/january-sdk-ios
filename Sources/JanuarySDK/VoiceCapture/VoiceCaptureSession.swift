@@ -5,7 +5,8 @@ import Foundation
 ///
 /// Create one session per voice-enabled input. Observe ``state``, ``audioLevel``,
 /// and ``recordingDuration`` to render recording UI, then call
-/// ``stopAndTranscribe()`` to obtain the transcript and captured audio file.
+/// ``stopAndTranscribe()`` to obtain the transcript. The temporary recording is
+/// deleted as soon as transcription finishes.
 ///
 /// The host app must provide `NSMicrophoneUsageDescription` and
 /// `NSSpeechRecognitionUsageDescription` in its Info.plist.
@@ -29,7 +30,6 @@ public final class VoiceCaptureSession: ObservableObject {
     private var meterCancellable: AnyCancellable?
     private var activeCaptureID: UUID?
     private var activeRecordingURL: URL?
-    private var retainedResultURL: URL?
 
     /// Creates a voice capture session.
     ///
@@ -85,9 +85,7 @@ public final class VoiceCaptureSession: ObservableObject {
         guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
 
         let recordingURL = recordingURLProvider()
-        if recordingURL != retainedResultURL {
-            try? fileManager.removeItem(at: recordingURL)
-        }
+        try? fileManager.removeItem(at: recordingURL)
 
         do {
             try recorder.startRecording(to: recordingURL)
@@ -99,11 +97,6 @@ public final class VoiceCaptureSession: ObservableObject {
             throw VoiceCaptureError.recordingFailed(error.localizedDescription)
         }
 
-        if let retainedResultURL, retainedResultURL != recordingURL {
-            try? fileManager.removeItem(at: retainedResultURL)
-        }
-        retainedResultURL = nil
-
         activeRecordingURL = recordingURL
         audioLevel = 0
         recordingDuration = 0
@@ -112,9 +105,7 @@ public final class VoiceCaptureSession: ObservableObject {
     }
 
     /// Stops the current recording and transcribes it with Apple Speech.
-    ///
-    /// The returned audio file remains available until the next recording starts
-    /// or this session is deallocated. Copy it elsewhere to retain it longer.
+    /// The temporary audio file is deleted before this method returns.
     public func stopAndTranscribe() async throws -> VoiceCaptureResult {
         guard state == .recording,
               let captureID = activeCaptureID,
@@ -128,6 +119,7 @@ public final class VoiceCaptureSession: ObservableObject {
         audioLevel = 0
         recordingDuration = duration
         state = .transcribing
+        defer { try? fileManager.removeItem(at: recordingURL) }
 
         do {
             let transcript = try await transcriber.transcribe(audioAt: recordingURL)
@@ -137,15 +129,12 @@ public final class VoiceCaptureSession: ObservableObject {
 
             let result = VoiceCaptureResult(
                 transcript: transcript,
-                audioURL: recordingURL,
                 duration: duration
             )
-            retainedResultURL = recordingURL
             finishCapture()
             return result
         } catch {
             guard activeCaptureID == captureID else { throw VoiceCaptureError.cancelled }
-            try? fileManager.removeItem(at: recordingURL)
             finishCapture()
             if let voiceError = error as? VoiceCaptureError { throw voiceError }
             throw VoiceCaptureError.transcriptionFailed(error.localizedDescription)
@@ -203,9 +192,6 @@ public final class VoiceCaptureSession: ObservableObject {
         meterCancellable?.cancel()
         if let activeRecordingURL {
             try? fileManager.removeItem(at: activeRecordingURL)
-        }
-        if let retainedResultURL {
-            try? fileManager.removeItem(at: retainedResultURL)
         }
     }
 }

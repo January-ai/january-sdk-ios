@@ -35,10 +35,12 @@ private final class StubVoiceRecorder: VoiceCaptureRecording {
 private final class StubVoiceTranscriber: VoiceCaptureTranscribing {
     var result: Result<String, Error> = .success("greek yogurt")
     private(set) var transcribedURLs: [URL] = []
+    private(set) var fileExistedDuringTranscription = false
     private(set) var cancelCount = 0
 
     func transcribe(audioAt url: URL) async throws -> String {
         transcribedURLs.append(url)
+        fileExistedDuringTranscription = FileManager.default.fileExists(atPath: url.path)
         return try result.get()
     }
 
@@ -94,12 +96,15 @@ func voiceCaptureRecordsAndReturnsTrimmedTranscript() async throws {
     #expect(session.state == .recording)
     #expect(session.isActive)
     #expect(recorder.startedURLs == [url])
+    try Data([1]).write(to: url)
 
     let result = try await session.stopAndTranscribe()
 
-    #expect(result == VoiceCaptureResult(transcript: "greek yogurt", audioURL: url, duration: 2.75))
+    #expect(result == VoiceCaptureResult(transcript: "greek yogurt", duration: 2.75))
     #expect(recorder.stopCount == 1)
     #expect(transcriber.transcribedURLs == [url])
+    #expect(transcriber.fileExistedDuringTranscription)
+    #expect(!FileManager.default.fileExists(atPath: url.path))
     #expect(session.state == .idle)
     #expect(!session.isActive)
 }
@@ -117,36 +122,6 @@ func permissionFailureReturnsSessionToIdle() async {
 
     #expect(session.state == .idle)
     #expect(recorder.startedURLs.isEmpty)
-}
-
-@Test @MainActor
-func permissionFailurePreservesThePreviousSuccessfulRecording() async throws {
-    let permissions = StubVoicePermissions()
-    let firstURL = FileManager.default.temporaryDirectory.appendingPathComponent("retained-voice-capture.m4a")
-    let secondURL = FileManager.default.temporaryDirectory.appendingPathComponent("next-voice-capture.m4a")
-    var urls = [firstURL, secondURL]
-    let session = VoiceCaptureSession(
-        permissions: permissions,
-        recorder: StubVoiceRecorder(),
-        transcriber: StubVoiceTranscriber(),
-        recordingURLProvider: { urls.removeFirst() },
-        fileManager: .default
-    )
-    defer {
-        try? FileManager.default.removeItem(at: firstURL)
-        try? FileManager.default.removeItem(at: secondURL)
-    }
-
-    try await session.startRecording()
-    try Data([1]).write(to: firstURL)
-    _ = try await session.stopAndTranscribe()
-
-    permissions.result = .failure(VoiceCaptureError.microphonePermissionDenied)
-    await #expect(throws: VoiceCaptureError.microphonePermissionDenied) {
-        try await session.startRecording()
-    }
-
-    #expect(FileManager.default.fileExists(atPath: firstURL.path))
 }
 
 @Test @MainActor
