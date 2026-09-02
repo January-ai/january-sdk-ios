@@ -74,7 +74,12 @@ internal final class SystemVoiceCaptureRecorder: VoiceCaptureRecording {
     var currentTime: TimeInterval { audioRecorder?.currentTime ?? 0 }
 
     func startRecording(to url: URL) throws {
-        try audioSession.setCategory(.playAndRecord, mode: .default, options: [.allowBluetoothHFP])
+        #if compiler(>=6.0)
+        let bluetoothOption: AVAudioSession.CategoryOptions = .allowBluetoothHFP
+        #else
+        let bluetoothOption: AVAudioSession.CategoryOptions = .allowBluetooth
+        #endif
+        try audioSession.setCategory(.playAndRecord, mode: .default, options: [bluetoothOption])
         try audioSession.setActive(true)
 
         let settings: [String: Any] = [
