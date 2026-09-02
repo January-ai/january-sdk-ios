@@ -2,9 +2,8 @@
 
 This walkthrough creates a complete minimal SwiftUI app. It obtains a client token from an explicit partner-backend URL, searches for a food, hydrates the selected result, calculates a portion, and renders the result.
 
-{% hint style="warning" %}
-The SDK repository is private during Controlled Preview. Xcode must use a GitHub account with access. Your partner token endpoint must already implement [Backend token endpoint](backend-token-endpoint.md).
-{% endhint %}
+Your partner token endpoint must already implement the
+[backend token endpoint](backend-token-endpoint.md) contract.
 
 ## 1. Create the Xcode project
 

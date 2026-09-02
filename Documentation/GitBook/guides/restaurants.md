@@ -45,10 +45,6 @@ let menuItems = try await client.restaurants.searchMenuItems(
 
 Menu-item results may include nutrition, serving choices, photos, restaurant names, and distance.
 
-The production OpenAPI document currently lists restaurant search only. Treat
-both menu-item search and restaurant-ID menu lookup as controlled-preview
-operations until January confirms their backend routes are deployed.
-
 ## Load one restaurant's menu
 
 Use the ID returned by restaurant search to load that restaurant's menu without
@@ -77,9 +73,7 @@ repeat {
 ```
 
 An unknown restaurant returns `404`. An existing restaurant with no menu
-returns an empty `items` array. This operation is available in the SDK ahead of
-the backend route; do not enable the flow in production until January confirms
-that `/v1.2/restaurants/{restaurant_id}/menu-items` is deployed.
+returns an empty `items` array.
 
 ## Input limits
 

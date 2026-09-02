@@ -1,15 +1,11 @@
 # Install the iOS SDK
 
-{% hint style="warning" %}
-**Controlled Preview:** `January-ai/january-sdk-ios` is currently private. You need repository access from January before Xcode or Swift Package Manager can resolve it.
-{% endhint %}
-
 ## Requirements
 
 * Xcode 15 or later
 * Swift 5.9 or later
 * iOS 15 or later
-* A GitHub account authorized for the private repository
+* GitHub credentials that can resolve the package repository
 
 ## Add the package in Xcode
 

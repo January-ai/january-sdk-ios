@@ -1,14 +1,11 @@
 # Versioning and support
 
-## Current distribution status
+## Distribution
 
-The iOS SDK is in **Controlled Preview**:
-
-* repository visibility: private;
-* default branch: `main`;
-* releases are available only to authorized preview users.
-
-Install the latest release shown by Xcode as described on [Installation](../getting-started/installation.md). Do not assume `main` is stable.
+The iOS SDK is distributed as versioned Swift Package Manager releases. Install
+the latest release shown by Xcode as described on
+[Installation](../getting-started/installation.md). Pin a release version for
+production builds instead of tracking `main`.
 
 ## Updating the SDK
 
@@ -19,10 +16,6 @@ When January publishes a new release:
 3. run your consumer build and token-provider tests;
 4. exercise the user flows you ship; and
 5. promote the release through your normal release process.
-
-## Future public release
-
-Anonymous installation becomes available only after the repository is publicly readable. January publishes release notes and compatibility expectations with each release.
 
 ## Support request
 

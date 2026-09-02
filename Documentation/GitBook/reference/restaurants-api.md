@@ -55,15 +55,9 @@ public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
 
 `SearchRestaurantMenuItemsResponse` has `totalCount: Int` and `items: [RestaurantMenuItem]`. Menu items include ID/name, restaurant name, optional nutrition, image, glycemic data, distance, and `[ServingOption]`.
 
-The production OpenAPI document currently lists `search` only. Keep
-`searchMenuItems` and `getMenuItems` behind an integration gate until January
-announces the matching backend routes.
-
 Advance `offset` by the number of returned items until it reaches `totalCount`
 or a page is empty. An unknown restaurant returns `404`; a restaurant without a
-menu returns an empty response. The SDK surface is ready, but the backend route
-is not yet deployed. Keep this operation behind an integration gate until
-January confirms availability.
+menu returns an empty response.
 
 ## Errors
 
