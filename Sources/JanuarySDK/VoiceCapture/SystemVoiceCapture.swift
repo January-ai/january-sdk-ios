@@ -17,7 +17,9 @@ internal final class SystemVoiceCapturePermissionProvider: VoiceCapturePermissio
     }
 
     private func validateUsageDescription(_ key: String) throws {
-        guard Bundle.main.object(forInfoDictionaryKey: key) != nil else {
+        let description = Bundle.main.object(forInfoDictionaryKey: key) as? String
+        guard let description,
+              !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw VoiceCaptureError.missingUsageDescription(key)
         }
     }
