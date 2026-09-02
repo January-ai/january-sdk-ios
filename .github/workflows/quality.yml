@@ -96,3 +96,6 @@ jobs:
           IPHONEOS_DEPLOYMENT_TARGET=26.0
           CODE_SIGNING_ALLOWED=NO
           build
+
+      - name: Run complete example-app UI suite
+        run: scripts/test-demo-ui.sh

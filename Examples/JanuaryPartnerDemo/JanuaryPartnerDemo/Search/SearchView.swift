@@ -935,15 +935,6 @@ private struct AlternativesView: View {
                             FlowChoiceGrid(values: DietPreference.allCases, selected: $preferences)
                         }
 
-                        PrimaryButton(
-                            title: result == nil ? "Find alternatives" : "Refresh alternatives",
-                            systemImage: "leaf",
-                            isLoading: isLoading && result == nil,
-                            isDisabled: isLoading
-                        ) {
-                            Task { await load() }
-                        }
-
                         if let error { ErrorNotice(error: error) { Task { await load() } } }
                         if let result {
                             if result.alternatives.isEmpty {
@@ -978,6 +969,19 @@ private struct AlternativesView: View {
                 .padding(.vertical, 16)
             }
             .appBackground()
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                PrimaryButton(
+                    title: result == nil ? "Find alternatives" : "Refresh alternatives",
+                    systemImage: "leaf",
+                    isLoading: isLoading && result == nil,
+                    isDisabled: isLoading
+                ) {
+                    Task { await load() }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(AppPalette.paper)
+            }
             .appNavigationBar("Food alternatives") {
                 AppNavigationButton(.close, title: "Close alternatives") { dismiss() }
             } trailing: {

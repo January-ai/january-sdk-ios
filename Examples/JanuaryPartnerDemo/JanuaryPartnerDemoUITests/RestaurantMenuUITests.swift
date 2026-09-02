@@ -9,7 +9,10 @@ final class RestaurantMenuUITests: XCTestCase {
         continueAfterFailure = false
         try await request("/__reset")
         app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        app.launchArguments = [
+            "-ui-testing",
+            "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXS",
+        ]
         app.launch()
     }
 
@@ -46,6 +49,138 @@ final class RestaurantMenuUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Fixture bowl"].waitForExistence(timeout: 5))
     }
 
+    func testFoodSearchDetailsGlucoseAndAlternatives() async throws {
+        try await control("/v1.2/foods", status: 500)
+        let search = app.textFields["Food name"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap(); search.typeText("oatmeal")
+        tap("Search foods")
+        wait("January couldn’t complete the request")
+
+        try await control("/v1.2/foods")
+        tap("Try again")
+        wait("Fixture oatmeal")
+        tap("Fixture oatmeal")
+        wait("Food details")
+
+        tap("Check glucose")
+        wait("Medium impact")
+        tap("Close glucose response")
+    }
+
+    func testFoodAlternatives() {
+        let search = app.textFields["Food name"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap(); search.typeText("oatmeal")
+        tap("Search foods")
+        wait("Fixture oatmeal")
+        tap("Fixture oatmeal")
+        wait("Food details")
+        tap("Find alternatives")
+        wait("Food alternatives")
+        tap("Find alternatives")
+        wait("Fixture lentils")
+    }
+
+    func testFoodSearchEmptyStateAndValidationErrors() async throws {
+        try await control("/v1.2/foods", empty: true)
+        let search = app.textFields["Food name"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap(); search.typeText("missing")
+        tap("Search foods")
+        wait("No foods found")
+
+        for (status, title) in [(401, "Couldn’t use the configured credentials"), (422, "Check the information you entered"), (429, "Too many requests")] {
+            try await control("/v1.2/foods", status: status)
+            tap("Search foods")
+            wait(title)
+        }
+    }
+
+    func testPhotoScanCorrectionAndRetry() async throws {
+        tab("Scan")
+        tap("Sample meal")
+        try await control("/v1.2/food-analysis/image", status: 500)
+        tap("Analyze meal")
+        wait("January couldn’t complete the request")
+        try await control("/v1.2/food-analysis/image")
+        tap("Try again")
+        wait("Fixture breakfast")
+        tap("Correct result")
+        let correction = app.textViews.firstMatch
+        XCTAssertTrue(correction.waitForExistence(timeout: 5))
+        correction.tap(); correction.typeText("This was lentils")
+        try await control("/v1.2/food-analysis/corrections", status: 500)
+        tap("Submit correction")
+        wait("January couldn’t complete the request")
+        XCTAssertEqual(correction.value as? String, "This was lentils")
+        try await control("/v1.2/food-analysis/corrections")
+        tap("Try again")
+        wait("Corrected breakfast")
+    }
+
+    func testFoodLogsLoadAndUpdate() async throws {
+        try await request("/__seed")
+        tab("Food Logs")
+        wait("Fixture breakfast")
+        tap("Fixture breakfast")
+        tap("Edit")
+        wait("Edit food log")
+        tap("Update food log")
+        wait("Food logs")
+        wait("Fixture breakfast")
+    }
+
+    func testFoodLogDelete() async throws {
+        try await request("/__seed")
+        tab("Food Logs")
+        wait("Fixture breakfast")
+        tap("Fixture breakfast")
+        tap("Delete food log")
+        let destructive = app.buttons
+            .matching(NSPredicate(format: "label == %@", "Delete food log"))
+            .allElementsBoundByIndex
+            .last(where: \.isHittable)
+        XCTAssertNotNil(destructive)
+        destructive?.tap()
+        wait("No food logs in this range")
+    }
+
+    func testFoodLogCreateAndRetry() async throws {
+        tab("Food Logs")
+        wait("No food logs in this range")
+        tap("Add food log")
+        wait("New food log")
+        tap("Add first food")
+        addFood()
+        try await control("/v1.2/food-logs", status: 500)
+        tap("Save food log")
+        wait("January couldn’t complete the request")
+        try await control("/v1.2/food-logs")
+        tap("Try again")
+        wait("Fixture breakfast")
+    }
+
+    func testGlucoseWorkflowRetainsMealAcrossFailure() async throws {
+        tab("Glucose")
+        tap("Add food to prediction")
+        addFood()
+        try await control("/v1.2/glucose/predictions", status: 500)
+        tap("Estimate glucose response")
+        wait("January couldn’t complete the request")
+        try await control("/v1.2/glucose/predictions")
+        tap("Try again")
+        wait("Estimated response")
+    }
+
+    func testAllPrimaryDemoDestinationsAreReachable() {
+        XCTAssertTrue(app.tabBars.buttons["Search"].waitForExistence(timeout: 5))
+        tab("Scan"); wait("Scan a meal")
+        tab("Food Logs"); wait("Food logs")
+        tab("Glucose"); wait("Estimate this meal’s response")
+        tab("Search"); wait("Search foods")
+    }
+
     private func openRestaurant() {
         let restaurants = app.segmentedControls.buttons["Restaurants"]
         XCTAssertTrue(restaurants.waitForExistence(timeout: 5))
@@ -58,6 +193,52 @@ final class RestaurantMenuUITests: XCTestCase {
         let result = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Fixture Cafe")).firstMatch
         XCTAssertTrue(result.waitForExistence(timeout: 5))
         result.tap()
+    }
+
+    private func addFood() {
+        let search = app.textFields["Search foods"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap(); search.typeText("oatmeal\n")
+        wait("Fixture oatmeal")
+        tap("Fixture oatmeal")
+        wait("Choose serving")
+        tap("Add to meal")
+    }
+
+    private func tab(_ label: String) {
+        let item = app.tabBars.buttons[label]
+        XCTAssertTrue(item.waitForExistence(timeout: 5))
+        item.tap()
+    }
+
+    private func wait(_ label: String) {
+        let element = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", label))
+            .firstMatch
+        XCTAssertTrue(element.waitForExistence(timeout: 12), "Expected \(label)\n\(app.debugDescription)")
+    }
+
+    private func tap(_ label: String) {
+        let element = reveal(label)
+        guard element.isHittable else {
+            XCTFail("Expected hittable element \(label)\n\(app.debugDescription)")
+            return
+        }
+        element.tap()
+    }
+
+    private func reveal(_ label: String) -> XCUIElement {
+        let predicate = NSPredicate(format: "label == %@", label)
+        for _ in 0..<8 {
+            if let button = app.buttons.matching(predicate).allElementsBoundByIndex.last(where: \.isHittable) {
+                return button
+            }
+            if let text = app.staticTexts.matching(predicate).allElementsBoundByIndex.last(where: \.isHittable) {
+                return text
+            }
+            app.swipeUp()
+        }
+        return app.buttons.matching(identifier: label).firstMatch
     }
 
     private func control(_ route: String, status: Int? = nil, empty: Bool = false) async throws {
@@ -82,5 +263,42 @@ final class RestaurantMenuUITests: XCTestCase {
         attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+}
+
+@MainActor
+final class ClientTokenLiveUITests: XCTestCase {
+    func testSearchUsesLocalClientTokenRelay() async throws {
+        let relayURL = URL(string: "http://127.0.0.1:8787/january-token")!
+        guard let (_, healthResponse) = try? await URLSession.shared.data(
+            from: URL(string: "http://127.0.0.1:8787/health")!
+        ), (healthResponse as? HTTPURLResponse)?.statusCode == 200 else {
+            throw XCTSkip("Start the local January token relay to run this live check.")
+        }
+
+        let app = XCUIApplication()
+        app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXS"]
+        app.launchEnvironment = [
+            "JANUARY_PARTNER_TOKEN_URL": relayURL.absoluteString,
+            "JANUARY_PARTNER_SESSION_TOKEN": "local-demo-session",
+            "JANUARY_API_KEY": "",
+            "JANUARY_END_USER_ID": "ios-live-client-token-uat",
+        ]
+        app.launch()
+
+        let search = app.textFields["Food name"]
+        XCTAssertTrue(search.waitForExistence(timeout: 10), app.debugDescription)
+        search.tap()
+        search.typeText("pizza")
+        app.buttons["Search foods"].tap()
+
+        let results = app.staticTexts["RESULTS · JANUARY FOOD DATABASE"]
+        XCTAssertTrue(results.waitForExistence(timeout: 20), app.debugDescription)
+        XCTAssertFalse(app.staticTexts["Couldn’t use the configured credentials"].exists)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "live-client-token-search"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 }
