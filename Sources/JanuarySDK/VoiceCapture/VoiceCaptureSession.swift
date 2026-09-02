@@ -163,13 +163,15 @@ public final class VoiceCaptureSession: ObservableObject {
 
     private func startMetering() {
         meterTimer?.invalidate()
-        meterTimer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 0.05, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, self.state == .recording else { return }
                 self.audioLevel = Self.normalizedLevel(decibels: self.recorder.averagePower)
                 self.recordingDuration = self.recorder.currentTime
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        meterTimer = timer
     }
 
     private func stopMetering() {

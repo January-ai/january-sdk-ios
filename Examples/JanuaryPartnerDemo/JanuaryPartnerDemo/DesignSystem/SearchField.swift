@@ -138,7 +138,7 @@ struct SearchField: View {
     }
 
     private func startVoiceCapture() {
-        Task {
+        Task { @MainActor in
             do {
                 try await voiceCapture.startRecording()
             } catch VoiceCaptureError.cancelled {
@@ -150,7 +150,7 @@ struct SearchField: View {
     }
 
     private func stopAndTranscribe() {
-        Task {
+        Task { @MainActor in
             do {
                 let result = try await voiceCapture.stopAndTranscribe()
                 text += (text.isEmpty ? "" : " ") + result.transcript

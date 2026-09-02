@@ -124,10 +124,10 @@ internal final class SystemVoiceCaptureTranscriber: VoiceCaptureTranscribing {
             let transcript = try await withCheckedThrowingContinuation { continuation in
                 box.store(continuation)
                 recognitionTask = recognizer.recognitionTask(with: request) { result, error in
-                    if let result, result.isFinal {
-                        box.resume(returning: result.bestTranscription.formattedString)
-                    } else if let error, result == nil {
+                    if let error {
                         box.resume(throwing: VoiceCaptureError.transcriptionFailed(error.localizedDescription))
+                    } else if let result, result.isFinal {
+                        box.resume(returning: result.bestTranscription.formattedString)
                     }
                 }
             }
