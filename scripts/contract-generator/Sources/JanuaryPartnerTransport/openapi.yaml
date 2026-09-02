@@ -1,0 +1,7 @@
+openapi: 3.1.0
+info:
+  title: January Partner Contract Generator Placeholder
+  version: 0.0.0
+servers:
+  - url: https://partners.january.ai/v1.2
+paths: {}

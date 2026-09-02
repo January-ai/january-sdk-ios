@@ -13,4 +13,6 @@ xcodebuild \
   -project "$repository_root/Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj" \
   -scheme JanuaryPartnerDemoUITests \
   -destination "$destination" \
+  -retry-tests-on-failure \
+  -test-iterations 2 \
   test

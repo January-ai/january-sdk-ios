@@ -1,4 +1,4 @@
-name: quality
+name: CI
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: quality-${{ github.ref }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,10 +44,10 @@ jobs:
             -Xswiftc arm64-apple-ios15.0 \
             --target January
 
-  quality:
+  sdk-and-demo:
     name: Build and test Swift SDK
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository

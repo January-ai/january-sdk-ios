@@ -656,24 +656,6 @@ package enum Servers {
             variables: []
         )
     }
-    /// Development
-    package enum Server2 {
-        /// Development
-        package static func url() throws -> Foundation.URL {
-            try Foundation.URL(
-                validatingOpenAPIServerURL: "https://partners.dev.january.ai",
-                variables: []
-            )
-        }
-    }
-    /// Development
-    @available(*, deprecated, renamed: "Servers.Server2.url")
-    package static func server2() throws -> Foundation.URL {
-        try Foundation.URL(
-            validatingOpenAPIServerURL: "https://partners.dev.january.ai",
-            variables: []
-        )
-    }
 }
 
 /// Types generated from the components section of the OpenAPI document.
