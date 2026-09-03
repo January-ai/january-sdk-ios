@@ -106,6 +106,7 @@ struct SearchView: View {
                     isShowingBarcodeScanner = false
                     Task { await submit() }
                 }
+                .presentationDragIndicator(.hidden)
             }
             .onChange(of: locationProvider.location) { _, location in
                 guard let location else { return }
@@ -795,6 +796,7 @@ struct FoodDetailView: View {
                 .presentationDragIndicator(.hidden)
             }
         }
+        .presentationDragIndicator(.hidden)
     }
 
     private var selectedServing: ServingOption? {

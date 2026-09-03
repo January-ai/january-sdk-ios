@@ -529,6 +529,7 @@ struct FoodPickerView: View {
                 await loadAutocomplete()
             }
         }
+        .presentationDragIndicator(.hidden)
     }
 
     private var queryBinding: Binding<String> {
