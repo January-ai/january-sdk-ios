@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name = "JanuaryPartnerTransport"
-  spec.version = "0.1.0-beta.2"
+  spec.version = "0.1.0"
   spec.summary = "Transport layer for the January iOS SDK"
   spec.homepage = "https://github.com/January-ai/january-sdk-ios"
   spec.license = { :type => "Apache-2.0", :file => "LICENSE" }

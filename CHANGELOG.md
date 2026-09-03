@@ -5,6 +5,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-03
+
+- Promote the complete iOS SDK, CocoaPods packages, Swift Package Manager
+  distribution, and demo app from beta to the first stable release.
+
 ## [0.1.0-beta.2] - 2026-09-03
 
 - Add reusable microphone capture, live audio metering, and Apple Speech
