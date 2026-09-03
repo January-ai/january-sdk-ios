@@ -327,6 +327,7 @@ private struct FoodLogEditorView: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 
     @MainActor private func save() async {
@@ -528,6 +529,7 @@ struct FoodPickerView: View {
                 await loadAutocomplete()
             }
         }
+        .presentationDragIndicator(.hidden)
     }
 
     private var queryBinding: Binding<String> {
@@ -696,7 +698,7 @@ private struct ServingSelectionSheet: View {
         }
         .presentationDetents([.height(400)])
         .presentationCornerRadius(18)
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
     }
 
     private var nutritionScale: Double {

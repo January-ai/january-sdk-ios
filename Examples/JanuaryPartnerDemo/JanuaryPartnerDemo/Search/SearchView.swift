@@ -106,6 +106,7 @@ struct SearchView: View {
                     isShowingBarcodeScanner = false
                     Task { await submit() }
                 }
+                .presentationDragIndicator(.hidden)
             }
             .onChange(of: locationProvider.location) { _, location in
                 guard let location else { return }
@@ -792,9 +793,10 @@ struct FoodDetailView: View {
                     endUserID: endUserID
                 )
                 .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                .presentationDragIndicator(.hidden)
             }
         }
+        .presentationDragIndicator(.hidden)
     }
 
     private var selectedServing: ServingOption? {
@@ -1125,6 +1127,7 @@ private struct AlternativesView: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 
     @MainActor private func load() async {
@@ -1544,7 +1547,7 @@ private struct RestaurantMenuItemDetailView: View {
                     endUserID: endUserID
                 )
                 .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                .presentationDragIndicator(.hidden)
             }
         }
     }
@@ -1708,6 +1711,7 @@ private struct RestaurantFiltersSheet: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 }
 

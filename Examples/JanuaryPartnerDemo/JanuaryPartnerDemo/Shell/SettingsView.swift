@@ -93,5 +93,6 @@ struct SettingsView: View {
             }
         }
         .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.hidden)
     }
 }
