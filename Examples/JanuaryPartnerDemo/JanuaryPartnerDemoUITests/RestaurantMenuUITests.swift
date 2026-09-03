@@ -9,6 +9,7 @@ final class RestaurantMenuUITests: XCTestCase {
         continueAfterFailure = false
         try await request("/__reset")
         app = XCUIApplication()
+        app.resetAuthorizationStatus(for: .microphone)
         app.launchArguments = [
             "-ui-testing",
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXS",
@@ -114,7 +115,12 @@ final class RestaurantMenuUITests: XCTestCase {
 
         tap("Analyze another meal")
         XCTAssertFalse(app.staticTexts["Meal nutrition"].exists)
-        XCTAssertEqual(search.value as? String, "Describe what was eaten")
+        for _ in 0..<3 {
+            app.swipeDown()
+        }
+        let resetSearch = app.textFields["Describe what was eaten"]
+        XCTAssertTrue(resetSearch.waitForExistence(timeout: 5), app.debugDescription)
+        XCTAssertEqual(resetSearch.value as? String, "Describe what was eaten")
         attachScreenshot("meal-description-reset")
     }
 
@@ -222,6 +228,10 @@ final class RestaurantMenuUITests: XCTestCase {
         XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
         voiceButton.tap()
 
+        for _ in 0..<2 {
+            _ = tapSystemPermissionButton(labels: ["Allow", "Continue", "OK"], timeout: 3)
+        }
+
         let stopButton = app.buttons["Stop and transcribe"]
         for _ in 0..<3 where !stopButton.exists {
             app.tap()
@@ -237,10 +247,6 @@ final class RestaurantMenuUITests: XCTestCase {
     }
 
     func testDeniedMicrophonePermissionOffersSettings() {
-        app.resetAuthorizationStatus(for: .microphone)
-        app.terminate()
-        app.launch()
-
         addUIInterruptionMonitor(withDescription: "Deny microphone permission") { alert in
             for label in ["Don’t Allow", "Don't Allow"] where alert.buttons[label].exists {
                 alert.buttons[label].tap()
@@ -252,13 +258,25 @@ final class RestaurantMenuUITests: XCTestCase {
         let voiceButton = app.buttons["voice-capture-button"]
         XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
         voiceButton.tap()
-        app.tap()
+        if !tapSystemPermissionButton(labels: ["Don’t Allow", "Don't Allow"], timeout: 5) {
+            app.tap()
+        }
 
         XCTAssertTrue(app.alerts["Microphone Access Denied"].waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertTrue(app.staticTexts["Please enable microphone access in Settings."].exists)
         XCTAssertTrue(app.alerts.buttons["Settings"].exists)
         XCTAssertTrue(app.alerts.buttons["Cancel"].exists)
         attachScreenshot("search-voice-permission-denied")
+    }
+
+    private func tapSystemPermissionButton(labels: [String], timeout: TimeInterval) -> Bool {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let button = springboard.buttons
+            .matching(NSPredicate(format: "label IN %@", labels))
+            .firstMatch
+        guard button.waitForExistence(timeout: timeout) else { return false }
+        button.tap()
+        return true
     }
 
     private func openRestaurant() {
