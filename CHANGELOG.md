@@ -5,6 +5,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-09-03
+
 - Add reusable microphone capture, live audio metering, and Apple Speech
   transcription through `VoiceCaptureSession`.
 - Add the initial Swift Package Manager distribution for iOS 15 and later.

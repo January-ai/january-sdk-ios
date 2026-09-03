@@ -16,7 +16,9 @@ jobs:
   release:
     name: Validate and publish Swift package release
     runs-on: macos-26
-    timeout-minutes: 25
+    timeout-minutes: 45
+    env:
+      COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
 
     steps:
       - name: Check out repository
@@ -38,6 +40,26 @@ jobs:
 
       - name: Validate Swift package manifest
         run: swift package dump-package >/dev/null
+
+      - name: Validate CocoaPods release metadata
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          test -f JanuaryPartnerTransport.podspec
+          test -f January.podspec
+          transport_version="$(ruby -e 'puts File.read("JanuaryPartnerTransport.podspec")[/spec\.version = "([^"]+)"/, 1]')"
+          january_version="$(ruby -e 'puts File.read("January.podspec")[/spec\.version = "([^"]+)"/, 1]')"
+          test "$transport_version" = "$RELEASE_TAG"
+          test "$january_version" = "$RELEASE_TAG"
+
+      - name: Validate CocoaPods integration
+        run: |
+          pod lib lint JanuaryPartnerTransport.podspec --skip-tests --allow-warnings
+          pod lib lint January.podspec \
+            --include-podspecs=JanuaryPartnerTransport.podspec \
+            --skip-tests \
+            --allow-warnings
 
       - name: Reject committed Partner API keys
         run: node scripts/check-no-committed-secrets.mjs
@@ -113,6 +135,17 @@ jobs:
             -destination 'generic/platform=iOS' \
             CODE_SIGNING_ALLOWED=NO \
             build
+
+      - name: Publish CocoaPods
+        run: |
+          pod trunk push JanuaryPartnerTransport.podspec \
+            --skip-tests \
+            --allow-warnings \
+            --synchronous
+          pod trunk push January.podspec \
+            --skip-tests \
+            --allow-warnings \
+            --synchronous
 
       - name: Publish GitHub release
         env:

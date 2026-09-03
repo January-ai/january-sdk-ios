@@ -14,6 +14,24 @@ dependencies.
 - Xcode 15 or later
 - Swift 5.9 or later
 
+## Install with CocoaPods
+
+Add the January SDK to your application target:
+
+```ruby
+target "YourApp" do
+  pod "January"
+end
+```
+
+Then install the dependency:
+
+```sh
+pod install
+```
+
+Open the generated `.xcworkspace`, not the `.xcodeproj`.
+
 ## Install with Swift Package Manager
 
 In Xcode, choose **File → Add Package Dependencies**, then enter:
