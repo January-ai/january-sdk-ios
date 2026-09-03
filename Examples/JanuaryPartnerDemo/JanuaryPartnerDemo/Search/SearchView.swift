@@ -792,7 +792,7 @@ struct FoodDetailView: View {
                     endUserID: endUserID
                 )
                 .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                .presentationDragIndicator(.hidden)
             }
         }
     }
@@ -1125,6 +1125,7 @@ private struct AlternativesView: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 
     @MainActor private func load() async {
@@ -1544,7 +1545,7 @@ private struct RestaurantMenuItemDetailView: View {
                     endUserID: endUserID
                 )
                 .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                .presentationDragIndicator(.hidden)
             }
         }
     }
@@ -1708,6 +1709,7 @@ private struct RestaurantFiltersSheet: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 }
 

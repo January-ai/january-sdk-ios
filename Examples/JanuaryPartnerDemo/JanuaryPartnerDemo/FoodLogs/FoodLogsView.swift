@@ -327,6 +327,7 @@ private struct FoodLogEditorView: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 
     @MainActor private func save() async {
@@ -696,7 +697,7 @@ private struct ServingSelectionSheet: View {
         }
         .presentationDetents([.height(400)])
         .presentationCornerRadius(18)
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
     }
 
     private var nutritionScale: Double {

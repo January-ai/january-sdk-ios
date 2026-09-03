@@ -281,7 +281,7 @@ private struct ScanResultSheet: View {
             }
         }
         .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
     }
 }
 
@@ -466,6 +466,7 @@ private struct CorrectScanView: View {
             }
         }
         .presentationDetents([.large])
+        .presentationDragIndicator(.hidden)
     }
 
     @MainActor private func submit() async {
@@ -538,6 +539,7 @@ private struct ImageURLSheet: View {
             }
         }
         .presentationDetents([.medium])
+        .presentationDragIndicator(.hidden)
     }
 
     private var validURL: URL? {
