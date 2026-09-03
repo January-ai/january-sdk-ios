@@ -1,6 +1,7 @@
 # January SDK for iOS
 
 [![CI](https://github.com/January-ai/january-sdk-ios/actions/workflows/quality.yml/badge.svg)](https://github.com/January-ai/january-sdk-ios/actions/workflows/quality.yml)
+[![CocoaPods](https://img.shields.io/cocoapods/v/January.svg)](https://cocoapods.org/pods/January)
 ![iOS 15+](https://img.shields.io/badge/iOS-15%2B-blue)
 ![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange)
 
@@ -16,21 +17,26 @@ dependencies.
 
 ## Install with CocoaPods
 
-Add the January SDK to your application target:
+Add the stable January SDK to your `Podfile`:
 
 ```ruby
+platform :ios, "15.0"
+
 target "YourApp" do
-  pod "January"
+  pod "January", "~> 0.1.0"
 end
 ```
 
-Then install the dependency:
+Then install or update the dependency from CocoaPods Trunk:
 
 ```sh
-pod install
+pod install --repo-update
 ```
 
-Open the generated `.xcworkspace`, not the `.xcodeproj`.
+The `January` pod installs `JanuaryPartnerTransport` automatically; applications
+should not add the transport pod directly. Open the generated `.xcworkspace`,
+not the `.xcodeproj`. Published versions are listed on
+[CocoaPods](https://cocoapods.org/pods/January).
 
 ## Install with Swift Package Manager
 
