@@ -103,11 +103,10 @@ struct AppTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
 
-    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
+    func fetchClientToken(for _: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.setValue("Bearer \(appSessionToken)", forHTTPHeaderField: "Authorization")
-        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
         let data: Data
         let response: URLResponse
