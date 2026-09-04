@@ -14,7 +14,7 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
     func fetchClientToken(for _: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("Bearer \(appSessionToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer " + appSessionToken, forHTTPHeaderField: "Authorization")
 
         let data: Data
         let response: URLResponse
