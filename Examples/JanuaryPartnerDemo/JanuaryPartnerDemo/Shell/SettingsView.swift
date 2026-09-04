@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var userSession: UserSession
-    @AppStorage("demo.authenticationMode") private var authenticationMode = "Development API key"
+    @AppStorage("demo.authenticationMode") private var authenticationMode = "Client-token provider"
 
     var body: some View {
         NavigationStack {
