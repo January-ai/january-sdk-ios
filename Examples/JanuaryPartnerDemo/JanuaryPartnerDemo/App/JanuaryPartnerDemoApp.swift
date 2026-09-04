@@ -12,8 +12,8 @@ private enum AppConfiguration {
     static let partnerTokenURL = environment["JANUARY_PARTNER_TOKEN_URL"].flatMap(URL.init(string:))
     static let partnerAppSessionToken = environment["JANUARY_PARTNER_SESSION_TOKEN"] ?? ""
 
-    // Optional local Debug shortcut. Never commit or ship a development API key.
-    static let developmentAPIKey = environment["JANUARY_API_KEY"] ?? ""
+    // Optional local Debug shortcut. Never commit or ship a server API key.
+    static let debugServerAPIKey = environment["JANUARY_API_KEY"] ?? ""
 
     static let endUserID: String = {
         let candidates = [
@@ -36,14 +36,14 @@ private enum AppConfiguration {
         }
 
 #if DEBUG
-        let apiKey = developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let apiKey = debugServerAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
         if !apiKey.isEmpty {
             return .developmentClientToken(apiKey, endUserID: endUserID)
         }
 #else
-        if !developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if !debugServerAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .setupRequired(
-                "Development API-key authentication is disabled in Release builds. Use the token provider configuration above."
+                "Server API-key authentication is disabled in Release builds. Use the token provider configuration above."
             )
         }
 #endif
@@ -56,7 +56,7 @@ private enum AppConfiguration {
            !partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Partner backend token provider"
         }
-        if !developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if !debugServerAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Debug-only server API key"
         }
         return "Not configured"
