@@ -6,7 +6,7 @@
 The official Swift SDK for January food discovery, restaurants, meal scanning,
 food logs, and glucose prediction. It supports iOS 15+, Xcode 15+, and Swift
 5.9+, with no third-party runtime dependencies. The included demo currently
-requires Xcode 26 and an iOS 26 simulator.
+requires Xcode 26 and an iOS 26 simulator or device.
 
 ## Quick start: run the demo with client tokens
 
