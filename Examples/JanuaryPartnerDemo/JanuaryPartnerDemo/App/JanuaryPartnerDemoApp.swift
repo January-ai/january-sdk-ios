@@ -2,7 +2,7 @@ import Foundation
 import SwiftUI
 import UIKit
 
-#warning("January demo authentication: development API keys are for local Debug testing only. Never commit or ship one. Use JanuaryTokenProvider for production authentication.")
+#warning("January demo authentication: the optional server API-key shortcut is for local Debug testing only. Never commit or ship a key; use JanuaryTokenProvider for production.")
 
 private enum AppConfiguration {
     // MARK: Configure the demo here
