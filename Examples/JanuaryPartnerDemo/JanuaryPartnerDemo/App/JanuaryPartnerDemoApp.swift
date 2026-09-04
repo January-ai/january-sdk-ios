@@ -43,7 +43,7 @@ private enum AppConfiguration {
 #else
         if !debugServerAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return .setupRequired(
-                "Server API-key authentication is disabled in Release builds. Use the token provider configuration above."
+                "The debug-only server API-key shortcut is disabled in Release builds. Set the partner token URL and session token in the Xcode Run scheme."
             )
         }
 #endif
