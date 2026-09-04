@@ -2,22 +2,83 @@
 
 [![CI](https://github.com/January-ai/january-sdk-ios/actions/workflows/quality.yml/badge.svg)](https://github.com/January-ai/january-sdk-ios/actions/workflows/quality.yml)
 [![CocoaPods](https://img.shields.io/cocoapods/v/January.svg)](https://cocoapods.org/pods/January)
-![iOS 15+](https://img.shields.io/badge/iOS-15%2B-blue)
-![Swift 5.9+](https://img.shields.io/badge/Swift-5.9%2B-orange)
 
-January's native Swift SDK for food discovery, restaurant search, meal scanning,
-food logs, and glucose prediction. The package has no third-party runtime
-dependencies.
+The official Swift SDK for January food discovery, restaurants, meal scanning,
+food logs, and glucose prediction. It supports iOS 15+, Xcode 15+, and Swift
+5.9+, with no third-party runtime dependencies. The included demo currently
+requires Xcode 26 and an iOS 26 simulator or device.
 
-## Requirements
+## Quick start: run the demo with client tokens
 
-- iOS 15 or later
-- Xcode 15 or later
-- Swift 5.9 or later
+You can try the iOS SDK before your own backend is ready. A small local Node
+server keeps the January API key off the app and issues the same short-lived
+client tokens your production backend will issue.
 
-## Install with CocoaPods
+### 1. Create the credentials
 
-Add the stable January SDK to your `Podfile`:
+Complete both steps—they are on separate dashboard pages:
+
+1. [Sign up](https://dashboard.january.ai/sign-up) or
+   [sign in](https://dashboard.january.ai/sign-in), then open
+   **API keys → Create key** and copy the full `sk-…` value.
+2. Open [Client tokens](https://dashboard.january.ai/dashboard/client-tokens)
+   and select **Enable client tokens**.
+
+For production or any shared build, never put the `sk-…` key in an iOS app.
+The private, debug-only shortcut at the end is the sole local exception.
+
+### 2. Start the local token server
+
+Install Node.js 22 or newer. In a first terminal:
+
+```bash
+git clone https://github.com/January-ai/january-server-sdk-node.git
+cd january-server-sdk-node
+npm ci
+cp .env.example .env
+# Edit .env and set JANUARY_API_KEY to the key you just created.
+npm run demo:token-server
+```
+
+Leave it running. The server binds only to your computer and exchanges the API
+key for short-lived tokens using the January Server SDK.
+
+### 3. Run the iOS demo
+
+In a second terminal, clone the demo repository if needed:
+
+```bash
+git clone https://github.com/January-ai/january-sdk-ios.git
+cd january-sdk-ios
+```
+
+Open
+[`Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj`](Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj),
+select the `JanuaryPartnerDemo` scheme, and add these environment variables to
+**Product → Scheme → Edit Scheme → Run → Arguments**:
+
+```text
+JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/token
+JANUARY_PARTNER_SESSION_TOKEN=january-local-demo
+JANUARY_END_USER_ID=january-sdk-demo-user
+```
+
+Choose an iOS Simulator, press **Run**, and search for `banana`.
+
+## Add the SDK to your app
+
+### 1. Install
+
+With Swift Package Manager, choose **File → Add Package Dependencies** in Xcode
+and enter:
+
+```text
+https://github.com/January-ai/january-sdk-ios.git
+```
+
+Select the latest release and add the `January` product to your app target.
+
+With CocoaPods:
 
 ```ruby
 platform :ios, "15.0"
@@ -27,36 +88,12 @@ target "YourApp" do
 end
 ```
 
-Then install or update the dependency from CocoaPods Trunk:
+Then run `pod install --repo-update` and open the generated `.xcworkspace`.
 
-```sh
-pod install --repo-update
-```
+### 2. Connect and make the first request
 
-The `January` pod installs `JanuaryPartnerTransport` automatically; applications
-should not add the transport pod directly. Open the generated `.xcworkspace`,
-not the `.xcodeproj`. Published versions are listed on
-[CocoaPods](https://cocoapods.org/pods/January).
-
-## Install with Swift Package Manager
-
-In Xcode, choose **File → Add Package Dependencies**, then enter:
-
-```text
-https://github.com/January-ai/january-sdk-ios.git
-```
-
-Select the latest release shown by Xcode and add the `January` product to
-your app target. Swift Package Manager has no symbolic `latest` requirement for
-manifest-only integrations; use the current release tag shown in the repository
-rather than copying a version number from this README.
-
-## Production authentication: client tokens
-
-Never put a January server API key in a production iOS app. Your authenticated
-backend exchanges its server-side credential for a short-lived client token.
-When the SDK needs a token, your provider makes an authenticated API call to
-your server and returns your server's response to the SDK:
+Implement `JanuaryTokenProvider` around the authenticated call to your own
+backend:
 
 ```swift
 import Foundation
@@ -66,14 +103,10 @@ struct AppTokenProvider: JanuaryTokenProvider {
     let endpoint: URL
     let appSessionToken: String
 
-    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
+    func fetchClientToken(for _: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue(
-            "Bearer \(appSessionToken)",
-            forHTTPHeaderField: "Authorization"
-        )
-        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
+        request.setValue("Bearer " + appSessionToken, forHTTPHeaderField: "Authorization")
 
         let data: Data
         let response: URLResponse
@@ -84,8 +117,8 @@ struct AppTokenProvider: JanuaryTokenProvider {
         } catch {
             throw JanuaryTokenProviderError("Token endpoint is unavailable.", retryable: true)
         }
-        guard let response = response as? HTTPURLResponse,
-              (200..<300).contains(response.statusCode) else {
+        guard let http = response as? HTTPURLResponse,
+              (200..<300).contains(http.statusCode) else {
             let status = (response as? HTTPURLResponse)?.statusCode
             throw JanuaryTokenProviderError(
                 "Token endpoint rejected the request.",
@@ -97,172 +130,61 @@ struct AppTokenProvider: JanuaryTokenProvider {
 }
 
 let provider = AppTokenProvider(
-    endpoint: requiredTokenEndpoint,
-    appSessionToken: signedInUser.sessionToken
+    endpoint: URL(string: "https://your-backend.example/api/january/token")!,
+    appSessionToken: session.token
 )
 let january = try JanuaryClient(
-    endUserID: signedInUser.id,
+    endUserID: session.user.id,
     clientTokenProvider: provider
 )
 
-let results = try await january.foods.search(.init(query: "greek yogurt"))
-let logs = try await january.foodLogs.list(
-    start: "2026-08-01",
-    end: "2026-08-31"
-)
+let foods = try await january.foods.search(.init(query: "banana"))
+print("Found \(foods.items.count) foods")
 ```
 
-Create one `JanuaryClient` for the signed-in user and reuse it. `endUserID` is
-the required stable string from your user system. The SDK passes it to the
-provider whenever a new client token is needed. The SDK uses
-`TimeZone.current` when `timezone` is omitted.
+A successful request prints a result count; an empty result is still a successful
+connection. Create one `JanuaryClient` for the signed-in user and reuse it.
+The SDK caches and refreshes client tokens automatically. The
+[authentication guide](Documentation/GitBook/getting-started/authentication.md)
+contains production retry and error mapping.
 
-The endpoint is app configuration with no SDK default. Its stable response is:
+Your production endpoint returns `{ "token": "ct-…", "expiresIn": 1800 }`,
+derives the stable end-user ID from the verified app session, and chooses scopes
+on the server. See the
+[backend token endpoint guide](Documentation/GitBook/getting-started/backend-token-endpoint.md)
+for the complete contract.
 
-```json
-{ "token": "ct-…", "expiresIn": 1800 }
+## Common tasks
+
+- [Foods](Documentation/GitBook/guides/foods.md)
+- [Restaurants](Documentation/GitBook/guides/restaurants.md)
+- [Photo scanning](Documentation/GitBook/guides/photo-scanning.md)
+- [Native meal scanner](Documentation/GitBook/guides/native-meal-scanner.md)
+- [Food logs](Documentation/GitBook/guides/food-logs.md)
+- [Glucose prediction](Documentation/GitBook/guides/glucose-prediction.md)
+- [Voice capture](Documentation/GitBook/guides/voice-capture.md)
+
+For every resource, token lifecycle, errors, retries, and troubleshooting, see
+the [complete iOS SDK guide](Documentation/GitBook/README.md).
+
+For SDK development and testing, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Optional: fastest debug-only shortcut
+
+If you only want to make a request immediately, the demo can use a server API
+key directly in a local Debug build. This bypasses the recommended client-token
+flow above. Remove the token-endpoint variables from the Xcode scheme, then add:
+
+```text
+JANUARY_API_KEY=sk-your-server-api-key
+JANUARY_END_USER_ID=january-sdk-demo-user
 ```
 
-`JanuaryClientToken` also accepts `expires_in`. The SDK caches tokens in memory,
-refreshes before expiry, single-flights concurrent refreshes, and retries token
-provider failures explicitly marked retryable with bounded exponential backoff.
-
-To verify this flow before your backend is ready, deploy the public
-[January token relay](https://github.com/January-ai/january-token-relay) and
-configure the demo app with your deployment URL, relay secret, and test user ID.
-Those values belong only in local Xcode scheme configuration and must never be
-committed. The SDK contains no hosted test-relay URL or shared test secret. Use
-an authenticated backend that derives the user identity server-side in
-production.
-
-## Test the client-token lifecycle locally
-
-`JanuaryDevelopmentTokenProvider` lets a local Debug build exercise the same
-mint, cache, refresh, and replay path without first implementing a partner
-backend. It exchanges a development API key for short-lived client tokens
-against January production. Token lifetime is managed internally and is not
-part of the public configuration.
-
-> **Warning:** This provider sends the API key from the app process. Use it only
-> in a local Debug build. Never commit the key, include it in an app binary, or
-> distribute an app configured this way.
-
-```swift
-#if DEBUG
-guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
-      let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
-    fatalError("Set the local January development credentials in the Xcode scheme.")
-}
-
-let provider = try JanuaryDevelopmentTokenProvider(apiKey: apiKey)
-let january = try JanuaryClient(
-    endUserID: rawUserID,
-    clientTokenProvider: provider
-)
-#endif
-```
-
-For production, replace this helper with the backend-backed
-`AppTokenProvider` shown above. No other client lifecycle code changes.
-
-## Local development with an API key
-
-> **Warning:** `developmentAPIKey` is only for local testing. Do not ship an app
-> with this key or commit one to source control. Production apps must use
-> `JanuaryTokenProvider` as shown above.
-
-The initializer remains supported for local experiments and writes a runtime
-warning to the Xcode console whenever a nonempty key is provided. The warning
-never contains the key. Release builds reject this initializer at compile time,
-preventing a development API key from being shipped:
-
-```swift
-import Foundation
-import January
-
-guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
-      let endUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
-    fatalError("Set the local January development credentials in the Xcode scheme.")
-}
-let january = try JanuaryClient(
-    developmentAPIKey: apiKey,
-    endUserID: endUserID
-)
-```
-
-`endUserID` is required and must be a stable, non-identifying string from your
-own user system. It must never be an email address or display name. If
-`timezone` is omitted, the SDK uses `TimeZone.current`.
-
-## Make a request
-
-```swift
-let results = try await january.foods.search(
-    SearchFoodsRequest(query: "greek yogurt", limit: 10)
-)
-
-if let match = results.items.first {
-    let food = try await january.foods.get(id: match.id)
-    print(food.name, food.servings)
-}
-```
-
-Search results are lightweight. Call `get` before presenting serving choices
-so the selected food contains every available serving.
-
-## Add voice input
-
-`VoiceCaptureSession` records microphone audio and transcribes it with Apple
-Speech. It is independent of authentication and can be used with search, chat,
-or any text input:
-
-```swift
-@StateObject private var voiceCapture = VoiceCaptureSession()
-
-try await voiceCapture.startRecording()
-let result = try await voiceCapture.stopAndTranscribe()
-searchText = result.transcript
-```
-
-Add `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription`
-to the host app. Observe the session's state, audio level, and duration to render
-your own recording UI. See [Voice capture](Documentation/GitBook/guides/voice-capture.md).
-
-## Documentation
-
-- [Installation](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/installation)
-- [Backend token endpoint](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/backend-token-endpoint)
-- [Authentication](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/authentication)
-- [First iOS request](https://docs.january.ai/ios-sdk/ios-sdk/getting-started/quick-start)
-- [API reference](https://docs.january.ai/ios-sdk/ios-sdk/reference/client-and-resources)
-- [Example app](Examples/JanuaryPartnerDemo/README.md) (iOS 26)
-
-## Development
-
-```sh
-node scripts/check-coverage.mjs
-xcodebuild -scheme January -destination 'generic/platform=iOS' \
-  CODE_SIGNING_ALLOWED=NO build
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), and
-[SECURITY.md](SECURITY.md) for project policies.
-
-## Support
-
-For integration support, use your January partner support channel. Report
-security issues through that private channel rather than a public issue.
-
-## Menu items by restaurant ID
-
-Use the ID of a `restaurant` search result to load its menu, independently of search text and location.
-
-```swift
-let page = try await client.restaurants.getMenuItems(.init(restaurantID: restaurant.id, limit: 100, offset: 0))
-```
-
-The response contains `items` and `totalCount` (`total_count` on the wire). Request subsequent pages by advancing `offset` by the number of items received, until it reaches the total or a page is empty. An unknown restaurant returns 404; an existing restaurant with no menu returns an empty list.
+Press **Run** and search for `banana`. Never commit the key, share an archive,
+or distribute any build containing it. Release builds disable this path. Move
+to the local token server or your authenticated backend before testing anything
+outside your own machine.
 
 ## License
 
-The Apache 2.0 license applies to the source code in this repository. It does not grant rights to nutrition data, food images, or other content returned by the January API, which are subject to the January API Developer Terms.
+Apache 2.0. See [LICENSE](LICENSE).

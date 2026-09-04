@@ -51,7 +51,7 @@ private struct DemoSetupView: View {
                             .font(AppTypography.screenTitle)
                             .foregroundStyle(AppPalette.ink)
 
-                        Text("To use this demo app, initialize the SDK in code with your token provider or a local development API key.")
+                        Text("Start the local token server, then point this demo at it. Your January API key stays on the server.")
                             .font(AppTypography.body)
                             .foregroundStyle(AppPalette.body)
                             .fixedSize(horizontal: false, vertical: true)
@@ -69,9 +69,9 @@ private struct DemoSetupView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         SetupOption(
                             number: "1",
-                            title: "Use your token provider",
-                            badge: "Recommended",
-                            message: "Set partnerTokenURL and partnerAppSessionToken in AppConfiguration."
+                            title: "Start the token server",
+                            badge: "Local",
+                            message: "In january-server-sdk-node, run npm run demo:token-server."
                         )
 
                         Divider()
@@ -80,9 +80,9 @@ private struct DemoSetupView: View {
 
                         SetupOption(
                             number: "2",
-                            title: "Use a development API key",
-                            badge: "Debug only",
-                            message: "Set developmentAPIKey in AppConfiguration. Never commit or ship it."
+                            title: "Connect this app",
+                            badge: "Client token",
+                            message: "Add the three environment variables from the README to the Xcode scheme."
                         )
                     }
                     .appCard()
@@ -91,11 +91,11 @@ private struct DemoSetupView: View {
                         SectionLabel("Where to configure")
                             .padding(.horizontal, 0)
 
-                        Text("JanuaryPartnerDemoApp.swift")
+                        Text("Product → Scheme → Edit Scheme")
                             .font(AppTypography.bodyStrong)
                             .foregroundStyle(AppPalette.ink)
 
-                        Text("Edit the AppConfiguration block at the top of the file, then build again.")
+                        Text("Add the token URL, demo session token, and end-user ID under Run → Arguments.")
                             .font(.system(size: 15))
                             .foregroundStyle(AppPalette.body)
                     }
@@ -149,7 +149,7 @@ private struct SetupOption: View {
 private struct DevelopmentAuthenticationBanner: View {
     var body: some View {
         Label(
-            "Local testing mode — do not distribute this build with a development API key.",
+            "Local testing mode — do not distribute this build with a debug-only server API key.",
             systemImage: "exclamationmark.triangle.fill"
         )
         .font(.system(size: 13, weight: .semibold))
@@ -158,7 +158,7 @@ private struct DevelopmentAuthenticationBanner: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(AppPalette.goldBackground)
-        .accessibilityLabel("Warning: local testing mode. Do not distribute this build with a development API key.")
+        .accessibilityLabel("Warning: local testing mode. Do not distribute this build with a debug-only server API key.")
     }
 }
 
