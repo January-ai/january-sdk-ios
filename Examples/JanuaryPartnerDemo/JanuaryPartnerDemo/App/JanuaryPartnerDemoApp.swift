@@ -57,7 +57,7 @@ private enum AppConfiguration {
             return "Partner backend token provider"
         }
         if !developmentAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Development API key"
+            return "Debug-only server API key"
         }
         return "Not configured"
     }

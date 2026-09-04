@@ -109,10 +109,22 @@ struct AppTokenProvider: JanuaryTokenProvider {
         request.setValue("Bearer \(appSessionToken)", forHTTPHeaderField: "Authorization")
         request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await URLSession.shared.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw JanuaryTokenProviderError("Token endpoint is unavailable.", retryable: true)
+        }
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
-            throw URLError(.badServerResponse)
+            let status = (response as? HTTPURLResponse)?.statusCode
+            throw JanuaryTokenProviderError(
+                "Token endpoint rejected the request.",
+                retryable: status == 408 || status == 429 || (status ?? 0) >= 500
+            )
         }
         return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
     }
