@@ -149,7 +149,7 @@ private struct SetupOption: View {
 private struct DevelopmentAuthenticationBanner: View {
     var body: some View {
         Label(
-            "Local testing mode — do not distribute this build with a development API key.",
+            "Local testing mode — do not distribute this build with a debug-only server API key.",
             systemImage: "exclamationmark.triangle.fill"
         )
         .font(.system(size: 13, weight: .semibold))
@@ -158,7 +158,7 @@ private struct DevelopmentAuthenticationBanner: View {
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity)
         .background(AppPalette.goldBackground)
-        .accessibilityLabel("Warning: local testing mode. Do not distribute this build with a development API key.")
+        .accessibilityLabel("Warning: local testing mode. Do not distribute this build with a debug-only server API key.")
     }
 }
 

@@ -76,7 +76,7 @@ final class AppModel: ObservableObject {
                 isUsingDevelopmentAuthentication = true
 #else
                 state = .setupRequired(
-                    "Development API-key authentication is disabled in Release builds. Use the token provider configuration in JanuaryPartnerDemoApp.swift."
+                    "The debug-only server API-key shortcut is disabled in Release builds. Use the token provider configuration in JanuaryPartnerDemoApp.swift."
                 )
                 return
 #endif
