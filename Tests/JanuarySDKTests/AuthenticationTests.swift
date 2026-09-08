@@ -6,7 +6,8 @@ import Testing
 private actor AuthenticationTransport: ClientTransport {
     struct Captured: Sendable {
         let authorization: String?
-        let endUserID: String?
+        let canonicalEndUserID: String?
+        let legacyEndUserID: String?
     }
 
     private var statuses: [HTTPResponse.Status]
@@ -32,7 +33,8 @@ private actor AuthenticationTransport: ClientTransport {
     ) async throws -> (HTTPResponse, HTTPBody?) {
         captured.append(.init(
             authorization: request.headerFields[.authorization],
-            endUserID: HTTPField.Name("January-End-User-ID").flatMap { request.headerFields[$0] }
+            canonicalEndUserID: HTTPField.Name("January-End-User-ID").flatMap { request.headerFields[$0] },
+            legacyEndUserID: HTTPField.Name("x-end-user-id").flatMap { request.headerFields[$0] }
         ))
         let index = captured.count - 1
         let status = statuses[min(index, statuses.count - 1)]
@@ -178,7 +180,8 @@ func developmentAPIKeyClientDoesNotSendTheRemovedLegacyUserHeader() async throws
     ))
 
     #expect(await transport.requests().map(\.authorization) == ["Bearer fixture-api-key"])
-    #expect(await transport.requests().map(\.endUserID) == [nil])
+    #expect(await transport.requests().map(\.canonicalEndUserID) == [nil])
+    #expect(await transport.requests().map(\.legacyEndUserID) == [nil])
 }
 
 @Test
@@ -384,7 +387,8 @@ func clientTokenDoesNotSendEndUserHeader() async throws {
         endUserID: PartnerUserID(rawValue: "partner-user")
     ))
 
-    #expect(await transport.requests().map(\.endUserID) == [nil])
+    #expect(await transport.requests().map(\.canonicalEndUserID) == [nil])
+    #expect(await transport.requests().map(\.legacyEndUserID) == [nil])
 }
 
 @Test
