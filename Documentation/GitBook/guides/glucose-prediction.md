@@ -54,4 +54,4 @@ not present a single raw-inch field.
 Predictions are informational and must not be presented as diagnosis or medical treatment guidance.
 {% endhint %}
 
-With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header. The configured client still applies the timezone.
+With client-token authentication, January derives identity from the token and the SDK removes the `January-End-User-ID` header. The configured client still applies the timezone.

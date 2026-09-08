@@ -1,6 +1,6 @@
 # User identity and timezone
 
-January client tokens are bound to one end user. With client-token authentication, the SDK removes `x-end-user-id` from outgoing January requests so the app cannot contradict the token's identity.
+January client tokens are bound to one end user. With client-token authentication, the SDK removes `January-End-User-ID` from outgoing January requests so the app cannot contradict the token's identity.
 
 ## Partner-owned identifiers
 
@@ -54,7 +54,7 @@ changes.
 ## Client-token behavior
 
 The end-user identity comes from the client token, so the SDK removes
-`x-end-user-id` before calling January. A client cannot change the user bound to
+`January-End-User-ID` before calling January. A client cannot change the user bound to
 that token. Its timezone is sent when the operation supports it, and
 its partner user ID remains useful for compatible request context and local
 development authentication. Your backend must derive the authenticated user

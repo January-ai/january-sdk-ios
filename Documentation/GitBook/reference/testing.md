@@ -7,7 +7,7 @@ Test the app/backend boundary separately from January resource behavior.
 Verify that your provider:
 
 1. sends the configured authentication to your configured backend or testing-relay URL;
-2. sends `x-end-user-id` when testing the relay contract;
+2. sends `January-End-User-ID` when testing the relay contract;
 3. accepts both `expiresIn` and `expires_in` responses;
 4. rejects non-2xx responses;
 5. never logs token response bodies; and

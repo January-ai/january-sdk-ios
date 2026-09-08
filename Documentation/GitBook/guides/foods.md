@@ -11,7 +11,7 @@ let client = try JanuaryClient(
 )
 ```
 
-With client-token authentication, January derives the end-user identity from the token. The configured client keeps call sites consistent, while the SDK removes the `x-end-user-id` header before sending the request.
+With client-token authentication, January derives the end-user identity from the token. The configured client keeps call sites consistent, while the SDK removes the `January-End-User-ID` header before sending the request.
 
 ## Autocomplete
 

@@ -90,22 +90,22 @@ struct AuthenticationMiddleware: ClientMiddleware {
         request.headerFields[.authorization] = "Bearer \(bearerToken)"
         request.headerFields[.userAgent] = userAgent
 
-        if let forcedEndUserID, let name = HTTPField.Name("x-end-user-id") {
+        if let forcedEndUserID, let name = HTTPField.Name("January-End-User-ID") {
             request.headerFields[name] = forcedEndUserID.rawValue
         }
 
         if
-            let name = HTTPField.Name("x-end-user-id"),
+            let name = HTTPField.Name("January-End-User-ID"),
             request.headerFields[name]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == true
         {
             request.headerFields[name] = nil
         }
 
-        if omitEndUserID, let name = HTTPField.Name("x-end-user-id") {
+        if omitEndUserID, let name = HTTPField.Name("January-End-User-ID") {
             request.headerFields[name] = nil
         }
 
-        for rawName in ["x-end-user-id", "x-end-user-timezone"] {
+        for rawName in ["January-End-User-ID", "x-end-user-timezone"] {
             if
                 let name = HTTPField.Name(rawName),
                 let encoded = request.headerFields[name],

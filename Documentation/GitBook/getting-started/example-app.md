@@ -16,9 +16,7 @@ Follow the root README to run the standalone January Token Relay. Then set
 `JANUARY_PARTNER_TOKEN_URL` and `JANUARY_END_USER_ID` in the Xcode Run scheme
 and run the app. The loopback relay does not require a session or relay token.
 
-Authenticate the demo as a test user that your backend recognizes, then run the app.
-
-The example links the local Swift package. In token mode it posts to the explicitly configured endpoint with the configured authorization and `x-end-user-id` test header, decodes `{ token, expiresIn }` directly as `JanuaryClientToken`, and lets the SDK cache and refresh it. A production backend must derive the user from the authenticated app session rather than trust that device-supplied header.
+The example links the local Swift package. In token mode it posts to the explicitly configured endpoint with the configured authorization and `January-End-User-ID` test header, decodes `{ token, expiresIn }` directly as `JanuaryClientToken`, and lets the SDK cache and refresh it. A production backend must derive the user from the authenticated app session rather than trust that device-supplied header.
 
 For a physical device or remotely hosted development relay, follow the public
 [January Token Relay](https://github.com/January-ai/january-token-relay) guide

@@ -32,7 +32,7 @@ private actor AuthenticationTransport: ClientTransport {
     ) async throws -> (HTTPResponse, HTTPBody?) {
         captured.append(.init(
             authorization: request.headerFields[.authorization],
-            endUserID: HTTPField.Name("x-end-user-id").flatMap { request.headerFields[$0] }
+            endUserID: HTTPField.Name("January-End-User-ID").flatMap { request.headerFields[$0] }
         ))
         let index = captured.count - 1
         let status = statuses[min(index, statuses.count - 1)]

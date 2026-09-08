@@ -26,7 +26,7 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
-        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
+        request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
 
         let data: Data
         let response: URLResponse
@@ -87,7 +87,7 @@ let results = try await client.foods.search(.init(query: "greek yogurt"))
 ```
 
 With client-token authentication, the token remains authoritative for identity.
-The SDK removes `x-end-user-id` before calling January, so the configured context
+The SDK removes `January-End-User-ID` before calling January, so the configured context
 cannot override the user bound to the token. The configured timezone—or
 `TimeZone.current` when omitted—is applied to supported operations.
 

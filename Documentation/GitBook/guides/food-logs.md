@@ -14,7 +14,7 @@ let client = try JanuaryClient(
 let logs = try await client.foodLogs.list(start: "2026-08-01", end: "2026-08-31")
 ```
 
-With client-token authentication, the token supplies the end-user identity and the SDK removes the `x-end-user-id` header. The client sends the configured `TimeZone` or `TimeZone.current` when none was supplied. With local development-key authentication, any configured ID and the resolved timezone are sent.
+With client-token authentication, the token supplies the end-user identity and the SDK removes the `January-End-User-ID` header. The client sends the configured `TimeZone` or `TimeZone.current` when none was supplied. With local development-key authentication, any configured ID and the resolved timezone are sent.
 
 ## Select a food and serving
 
