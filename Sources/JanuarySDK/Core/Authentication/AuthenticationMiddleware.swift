@@ -32,16 +32,15 @@ struct AuthenticationMiddleware: ClientMiddleware {
             )
         case .fixedClientToken(let token):
             return try await next(
-                authenticatedRequest(request, bearerToken: token, omitEndUserID: true),
+                clientTokenRequest(request, bearerToken: token),
                 body,
                 baseURL
             )
         case .clientToken(let manager):
             let token = try await manager.token()
-            let authenticated = authenticatedRequest(
+            let authenticated = clientTokenRequest(
                 request,
-                bearerToken: token.token,
-                omitEndUserID: true
+                bearerToken: token.token
             )
             let firstResponse = try await next(authenticated, body, baseURL)
 
@@ -65,10 +64,9 @@ struct AuthenticationMiddleware: ClientMiddleware {
             await manager.invalidate(ifMatching: token.token)
             let refreshedToken = try await manager.token()
             return try await next(
-                authenticatedRequest(
+                clientTokenRequest(
                     request,
-                    bearerToken: refreshedToken.token,
-                    omitEndUserID: true
+                    bearerToken: refreshedToken.token
                 ),
                 body,
                 baseURL
@@ -78,17 +76,11 @@ struct AuthenticationMiddleware: ClientMiddleware {
 
     private func authenticatedRequest(
         _ original: HTTPRequest,
-        bearerToken: String,
-        forcedEndUserID: PartnerUserID? = nil,
-        omitEndUserID: Bool = false
+        bearerToken: String
     ) -> HTTPRequest {
         var request = original
         request.headerFields[.authorization] = "Bearer \(bearerToken)"
         request.headerFields[.userAgent] = userAgent
-
-        if let forcedEndUserID, let name = HTTPField.Name("January-End-User-ID") {
-            request.headerFields[name] = forcedEndUserID.rawValue
-        }
 
         if
             let name = HTTPField.Name("January-End-User-ID"),
@@ -101,10 +93,6 @@ struct AuthenticationMiddleware: ClientMiddleware {
             request.headerFields[legacyName] = nil
         }
 
-        if omitEndUserID, let name = HTTPField.Name("January-End-User-ID") {
-            request.headerFields[name] = nil
-        }
-
         for rawName in ["January-End-User-ID", "x-end-user-timezone"] {
             if
                 let name = HTTPField.Name(rawName),
@@ -113,6 +101,17 @@ struct AuthenticationMiddleware: ClientMiddleware {
             {
                 request.headerFields[name] = decoded
             }
+        }
+        return request
+    }
+
+    private func clientTokenRequest(
+        _ original: HTTPRequest,
+        bearerToken: String
+    ) -> HTTPRequest {
+        var request = authenticatedRequest(original, bearerToken: bearerToken)
+        if let name = HTTPField.Name("January-End-User-ID") {
+            request.headerFields[name] = nil
         }
         return request
     }

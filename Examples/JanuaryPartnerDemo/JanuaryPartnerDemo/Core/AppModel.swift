@@ -76,7 +76,7 @@ final class AppModel: ObservableObject {
                 isUsingDevelopmentAuthentication = true
 #else
                 state = .setupRequired(
-                    "The debug-only server API-key shortcut is disabled in Release builds. Set the partner token URL in the Xcode Run scheme."
+                    "The debug-only server API-key shortcut is disabled in Release builds. Set JANUARY_PARTNER_TOKEN_URL and, when the endpoint requires authorization, JANUARY_PARTNER_SESSION_TOKEN in the Xcode Run scheme."
                 )
                 return
 #endif
