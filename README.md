@@ -64,7 +64,7 @@ Choose an iOS Simulator, press **Run**, and search for `banana`.
 ### 4. Optional: deploy the relay to Vercel
 
 If localhost is inconvenient, follow the relay's
-[Vercel deployment guide](https://github.com/January-ai/january-token-relay#optional-deploy-to-vercel).
+[Vercel deployment guide](https://github.com/January-ai/january-token-relay#deploy).
 Set `JANUARY_API_KEY` and a long random `RELAY_TOKEN` in Vercel, then replace
 the demo scheme values with:
 
@@ -73,6 +73,9 @@ JANUARY_PARTNER_TOKEN_URL=https://YOUR-PROJECT.vercel.app/api/january/client-tok
 JANUARY_PARTNER_SESSION_TOKEN=YOUR_RELAY_TOKEN
 JANUARY_END_USER_ID=january-sdk-demo-user
 ```
+
+The demo sends that user ID to the relay in the canonical
+`January-End-User-ID` header.
 
 The hosted relay is also for development and testing only. Its relay token is
 not a substitute for authenticating your users.

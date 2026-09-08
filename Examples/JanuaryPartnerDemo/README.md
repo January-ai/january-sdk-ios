@@ -70,7 +70,7 @@ production partner backend should authenticate the app session and derive the
 end-user identity server-side.
 
 For a hosted development relay, follow the relay's
-[Vercel guide](https://github.com/January-ai/january-token-relay#optional-deploy-to-vercel),
+[Vercel guide](https://github.com/January-ai/january-token-relay#deploy),
 set `JANUARY_PARTNER_TOKEN_URL` to its HTTPS token URL, and set
 `JANUARY_PARTNER_SESSION_TOKEN` to its `RELAY_TOKEN`. This is for development
 and testing only, not production authentication.
