@@ -26,7 +26,7 @@ private struct LivePartnerTokenProvider: JanuaryTokenProvider {
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
-        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
+        request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
         let (data, response) = try await performRequest(request)
         guard let http = response as? HTTPURLResponse,
               (200..<300).contains(http.statusCode) else {
@@ -70,7 +70,7 @@ func relayProviderUsesVerifiedRequestContract() async throws {
     #expect(token == JanuaryClientToken(token: "ct-relay", expiresIn: 1_800))
     #expect(request.httpMethod == "POST")
     #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer fixture-relay-secret")
-    #expect(request.value(forHTTPHeaderField: "x-end-user-id") == "fixture-user")
+    #expect(request.value(forHTTPHeaderField: "January-End-User-ID") == "fixture-user")
 }
 
 @Test

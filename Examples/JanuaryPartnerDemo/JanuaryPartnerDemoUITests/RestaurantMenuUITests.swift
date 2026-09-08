@@ -373,19 +373,18 @@ final class RestaurantMenuUITests: XCTestCase {
 
 @MainActor
 final class ClientTokenLiveUITests: XCTestCase {
-    func testSearchUsesLocalClientTokenServer() async throws {
-        let serverURL = URL(string: "http://127.0.0.1:8787/api/january/token")!
+    func testSearchUsesLocalClientTokenRelay() async throws {
+        let serverURL = URL(string: "http://127.0.0.1:8787/api/january/client-token")!
         guard let (_, healthResponse) = try? await URLSession.shared.data(
-            from: URL(string: "http://127.0.0.1:8787/health")!
+            from: URL(string: "http://127.0.0.1:8787/")!
         ), (healthResponse as? HTTPURLResponse)?.statusCode == 200 else {
-            throw XCTSkip("Start the local January token server to run this live check.")
+            throw XCTSkip("Start the local January Token Relay to run this live check.")
         }
 
         let app = XCUIApplication()
         app.launchArguments = ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXS"]
         app.launchEnvironment = [
             "JANUARY_PARTNER_TOKEN_URL": serverURL.absoluteString,
-            "JANUARY_PARTNER_SESSION_TOKEN": "january-local-demo",
             "JANUARY_API_KEY": "",
             "JANUARY_END_USER_ID": "january-sdk-demo-user",
         ]

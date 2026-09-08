@@ -30,7 +30,7 @@ JANUARY_END_USER_ID=your-stable-user-id
 
 Use the same stable, non-identifying partner user ID that your backend binds to
 the token. The configured client keeps request context together, but the client
-token remains authoritative for identity and the SDK removes `x-end-user-id`
+token remains authoritative for identity and the SDK removes `January-End-User-ID`
 from January requests.
 
 ## 3. Add the app source
@@ -92,7 +92,7 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
-        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
+        request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
 
         let data: Data
         let response: URLResponse

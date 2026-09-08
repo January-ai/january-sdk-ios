@@ -10,9 +10,9 @@ requires Xcode 26 and an iOS 26 simulator or device.
 
 ## Quick start: run the demo with client tokens
 
-You can try the iOS SDK before your own backend is ready. A small local Node
-server keeps the January API key off the app and issues the same short-lived
-client tokens your production backend will issue.
+You can try the iOS SDK before your own backend is ready. The standalone
+January Token Relay keeps the January API key off the app and temporarily
+stands in for your production token endpoint.
 
 ### 1. Create the credentials
 
@@ -27,21 +27,18 @@ Complete both steps—they are on separate dashboard pages:
 For production or any shared build, never put the `sk-…` key in an iOS app.
 The private, debug-only shortcut at the end is the sole local exception.
 
-### 2. Start the local token server
+### 2. Start the local token relay
 
-Install Node.js 22 or newer. In a first terminal:
+Install Node.js 20.12 or newer. In a first terminal:
 
 ```bash
-git clone https://github.com/January-ai/january-server-sdk-node.git
-cd january-server-sdk-node
-npm ci
-cp .env.example .env
-# Edit .env and set JANUARY_API_KEY to the key you just created.
-npm run demo:token-server
+git clone https://github.com/January-ai/january-token-relay.git
+cd january-token-relay
+./start.sh
 ```
 
-Leave it running. The server binds only to your computer and exchanges the API
-key for short-lived tokens using the January Server SDK.
+Paste the API key when prompted and leave the relay running. It binds to your
+computer, uses port `8787`, and prints its status and token-endpoint URLs.
 
 ### 3. Run the iOS demo
 
@@ -58,12 +55,35 @@ select the `JanuaryPartnerDemo` scheme, and add these environment variables to
 **Product → Scheme → Edit Scheme → Run → Arguments**:
 
 ```text
-JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/token
-JANUARY_PARTNER_SESSION_TOKEN=january-local-demo
+JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/client-token
 JANUARY_END_USER_ID=january-sdk-demo-user
 ```
 
 Choose an iOS Simulator, press **Run**, and search for `banana`.
+
+### 4. Optional: deploy the relay to Vercel
+
+If localhost is inconvenient, follow the relay's
+[Vercel deployment guide](https://github.com/January-ai/january-token-relay#deploy).
+Set `JANUARY_API_KEY` and a long random `RELAY_TOKEN` in Vercel, then replace
+the demo scheme values with:
+
+```text
+JANUARY_PARTNER_TOKEN_URL=https://YOUR-PROJECT.vercel.app/api/january/client-token
+JANUARY_PARTNER_SESSION_TOKEN=YOUR_RELAY_TOKEN
+JANUARY_END_USER_ID=january-sdk-demo-user
+```
+
+The demo sends that user ID to the relay in the canonical
+`January-End-User-ID` header.
+
+The hosted relay is also for development and testing only. Its relay token is
+not a substitute for authenticating your users.
+
+This relay is only for development. In production, keep the same SDK token
+provider but point it to your authenticated backend. Your backend must verify
+the app session and derive the end-user ID instead of trusting an ID supplied
+by the app.
 
 ## Add the SDK to your app
 
@@ -130,7 +150,7 @@ struct AppTokenProvider: JanuaryTokenProvider {
 }
 
 let provider = AppTokenProvider(
-    endpoint: URL(string: "https://your-backend.example/api/january/token")!,
+    endpoint: URL(string: "https://your-backend.example/api/january/client-token")!,
     appSessionToken: session.token
 )
 let january = try JanuaryClient(
@@ -182,7 +202,7 @@ JANUARY_END_USER_ID=january-sdk-demo-user
 
 Press **Run** and search for `banana`. Never commit the key, share an archive,
 or distribute any build containing it. Release builds disable this path. Move
-to the local token server or your authenticated backend before testing anything
+to the local token relay or your authenticated backend before testing anything
 outside your own machine.
 
 ## License

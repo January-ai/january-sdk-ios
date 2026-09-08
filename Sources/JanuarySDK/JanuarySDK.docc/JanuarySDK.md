@@ -24,7 +24,7 @@ struct AppTokenProvider: JanuaryTokenProvider {
             "Bearer \(appSessionToken)",
             forHTTPHeaderField: "Authorization"
         )
-        request.setValue(endUserID, forHTTPHeaderField: "x-end-user-id")
+        request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
 
         let data: Data
         let response: URLResponse

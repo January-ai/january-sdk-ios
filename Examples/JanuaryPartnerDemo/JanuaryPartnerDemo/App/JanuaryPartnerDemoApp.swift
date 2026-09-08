@@ -27,7 +27,7 @@ private enum AppConfiguration {
 
     static var authentication: AuthenticationConfiguration {
         let sessionToken = partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let partnerTokenURL, !sessionToken.isEmpty {
+        if let partnerTokenURL {
             return .clientToken(
                 partnerTokenURL: partnerTokenURL,
                 appSessionToken: sessionToken,
@@ -52,9 +52,8 @@ private enum AppConfiguration {
     }
 
     static var authenticationLabel: String {
-        if partnerTokenURL != nil,
-           !partnerAppSessionToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "Partner backend token provider"
+        if partnerTokenURL != nil {
+            return "Client token provider"
         }
         if !debugServerAPIKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Debug-only server API key"

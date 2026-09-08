@@ -12,16 +12,18 @@ The demo is a January-owned integration harness, not a zero-configuration public
 
 ## Run the token-provider path
 
-Open `JanuaryPartnerDemoApp.swift` and edit the `AppConfiguration` block at the
-top of the file. Set `partnerTokenURL`, `partnerAppSessionToken`, and
-`endUserID`, then run the app. The demo does not require Xcode scheme variables
-or an in-app credential form.
+Follow the root README to run the standalone January Token Relay. Then set
+`JANUARY_PARTNER_TOKEN_URL` and `JANUARY_END_USER_ID` in the Xcode Run scheme
+and run the app. The loopback relay does not require a session or relay token.
 
-Authenticate the demo as a test user that your backend recognizes, then run the app.
+The example links the local Swift package. In token mode it posts to the explicitly configured endpoint with the configured authorization and `January-End-User-ID` test header, decodes `{ token, expiresIn }` directly as `JanuaryClientToken`, and lets the SDK cache and refresh it. A production backend must derive the user from the authenticated app session rather than trust that device-supplied header.
 
-The example links the local Swift package. In token mode it posts to the explicitly configured endpoint with the configured authorization and `x-end-user-id` test header, decodes `{ token, expiresIn }` directly as `JanuaryClientToken`, and lets the SDK cache and refresh it. A production backend must derive the user from the authenticated app session rather than trust that device-supplied header.
-
-For local integration testing, you can deploy the public [January token relay](https://github.com/January-ai/january-token-relay) and place your deployment URL and relay secret in the demo configuration block. Never commit either value. No January-hosted test relay URL or shared test secret is included in the SDK, demo, or documentation. For production, use an authenticated partner backend that derives the end-user identity from the signed-in app session.
+For a physical device or remotely hosted development relay, follow the public
+[January Token Relay](https://github.com/January-ai/january-token-relay) guide
+and place its URL in `JANUARY_PARTNER_TOKEN_URL` and its relay token in
+`JANUARY_PARTNER_SESSION_TOKEN` in the Xcode Run scheme. Never commit either
+value. For production, use an authenticated partner backend that derives the
+end-user identity from the signed-in app session.
 
 The public SDK targets January production and exposes no API-origin override.
 

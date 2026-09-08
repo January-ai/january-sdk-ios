@@ -15,7 +15,7 @@ let client = try JanuaryClient(
 )
 ```
 
-With client-token authentication, January derives identity from the token and the SDK removes the `x-end-user-id` header.
+With client-token authentication, January derives identity from the token and the SDK removes the `January-End-User-ID` header.
 
 ## Scan a public image URL
 

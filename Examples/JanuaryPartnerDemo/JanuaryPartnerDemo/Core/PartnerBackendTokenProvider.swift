@@ -11,10 +11,14 @@ struct PartnerBackendTokenProvider: JanuaryTokenProvider {
     let appSessionToken: String
     var session: URLSession = .shared
 
-    func fetchClientToken(for _: String) async throws -> JanuaryClientToken {
+    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
-        request.setValue("Bearer " + appSessionToken, forHTTPHeaderField: "Authorization")
+        request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
+        let sessionToken = appSessionToken.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !sessionToken.isEmpty {
+            request.setValue("Bearer " + sessionToken, forHTTPHeaderField: "Authorization")
+        }
 
         let data: Data
         let response: URLResponse

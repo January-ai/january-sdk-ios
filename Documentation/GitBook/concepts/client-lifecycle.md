@@ -36,7 +36,7 @@ The client covers `foods`, `restaurants`, `foodAnalysis`, `foodLogs`, and
 automatically reused across request models.
 
 With client-token authentication, the token is authoritative for identity. The
-SDK strips `x-end-user-id` from outgoing January requests; the client still
+SDK strips `January-End-User-ID` from outgoing January requests; the client still
 centralizes the timezone and compatible request context.
 
 ## Cancellation

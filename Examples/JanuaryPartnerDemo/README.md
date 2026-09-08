@@ -19,24 +19,20 @@ After you [sign up](https://dashboard.january.ai/sign-up) or
 [Client tokens](https://dashboard.january.ai/dashboard/client-tokens) and select
 **Enable client tokens**.
 
-Clone the [January Server SDK for Node.js](https://github.com/January-ai/january-server-sdk-node)
-and start its local server:
+Clone the standalone [January Token Relay](https://github.com/January-ai/january-token-relay)
+and start it:
 
 ```sh
-git clone https://github.com/January-ai/january-server-sdk-node.git
-cd january-server-sdk-node
-npm ci
-cp .env.example .env
-# Edit .env and set JANUARY_API_KEY.
-npm run demo:token-server
+git clone https://github.com/January-ai/january-token-relay.git
+cd january-token-relay
+./start.sh
 ```
 
 In Xcode, add these environment variables to
 **Product → Scheme → Edit Scheme → Run → Arguments**:
 
 ```text
-JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/token
-JANUARY_PARTNER_SESSION_TOKEN=january-local-demo
+JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/client-token
 JANUARY_END_USER_ID=january-sdk-demo-user
 ```
 
@@ -55,22 +51,29 @@ and derive the end-user identity from that session. The endpoint returns:
 
 `expires_in` is also accepted. Server API keys stay in the partner backend and
 must never be added to this Xcode project or the app binary. The demo refuses to
-start token mode when the endpoint or app-session token is missing; the SDK does
-not guess a token endpoint.
+start token mode when the endpoint is missing; the SDK does not guess a token
+endpoint. The local loopback relay needs no relay token.
 
 The SDK caches the returned client token in memory, refreshes it before
 expiration, and single-flights concurrent refreshes. `PartnerBackendTokenProvider`
-posts to the configured endpoint, supplies the authorization header, and decodes
-the server response for the SDK.
+posts to the configured endpoint, supplies the selected end-user ID for local
+relay testing, and decodes the server response for the SDK. It also supports an
+optional authorization value for a relay that is reachable from another device.
 
 You can override the end-user ID and timezone from the in-app Settings sheet.
 The Scan tab can use the bundled sample meal on the simulator; camera capture is
 available on a physical device.
 
-For a self-hosted testing relay, deploy the public
-[January token relay](https://github.com/January-ai/january-token-relay). A
+For a physical device, follow the relay's `HOST=0.0.0.0 ./start.sh` instructions
+and set `JANUARY_PARTNER_SESSION_TOKEN` to the generated relay token. A
 production partner backend should authenticate the app session and derive the
 end-user identity server-side.
+
+For a hosted development relay, follow the relay's
+[Vercel guide](https://github.com/January-ai/january-token-relay#deploy),
+set `JANUARY_PARTNER_TOKEN_URL` to its HTTPS token URL, and set
+`JANUARY_PARTNER_SESSION_TOKEN` to its `RELAY_TOKEN`. This is for development
+and testing only, not production authentication.
 
 The visual tokens, reusable SwiftUI components, layout rules, and screen
 requirements are documented in [DESIGN_SPEC.md](DESIGN_SPEC.md).

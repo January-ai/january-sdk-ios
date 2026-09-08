@@ -51,7 +51,7 @@ private struct DemoSetupView: View {
                             .font(AppTypography.screenTitle)
                             .foregroundStyle(AppPalette.ink)
 
-                        Text("Start the local token server, then point this demo at it. Your January API key stays on the server.")
+                        Text("Start the local token relay, then point this demo at it. Your January API key stays on the relay.")
                             .font(AppTypography.body)
                             .foregroundStyle(AppPalette.body)
                             .fixedSize(horizontal: false, vertical: true)
@@ -69,9 +69,9 @@ private struct DemoSetupView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         SetupOption(
                             number: "1",
-                            title: "Start the token server",
+                            title: "Start the token relay",
                             badge: "Local",
-                            message: "In january-server-sdk-node, run npm run demo:token-server."
+                            message: "In january-token-relay, run ./start.sh."
                         )
 
                         Divider()
@@ -82,7 +82,7 @@ private struct DemoSetupView: View {
                             number: "2",
                             title: "Connect this app",
                             badge: "Client token",
-                            message: "Add the three environment variables from the README to the Xcode scheme."
+                            message: "Add the token URL and end-user ID from the README to the Xcode scheme."
                         )
                     }
                     .appCard()
@@ -95,7 +95,7 @@ private struct DemoSetupView: View {
                             .font(AppTypography.bodyStrong)
                             .foregroundStyle(AppPalette.ink)
 
-                        Text("Add the token URL, demo session token, and end-user ID under Run → Arguments.")
+                        Text("Add the token URL and end-user ID under Run → Arguments.")
                             .font(.system(size: 15))
                             .foregroundStyle(AppPalette.body)
                     }
