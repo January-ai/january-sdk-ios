@@ -69,7 +69,7 @@ private struct DemoSetupView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         SetupOption(
                             number: "1",
-                            title: "Start the token server",
+                            title: "Start the token relay",
                             badge: "Local",
                             message: "In january-token-relay, run ./start.sh."
                         )

@@ -20,7 +20,8 @@ The example links the local Swift package. In token mode it posts to the explici
 
 For a physical device or remotely hosted development relay, follow the public
 [January Token Relay](https://github.com/January-ai/january-token-relay) guide
-and place its URL and relay token in the Xcode Run scheme. Never commit either
+and place its URL in `JANUARY_PARTNER_TOKEN_URL` and its relay token in
+`JANUARY_PARTNER_SESSION_TOKEN` in the Xcode Run scheme. Never commit either
 value. For production, use an authenticated partner backend that derives the
 end-user identity from the signed-in app session.
 

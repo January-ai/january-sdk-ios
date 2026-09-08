@@ -147,7 +147,7 @@ struct AppTokenProvider: JanuaryTokenProvider {
 }
 
 let provider = AppTokenProvider(
-    endpoint: URL(string: "https://your-backend.example/api/january/token")!,
+    endpoint: URL(string: "https://your-backend.example/api/january/client-token")!,
     appSessionToken: session.token
 )
 let january = try JanuaryClient(
