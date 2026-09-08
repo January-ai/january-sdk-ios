@@ -26,11 +26,7 @@ struct AuthenticationMiddleware: ClientMiddleware {
         switch source {
         case .developmentAPIKey(let apiKey, _):
             return try await next(
-                authenticatedRequest(
-                    request,
-                    bearerToken: apiKey,
-                    omitEndUserID: true
-                ),
+                authenticatedRequest(request, bearerToken: apiKey),
                 body,
                 baseURL
             )
@@ -101,15 +97,15 @@ struct AuthenticationMiddleware: ClientMiddleware {
             request.headerFields[name] = nil
         }
 
-        if omitEndUserID {
-            for rawName in ["January-End-User-ID", "x-end-user-id"] {
-                if let name = HTTPField.Name(rawName) {
-                    request.headerFields[name] = nil
-                }
-            }
+        if let legacyName = HTTPField.Name("x-end-user-id") {
+            request.headerFields[legacyName] = nil
         }
 
-        for rawName in ["January-End-User-ID", "x-end-user-id", "x-end-user-timezone"] {
+        if omitEndUserID, let name = HTTPField.Name("January-End-User-ID") {
+            request.headerFields[name] = nil
+        }
+
+        for rawName in ["January-End-User-ID", "x-end-user-timezone"] {
             if
                 let name = HTTPField.Name(rawName),
                 let encoded = request.headerFields[name],
