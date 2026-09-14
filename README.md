@@ -14,52 +14,82 @@ You can try the iOS SDK before your own backend is ready. The standalone
 January Token Relay keeps the January API key off the app and temporarily
 stands in for your production token endpoint.
 
-### 1. Create the credentials
+You need two terminal windows: one for the January Token Relay, which holds
+your API key and hands the app short-lived client tokens, and one for the
+demo. The first run takes about ten minutes.
 
-Complete both steps—they are on separate dashboard pages:
+### Terminal 1: start the token relay
 
-1. [Sign up](https://dashboard.january.ai/sign-up) or
-   [sign in](https://dashboard.january.ai/sign-in), then open
-   **API keys → Create key** and copy the full `sk-…` value.
-2. Open [Client tokens](https://dashboard.january.ai/dashboard/client-tokens)
-   and select **Enable client tokens**.
+1. Open a terminal.
+2. Download the relay and move into its folder. It needs Node.js 20.12 or
+   newer and nothing else:
+
+   ```bash
+   git clone https://github.com/January-ai/january-token-relay.git
+   cd january-token-relay
+   ```
+
+3. Start it:
+
+   ```bash
+   ./start.sh
+   ```
+
+   It checks your Node version and then asks
+   `Paste your API key (input is hidden):`. Leave it waiting and create the
+   key in the next two steps.
+
+4. Create the API key. In a browser,
+   [sign up](https://dashboard.january.ai/sign-up) or
+   [sign in](https://dashboard.january.ai/sign-in) to the January Developer
+   Dashboard, open **API keys → Create key**, and copy the full `sk-…` value.
+   It is shown once.
+5. Enable client tokens. Open
+   [Client tokens](https://dashboard.january.ai/dashboard/client-tokens) and
+   switch on **Enable client tokens**. Until this is on, January answers the
+   relay with `403`.
+6. Back in Terminal 1, paste the key and press Enter. Nothing appears while
+   you type. You should see:
+
+   ```text
+   ✓ API key accepted by January (sk-abcd…wxyz)
+   ✓ Saved to .env (readable only by you; git ignores it)
+
+   January Token Relay is running on this machine (development only).
+     Endpoint      http://localhost:8787/api/january/client-token
+   ```
+
+   Leave this window open for the whole session. The key is saved in a
+   git-ignored `.env`, so the next `./start.sh` starts without asking.
+
+### Terminal 2: run the iOS demo
+
+7. Open a second terminal.
+8. Download the SDK repository and move into it:
+
+   ```bash
+   git clone https://github.com/January-ai/january-sdk-ios.git
+   cd january-sdk-ios
+   ```
+
+9. Open
+   [`Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj`](Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj)
+   in Xcode and select the `JanuaryPartnerDemo` scheme.
+10. Tell the demo where the relay is. Open
+    **Product → Scheme → Edit Scheme → Run → Arguments** and add these
+    environment variables:
+
+    ```text
+    JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/client-token
+    JANUARY_END_USER_ID=january-sdk-demo-user
+    ```
+
+11. Choose an iOS Simulator and press **Run**. When the app opens, search for
+    `banana`. Terminal 1 prints `minted=true status=200` the first time the
+    app asks for a token.
 
 For production or any shared build, never put the `sk-…` key in an iOS app.
 The private, debug-only shortcut at the end is the sole local exception.
-
-### 2. Start the local token relay
-
-Install Node.js 20.12 or newer. In a first terminal:
-
-```bash
-git clone https://github.com/January-ai/january-token-relay.git
-cd january-token-relay
-./start.sh
-```
-
-Paste the API key when prompted and leave the relay running. It binds to your
-computer, uses port `8787`, and prints its status and token-endpoint URLs.
-
-### 3. Run the iOS demo
-
-In a second terminal, clone the demo repository if needed:
-
-```bash
-git clone https://github.com/January-ai/january-sdk-ios.git
-cd january-sdk-ios
-```
-
-Open
-[`Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj`](Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj),
-select the `JanuaryPartnerDemo` scheme, and add these environment variables to
-**Product → Scheme → Edit Scheme → Run → Arguments**:
-
-```text
-JANUARY_PARTNER_TOKEN_URL=http://127.0.0.1:8787/api/january/client-token
-JANUARY_END_USER_ID=january-sdk-demo-user
-```
-
-Choose an iOS Simulator, press **Run**, and search for `banana`.
 
 ### 4. Optional: deploy the relay to Vercel
 
