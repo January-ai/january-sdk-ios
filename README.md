@@ -91,7 +91,7 @@ demo. The first run takes about ten minutes.
 For production or any shared build, never put the `sk-…` key in an iOS app.
 The private, debug-only shortcut at the end is the sole local exception.
 
-### 4. Optional: deploy the relay to Vercel
+### Optional: deploy the relay to Vercel
 
 If localhost is inconvenient, follow the relay's
 [Vercel deployment guide](https://github.com/January-ai/january-token-relay#deploy).
