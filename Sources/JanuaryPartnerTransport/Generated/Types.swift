@@ -55,7 +55,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Full-text search over the January food database, returning up to 40 ranked matches. Generic foods, branded products and recipes are searched together unless `type` narrows it to one. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
+    /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
     ///
@@ -143,7 +143,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -167,7 +167,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry at least one serving.
+    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
     ///
@@ -196,6 +196,17 @@ package protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1.2/food-logs`.
     /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)`.
     func createFoodLog(_ input: Operations.CreateFoodLog.Input) async throws -> Operations.CreateFoodLog.Output
+    /// Summarize a user's food logs over a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Aggregates the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`) into per-day or per-week buckets, each with summed nutrients, plus totals for the range and an average per logged day. The range spans at most 366 days — wide enough for a year at a time; the 366-day cap bounds the number of buckets. The buckets tile the whole range in chronological order: a day or week with no logs is still returned, with zero counts, and under `group_by=week` the first and last buckets are clipped to the dates you asked for. `nutrients` is sparse, so read `logs_count` to tell a bucket with no logs from one whose logs could not be resolved.
+    ///
+    /// Callable with a client token carrying the `food_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/food-logs/summary`.
+    /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)`.
+    func getFoodLogSummary(_ input: Operations.GetFoodLogSummary.Input) async throws -> Operations.GetFoodLogSummary.Output
     /// Get a food log
     ///
     /// **API key or client token.**
@@ -307,7 +318,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Full-text search over the January food database, returning up to 40 ranked matches. Generic foods, branded products and recipes are searched together unless `type` narrows it to one. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
+    /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
     ///
@@ -463,7 +474,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -503,7 +514,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry at least one serving.
+    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
     ///
@@ -554,6 +565,25 @@ extension APIProtocol {
         try await createFoodLog(Operations.CreateFoodLog.Input(
             headers: headers,
             body: body
+        ))
+    }
+    /// Summarize a user's food logs over a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Aggregates the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`) into per-day or per-week buckets, each with summed nutrients, plus totals for the range and an average per logged day. The range spans at most 366 days — wide enough for a year at a time; the 366-day cap bounds the number of buckets. The buckets tile the whole range in chronological order: a day or week with no logs is still returned, with zero counts, and under `group_by=week` the first and last buckets are clipped to the dates you asked for. `nutrients` is sparse, so read `logs_count` to tell a bucket with no logs from one whose logs could not be resolved.
+    ///
+    /// Callable with a client token carrying the `food_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/food-logs/summary`.
+    /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)`.
+    package func getFoodLogSummary(
+        query: Operations.GetFoodLogSummary.Input.Query,
+        headers: Operations.GetFoodLogSummary.Input.Headers = .init()
+    ) async throws -> Operations.GetFoodLogSummary.Output {
+        try await getFoodLogSummary(Operations.GetFoodLogSummary.Input(
+            query: query,
+            headers: headers
         ))
     }
     /// Get a food log
@@ -670,7 +700,9 @@ package enum Components {
             package var message: Swift.String
             /// A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording.
             ///
-            /// Any request, each with the status it usually accompanies: `invalid_request` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `payload_too_large` (413), `rate_limited` (429), `credit_limit_exceeded` (429), `internal_error` (500), `not_implemented` (501), `upstream_error` (502), `service_unavailable` (503), `upstream_timeout` (504). Those pairings are the common case, not a guarantee: a status we do not map falls back to `invalid_request` below 500 and `internal_error` at or above it, so an internal service answering 409 or 422 reaches you with that status and `code: invalid_request`. Branch on the code first and treat the status as the fallback, exactly as for a code you do not recognise.
+            /// Any request, each with the status it usually accompanies: `invalid_request` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `payload_too_large` (413), `rate_limited` (429), `request_limit_exceeded` (429), `credit_limit_exceeded` (429), `internal_error` (500), `not_implemented` (501), `upstream_error` (502), `service_unavailable` (503), `upstream_timeout` (504). Those pairings are the common case, not a guarantee: a status we do not map falls back to `invalid_request` below 500 and `internal_error` at or above it, so an internal service answering 409 or 422 reaches you with that status and `code: invalid_request`. Branch on the code first and treat the status as the fallback, exactly as for a code you do not recognise.
+            ///
+            /// `cancelled` (499) means the client disconnected before completion. The closed connection may prevent delivery of the error body.
             ///
             /// Client tokens add six an API key never produces: `token_expired`, `token_invalid`, `token_revoked` (401), and `client_token_not_allowed`, `scope_insufficient`, `end_user_id_mismatch` (403). Each response documents its own.
             ///
@@ -678,7 +710,7 @@ package enum Components {
             ///
             /// `POST /v1.2/food-analysis/image` adds four 400s about the image itself: `image_unreachable` (the URL could not be fetched), `image_corrupt` (the file could not be decoded), `image_format_unsupported` and `image_invalid_base64`. Each is fixed by the caller; the same image fails the same way again.
             ///
-            /// Retry only `rate_limited`, `internal_error`, `upstream_error`, `service_unavailable`, `upstream_timeout` and `client_token_revocation_incomplete`, with backoff — `not_implemented` is permanent until the feature ships, so its 5xx status is not a reason to retry it. Two more the status code alone gets wrong: `credit_limit_exceeded` is a 429 that **must never be retried** — the allowance returns next calendar month, so a client that backs off on every 429 will spin until then; and `token_expired` is refreshed, not retried — mint a new token, then retry once.
+            /// Retry only `rate_limited`, `internal_error`, `upstream_error`, `service_unavailable`, `upstream_timeout` and `client_token_revocation_incomplete`, with backoff — `not_implemented` is permanent until the feature ships, so its 5xx status is not a reason to retry it. Three more the status code alone gets wrong. **Two 429s must never be retried**, because both reopen only at the start of the next calendar month: `credit_limit_exceeded` (the monthly credit allowance) and `request_limit_exceeded` (the monthly request allowance). A client that backs off on every 429 will spin until then; neither sends `Retry-After`, and the message names the reset instant — `GET /v1.2/credits` returns it as the resets_at field. `rate_limited` is the 429 that *is* worth retrying: a per-endpoint limit, or the rolling 24-hour burst guard over the monthly ceiling, so its window is at most a day. And `token_expired` is refreshed, not retried — mint a new token, then retry once.
             ///
             /// New codes may be added over time; treat an unknown code according to its HTTP status class.
             ///
@@ -1321,21 +1353,21 @@ package enum Components {
                 case dietPreferences = "diet_preferences"
             }
         }
-        /// - Remark: Generated from `#/components/schemas/AlternativeServing`.
-        package struct AlternativeServing: Codable, Hashable, Sendable {
+        /// - Remark: Generated from `#/components/schemas/ServingSummary`.
+        package struct ServingSummary: Codable, Hashable, Sendable {
             /// Null only when the producer sent a serving with no id.
             ///
-            /// - Remark: Generated from `#/components/schemas/AlternativeServing/id`.
+            /// - Remark: Generated from `#/components/schemas/ServingSummary/id`.
             package var id: Swift.String?
             /// How much of `unit` this serving is; null when the producer reported none.
             ///
-            /// - Remark: Generated from `#/components/schemas/AlternativeServing/quantity`.
+            /// - Remark: Generated from `#/components/schemas/ServingSummary/quantity`.
             package var quantity: Swift.Double?
             /// Null only when the producer sent a serving with no unit.
             ///
-            /// - Remark: Generated from `#/components/schemas/AlternativeServing/unit`.
+            /// - Remark: Generated from `#/components/schemas/ServingSummary/unit`.
             package var unit: Swift.String?
-            /// Creates a new `AlternativeServing`.
+            /// Creates a new `ServingSummary`.
             ///
             /// - Parameters:
             ///   - id: Null only when the producer sent a serving with no id.
@@ -1375,7 +1407,7 @@ package enum Components {
             /// Servings to read the nutrition against. Empty when the recommender returned none — the key itself is always present.
             ///
             /// - Remark: Generated from `#/components/schemas/AlternativeFood/servings`.
-            package var servings: [Components.Schemas.AlternativeServing]
+            package var servings: [Components.Schemas.ServingSummary]
             /// Creates a new `AlternativeFood`.
             ///
             /// - Parameters:
@@ -1389,7 +1421,7 @@ package enum Components {
                 name: Swift.String? = nil,
                 brandName: Swift.String? = nil,
                 nutrients: Components.Schemas.NutritionFacts,
-                servings: [Components.Schemas.AlternativeServing]
+                servings: [Components.Schemas.ServingSummary]
             ) {
                 self.id = id
                 self.name = name
@@ -1704,64 +1736,53 @@ package enum Components {
                 case items
             }
         }
+        /// - Remark: Generated from `#/components/schemas/AnalysisReasoning`.
+        package struct AnalysisReasoning: Codable, Hashable, Sendable {
+            /// `none` uses the standard analyzer; `xhigh` uses the reasoning-based analyzer.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AnalysisReasoning/effort`.
+            @frozen package enum EffortPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case none = "none"
+                case xhigh = "xhigh"
+            }
+            /// `none` uses the standard analyzer; `xhigh` uses the reasoning-based analyzer.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AnalysisReasoning/effort`.
+            package var effort: Components.Schemas.AnalysisReasoning.EffortPayload
+            /// Creates a new `AnalysisReasoning`.
+            ///
+            /// - Parameters:
+            ///   - effort: `none` uses the standard analyzer; `xhigh` uses the reasoning-based analyzer.
+            package init(effort: Components.Schemas.AnalysisReasoning.EffortPayload) {
+                self.effort = effort
+            }
+            package enum CodingKeys: String, CodingKey {
+                case effort
+            }
+        }
         /// - Remark: Generated from `#/components/schemas/ScanFoodPhotoBody`.
         package struct ScanFoodPhotoBody: Codable, Hashable, Sendable {
             /// The food photo — the food itself or a packaged product's label — as an http(s) URL or a base64 data URI (data:image/jpeg;base64,…). Formats: JPG, PNG, WEBP, and non-animated GIF. Around 1,024 px on the shorter side is enough for reliable results (a recommendation, not a validation rule). A URL must be publicly fetchable server-side — hosts that block hotlinking or require a login cannot be read — and has no enforced size cap, though very large files slow the analysis and can time out. Base64 must be a complete data URI and fit the 5 MB request-body cap, so keep raw images under ~3.5 MB before encoding (base64 inflates by ~33%). Prefer the URL when the image is already hosted.
             ///
             /// - Remark: Generated from `#/components/schemas/ScanFoodPhotoBody/image`.
             package var image: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ScanFoodPhotoBody/reasoning`.
+            package var reasoning: Components.Schemas.AnalysisReasoning?
             /// Creates a new `ScanFoodPhotoBody`.
             ///
             /// - Parameters:
             ///   - image: The food photo — the food itself or a packaged product's label — as an http(s) URL or a base64 data URI (data:image/jpeg;base64,…). Formats: JPG, PNG, WEBP, and non-animated GIF. Around 1,024 px on the shorter side is enough for reliable results (a recommendation, not a validation rule). A URL must be publicly fetchable server-side — hosts that block hotlinking or require a login cannot be read — and has no enforced size cap, though very large files slow the analysis and can time out. Base64 must be a complete data URI and fit the 5 MB request-body cap, so keep raw images under ~3.5 MB before encoding (base64 inflates by ~33%). Prefer the URL when the image is already hosted.
-            package init(image: Swift.String) {
+            ///   - reasoning:
+            package init(
+                image: Swift.String,
+                reasoning: Components.Schemas.AnalysisReasoning? = nil
+            ) {
                 self.image = image
+                self.reasoning = reasoning
             }
             package enum CodingKeys: String, CodingKey {
                 case image
-            }
-        }
-        /// - Remark: Generated from `#/components/schemas/DetectedServing`.
-        package struct DetectedServing: Codable, Hashable, Sendable {
-            /// Null only when the producer sent a serving with no id.
-            ///
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/id`.
-            package var id: Swift.String?
-            /// How much of `unit` this serving is; null when the producer reported none.
-            ///
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/quantity`.
-            package var quantity: Swift.Double?
-            /// Null only when the producer sent a serving with no unit.
-            ///
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/unit`.
-            package var unit: Swift.String?
-            /// Quantity parsed from the text ('2 cups' → 2); null on image analyses. Advisory — corrections reads the serving's own quantity.
-            ///
-            /// - Remark: Generated from `#/components/schemas/DetectedServing/selected_quantity`.
-            package var selectedQuantity: Swift.Double?
-            /// Creates a new `DetectedServing`.
-            ///
-            /// - Parameters:
-            ///   - id: Null only when the producer sent a serving with no id.
-            ///   - quantity: How much of `unit` this serving is; null when the producer reported none.
-            ///   - unit: Null only when the producer sent a serving with no unit.
-            ///   - selectedQuantity: Quantity parsed from the text ('2 cups' → 2); null on image analyses. Advisory — corrections reads the serving's own quantity.
-            package init(
-                id: Swift.String? = nil,
-                quantity: Swift.Double? = nil,
-                unit: Swift.String? = nil,
-                selectedQuantity: Swift.Double? = nil
-            ) {
-                self.id = id
-                self.quantity = quantity
-                self.unit = unit
-                self.selectedQuantity = selectedQuantity
-            }
-            package enum CodingKeys: String, CodingKey {
-                case id
-                case quantity
-                case unit
-                case selectedQuantity = "selected_quantity"
+                case reasoning
             }
         }
         /// - Remark: Generated from `#/components/schemas/DetectedFood`.
@@ -1778,39 +1799,45 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/DetectedFood/brand_name`.
             package var brandName: Swift.String?
+            /// Number of catalog servings consumed, ready to use as food-log quantity. For 40 g from a 100 g serving this is 0.4. Null when the producer supplied no usable portion.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/quantity`.
+            package var quantity: Swift.Double?
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/serving`.
+            package var serving: Components.Schemas.ServingSummary
             /// - Remark: Generated from `#/components/schemas/DetectedFood/nutrients`.
             package var nutrients: Components.Schemas.NutritionFacts
-            /// Never empty: every detection producer guarantees at least one serving.
-            ///
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/servings`.
-            package var servings: [Components.Schemas.DetectedServing]
             /// Creates a new `DetectedFood`.
             ///
             /// - Parameters:
             ///   - id: Catalog food id, or null when the producer matched none.
             ///   - name: Null only when the producer sent a food with no name.
             ///   - brandName: Null for generic (non-branded) foods.
+            ///   - quantity: Number of catalog servings consumed, ready to use as food-log quantity. For 40 g from a 100 g serving this is 0.4. Null when the producer supplied no usable portion.
+            ///   - serving:
             ///   - nutrients:
-            ///   - servings: Never empty: every detection producer guarantees at least one serving.
             package init(
                 id: Swift.String? = nil,
                 name: Swift.String? = nil,
                 brandName: Swift.String? = nil,
-                nutrients: Components.Schemas.NutritionFacts,
-                servings: [Components.Schemas.DetectedServing]
+                quantity: Swift.Double? = nil,
+                serving: Components.Schemas.ServingSummary,
+                nutrients: Components.Schemas.NutritionFacts
             ) {
                 self.id = id
                 self.name = name
                 self.brandName = brandName
+                self.quantity = quantity
+                self.serving = serving
                 self.nutrients = nutrients
-                self.servings = servings
             }
             package enum CodingKeys: String, CodingKey {
                 case id
                 case name
                 case brandName = "brand_name"
+                case quantity
+                case serving
                 case nutrients
-                case servings
             }
         }
         /// - Remark: Generated from `#/components/schemas/FoodDetection`.
@@ -2145,6 +2172,188 @@ package enum Components {
             }
             package enum CodingKeys: String, CodingKey {
                 case items
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/FoodLogSummaryBucket`.
+        package struct FoodLogSummaryBucket: Codable, Hashable, Sendable {
+            /// First local calendar date this bucket covers. Clipped to the requested range, so the first week bucket may be partial.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryBucket/start_date`.
+            package var startDate: Swift.String
+            /// Last local calendar date this bucket covers, inclusive. Equal to start_date when grouping by day.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryBucket/end_date`.
+            package var endDate: Swift.String
+            /// How many logs fall in this bucket.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryBucket/logs_count`.
+            package var logsCount: Swift.Int
+            /// How many distinct local calendar dates in this bucket carry at least one log.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryBucket/days_with_logs`.
+            package var daysWithLogs: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryBucket/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts
+            /// Creates a new `FoodLogSummaryBucket`.
+            ///
+            /// - Parameters:
+            ///   - startDate: First local calendar date this bucket covers. Clipped to the requested range, so the first week bucket may be partial.
+            ///   - endDate: Last local calendar date this bucket covers, inclusive. Equal to start_date when grouping by day.
+            ///   - logsCount: How many logs fall in this bucket.
+            ///   - daysWithLogs: How many distinct local calendar dates in this bucket carry at least one log.
+            ///   - nutrients:
+            package init(
+                startDate: Swift.String,
+                endDate: Swift.String,
+                logsCount: Swift.Int,
+                daysWithLogs: Swift.Int,
+                nutrients: Components.Schemas.NutritionFacts
+            ) {
+                self.startDate = startDate
+                self.endDate = endDate
+                self.logsCount = logsCount
+                self.daysWithLogs = daysWithLogs
+                self.nutrients = nutrients
+            }
+            package enum CodingKeys: String, CodingKey {
+                case startDate = "start_date"
+                case endDate = "end_date"
+                case logsCount = "logs_count"
+                case daysWithLogs = "days_with_logs"
+                case nutrients
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/FoodLogSummaryTotals`.
+        package struct FoodLogSummaryTotals: Codable, Hashable, Sendable {
+            /// Logs in the whole range.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryTotals/logs_count`.
+            package var logsCount: Swift.Int
+            /// Distinct local calendar dates in the range that carry at least one log.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryTotals/days_with_logs`.
+            package var daysWithLogs: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryTotals/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts
+            /// Creates a new `FoodLogSummaryTotals`.
+            ///
+            /// - Parameters:
+            ///   - logsCount: Logs in the whole range.
+            ///   - daysWithLogs: Distinct local calendar dates in the range that carry at least one log.
+            ///   - nutrients:
+            package init(
+                logsCount: Swift.Int,
+                daysWithLogs: Swift.Int,
+                nutrients: Components.Schemas.NutritionFacts
+            ) {
+                self.logsCount = logsCount
+                self.daysWithLogs = daysWithLogs
+                self.nutrients = nutrients
+            }
+            package enum CodingKeys: String, CodingKey {
+                case logsCount = "logs_count"
+                case daysWithLogs = "days_with_logs"
+                case nutrients
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/FoodLogSummaryAverage`.
+        package struct FoodLogSummaryAverage: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummaryAverage/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts
+            /// Creates a new `FoodLogSummaryAverage`.
+            ///
+            /// - Parameters:
+            ///   - nutrients:
+            package init(nutrients: Components.Schemas.NutritionFacts) {
+                self.nutrients = nutrients
+            }
+            package enum CodingKeys: String, CodingKey {
+                case nutrients
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/FoodLogSummary`.
+        package struct FoodLogSummary: Codable, Hashable, Sendable {
+            /// The bucket size used, echoing the request.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/group_by`.
+            @frozen package enum GroupByPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case day = "day"
+                case week = "week"
+            }
+            /// The bucket size used, echoing the request.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/group_by`.
+            package var groupBy: Components.Schemas.FoodLogSummary.GroupByPayload
+            /// The weekday week buckets begin on. Always present; `null` when `group_by=day`, where it does not apply.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/week_start`.
+            @frozen package enum WeekStartPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case monday = "monday"
+                case sunday = "sunday"
+            }
+            /// The weekday week buckets begin on. Always present; `null` when `group_by=day`, where it does not apply.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/week_start`.
+            package var weekStart: Components.Schemas.FoodLogSummary.WeekStartPayload?
+            /// The IANA timezone the buckets were cut in — the canonical spelling of what was requested.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/timezone`.
+            package var timezone: Swift.String
+            /// First local calendar date of the summarized range, echoing the request.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/start_date`.
+            package var startDate: Swift.String
+            /// Last local calendar date of the summarized range, inclusive.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/end_date`.
+            package var endDate: Swift.String
+            /// The buckets tiling the range, in chronological order and covering it end to end — a day or week with no logs is returned with zero counts rather than skipped.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/buckets`.
+            package var buckets: [Components.Schemas.FoodLogSummaryBucket]
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/totals`.
+            package var totals: Components.Schemas.FoodLogSummaryTotals
+            /// - Remark: Generated from `#/components/schemas/FoodLogSummary/average_per_logged_day`.
+            package var averagePerLoggedDay: Components.Schemas.FoodLogSummaryAverage
+            /// Creates a new `FoodLogSummary`.
+            ///
+            /// - Parameters:
+            ///   - groupBy: The bucket size used, echoing the request.
+            ///   - weekStart: The weekday week buckets begin on. Always present; `null` when `group_by=day`, where it does not apply.
+            ///   - timezone: The IANA timezone the buckets were cut in — the canonical spelling of what was requested.
+            ///   - startDate: First local calendar date of the summarized range, echoing the request.
+            ///   - endDate: Last local calendar date of the summarized range, inclusive.
+            ///   - buckets: The buckets tiling the range, in chronological order and covering it end to end — a day or week with no logs is returned with zero counts rather than skipped.
+            ///   - totals:
+            ///   - averagePerLoggedDay:
+            package init(
+                groupBy: Components.Schemas.FoodLogSummary.GroupByPayload,
+                weekStart: Components.Schemas.FoodLogSummary.WeekStartPayload? = nil,
+                timezone: Swift.String,
+                startDate: Swift.String,
+                endDate: Swift.String,
+                buckets: [Components.Schemas.FoodLogSummaryBucket],
+                totals: Components.Schemas.FoodLogSummaryTotals,
+                averagePerLoggedDay: Components.Schemas.FoodLogSummaryAverage
+            ) {
+                self.groupBy = groupBy
+                self.weekStart = weekStart
+                self.timezone = timezone
+                self.startDate = startDate
+                self.endDate = endDate
+                self.buckets = buckets
+                self.totals = totals
+                self.averagePerLoggedDay = averagePerLoggedDay
+            }
+            package enum CodingKeys: String, CodingKey {
+                case groupBy = "group_by"
+                case weekStart = "week_start"
+                case timezone
+                case startDate = "start_date"
+                case endDate = "end_date"
+                case buckets
+                case totals
+                case averagePerLoggedDay = "average_per_logged_day"
             }
         }
         /// - Remark: Generated from `#/components/schemas/UpdateFoodLogBody`.
@@ -2821,7 +3030,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// `forbidden` — client tokens are not enabled for your account yet (turn them on in the [Developer Dashboard](https://dashboard.january.ai)), or the key is issued for the other API version.
+            /// `forbidden` — client tokens have been switched off for your account (turn them back on in the [Developer Dashboard](https://dashboard.january.ai)), or the key is issued for the other API version.
             ///
             /// `client_token_not_allowed` — this request was made with a client token, and minting requires your `sk-` API key.
             ///
@@ -2849,14 +3058,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/auth/client-tokens/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying.
+                    /// Seconds to wait before retrying; present when the window is known.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/auth/client-tokens/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying.
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -2895,7 +3104,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Minting is capped per partner (`code: rate_limited`) — the only limit that applies here. It is `@NotBillable` and outside the shared v1.2 request ceiling, so this 429 never means credit exhaustion or the daily ceiling. Honor `Retry-After`; mint one token per user session and reuse it until it expires rather than minting per request.
+            /// Minting is capped per partner (`code: rate_limited`) — the only limit that applies here. It is `@NotBillable` and outside the shared v1.2 request ceiling, so this 429 never means credit exhaustion or the monthly ceiling. Honor `Retry-After` when present, otherwise back off a few seconds; mint one token per user session and reuse it until it expires rather than minting per request.
             ///
             /// - Remark: Generated from `#/paths//v1.2/auth/client-tokens/post(createClientToken)/responses/429`.
             ///
@@ -3257,7 +3466,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// `forbidden` — the key is issued for the other API version. Unlike minting, revocation is **not** gated on client tokens being enabled for your account ([Developer Dashboard](https://dashboard.january.ai)): turning the feature off must never take away the ability to revoke what is already out there.
+            /// `forbidden` — the key is issued for the other API version. Unlike minting, revocation is **not** gated on your account’s client-token switch ([Developer Dashboard](https://dashboard.january.ai)): switching minting off must never take away the ability to revoke what is already out there.
             ///
             /// `client_token_not_allowed` — this request was made with a client token, and revocation requires your `sk-` API key.
             ///
@@ -3285,14 +3494,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/auth/client-token-revocations/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying.
+                    /// Seconds to wait before retrying; present when the window is known.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/auth/client-token-revocations/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying.
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -3331,7 +3540,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Revocation is capped per partner (`code: rate_limited`) — the only limit that applies here. It is `@NotBillable` and outside the shared v1.2 request ceiling, so this 429 never means credit exhaustion or the daily ceiling, and a partner mid-incident can still cut a device off. Honor `Retry-After` and retry; the revoke bucket is separate from minting, so a security sweep cannot spend your sign-in allowance.
+            /// Revocation is capped per partner (`code: rate_limited`) — the only limit that applies here. It is `@NotBillable` and outside the shared v1.2 request ceiling, so this 429 never means credit exhaustion or the monthly ceiling, and a partner mid-incident can still cut a device off. Honor `Retry-After` when present, otherwise back off a few seconds, and retry; the revoke bucket is separate from minting, so a security sweep cannot spend your sign-in allowance.
             ///
             /// - Remark: Generated from `#/paths//v1.2/auth/client-token-revocations/post(revokeClientTokens)/responses/429`.
             ///
@@ -3674,7 +3883,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -3702,14 +3911,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/credits/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying.
+                    /// Seconds to wait before retrying; present when the window is known.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/credits/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying.
+                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -3748,7 +3957,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Balance reads are capped at 60 per minute by default (`code: rate_limited`), and that is the only limit on your account that applies here — neither the monthly credit allowance nor the shared request limit does, so this 429 is never `credit_limit_exceeded`. Honor `Retry-After`; the window reopens one minute after your first read in it, so a retry shortly afterwards succeeds. A burst of traffic from a single IP can also be refused by the service-wide throttle, likewise with `Retry-After`.
+            /// Balance reads are capped at 60 per minute by default (`code: rate_limited`), and that is the only limit on your account that applies here — neither the monthly credit allowance nor the shared request limit does, so this 429 is never `credit_limit_exceeded`. Honor `Retry-After` when present, otherwise back off a few seconds; the window reopens one minute after your first read in it, so a retry shortly afterwards succeeds. A burst of traffic from a single IP can also be refused by the service-wide throttle, likewise with `Retry-After`.
             ///
             /// - Remark: Generated from `#/paths//v1.2/credits/get(getCredits)/responses/429`.
             ///
@@ -3853,7 +4062,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Full-text search over the January food database, returning up to 40 ranked matches. Generic foods, branded products and recipes are searched together unless `type` narrows it to one. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
+    /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
     ///
@@ -3872,24 +4081,31 @@ package enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/foods/GET/query/type`.
                 package var _type: Components.Schemas.FoodCategory?
-                /// Maximum number of results to return.
+                /// Maximum number of results to return in one call. Values above 50 are treated as 50, so page by 50 if you asked for more.
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/foods/GET/query/limit`.
                 package var limit: Swift.Int?
+                /// Number of results to skip, for paging: a page shorter than `limit` is the last one.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/foods/GET/query/offset`.
+                package var offset: Swift.Int?
                 /// Creates a new `Query`.
                 ///
                 /// - Parameters:
                 ///   - query: The food name to search for.
                 ///   - _type: Narrows results to one kind of food. Omitted, all three are searched and returned as one ranked list, so a partner who does not care which kind a match is does not have to ask three times.
-                ///   - limit: Maximum number of results to return.
+                ///   - limit: Maximum number of results to return in one call. Values above 50 are treated as 50, so page by 50 if you asked for more.
+                ///   - offset: Number of results to skip, for paging: a page shorter than `limit` is the last one.
                 package init(
                     query: Swift.String,
                     _type: Components.Schemas.FoodCategory? = nil,
-                    limit: Swift.Int? = nil
+                    limit: Swift.Int? = nil,
+                    offset: Swift.Int? = nil
                 ) {
                     self.query = query
                     self._type = _type
                     self.limit = limit
+                    self.offset = offset
                 }
             }
             package var query: Operations.SearchFoods.Input.Query
@@ -3947,7 +4163,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Foods matching the query, best match first; empty when nothing matches.
+            /// Foods matching the query, best match first; empty when nothing matches or `offset` is past the last result.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/200`.
             ///
@@ -4129,7 +4345,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -4157,14 +4373,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -4203,7 +4419,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/429`.
             ///
@@ -4584,7 +4806,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -4612,14 +4834,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -4658,7 +4880,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/429`.
             ///
@@ -5032,7 +5260,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -5111,14 +5339,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -5157,7 +5385,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)/responses/429`.
             ///
@@ -5522,7 +5756,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -5601,14 +5835,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{barcode}/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{barcode}/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -5647,7 +5881,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{barcode}/get(lookupFoodByBarcode)/responses/429`.
             ///
@@ -6012,7 +6252,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -6091,14 +6331,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -6137,7 +6377,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/429`.
             ///
@@ -6532,7 +6778,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -6560,14 +6806,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -6606,7 +6852,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/429`.
             ///
@@ -6998,7 +7250,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -7077,14 +7329,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -7123,7 +7375,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/429`.
             ///
@@ -7518,7 +7776,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -7546,14 +7804,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/menu-items/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/menu-items/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -7592,7 +7850,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/menu-items/get(searchRestaurantMenuItems)/responses/429`.
             ///
@@ -7697,7 +7961,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -7950,7 +8214,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -8029,14 +8293,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-analysis/image/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-analysis/image/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -8075,7 +8339,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/image/post(scanFoodPhoto)/responses/429`.
             ///
@@ -8482,7 +8752,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -8510,14 +8780,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-analysis/text/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-analysis/text/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -8556,7 +8826,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/text/post(searchFoodsByNaturalLanguage)/responses/429`.
             ///
@@ -8661,7 +8937,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry at least one serving.
+    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
     ///
@@ -8912,7 +9188,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -8940,14 +9216,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-analysis/corrections/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-analysis/corrections/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -8986,7 +9262,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/corrections/post(correctPhotoScan)/responses/429`.
             ///
@@ -9161,7 +9443,7 @@ package enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/query/end_date`.
                 package var endDate: Swift.String
-                /// IANA timezone that defines the local calendar days this range covers — required, so the upstream groups by the same days the caller means.
+                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/query/timezone`.
                 package var timezone: Swift.String
@@ -9170,7 +9452,7 @@ package enum Operations {
                 /// - Parameters:
                 ///   - startDate: First local calendar date in `timezone`, inclusive.
                 ///   - endDate: Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. The inclusive range may not exceed 60 calendar days.
-                ///   - timezone: IANA timezone that defines the local calendar days this range covers — required, so the upstream groups by the same days the caller means.
+                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
                 package init(
                     startDate: Swift.String,
                     endDate: Swift.String,
@@ -9435,7 +9717,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -9463,14 +9745,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -9509,7 +9791,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/get(listFoodLogs)/responses/429`.
             ///
@@ -9903,7 +10191,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -9931,14 +10219,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -9977,7 +10265,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)/responses/429`.
             ///
@@ -10039,6 +10333,508 @@ package enum Operations {
             /// - Throws: An error if `self` is not `.`default``.
             /// - SeeAlso: `.`default``.
             package var `default`: Operations.CreateFoodLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// Summarize a user's food logs over a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Aggregates the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`) into per-day or per-week buckets, each with summed nutrients, plus totals for the range and an average per logged day. The range spans at most 366 days — wide enough for a year at a time; the 366-day cap bounds the number of buckets. The buckets tile the whole range in chronological order: a day or week with no logs is still returned, with zero counts, and under `group_by=week` the first and last buckets are clipped to the dates you asked for. `nutrients` is sparse, so read `logs_count` to tell a bucket with no logs from one whose logs could not be resolved.
+    ///
+    /// Callable with a client token carrying the `food_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/food-logs/summary`.
+    /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)`.
+    package enum GetFoodLogSummary {
+        package static let id: Swift.String = "getFoodLogSummary"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query`.
+            package struct Query: Sendable, Hashable {
+                /// First local calendar date in `timezone`, inclusive.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/start_date`.
+                package var startDate: Swift.String
+                /// Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. The inclusive range may not exceed 366 calendar days.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/end_date`.
+                package var endDate: Swift.String
+                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/timezone`.
+                package var timezone: Swift.String
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/group_by`.
+                @frozen package enum GroupByPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                    case day = "day"
+                    case week = "week"
+                }
+                /// Bucket size. `day` is one bucket per local calendar date; `week` is one per week, with the first and last clipped to the range.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/group_by`.
+                package var groupBy: Operations.GetFoodLogSummary.Input.Query.GroupByPayload?
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/week_start`.
+                @frozen package enum WeekStartPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                    case monday = "monday"
+                    case sunday = "sunday"
+                }
+                /// Which weekday a week bucket begins on. Ignored when `group_by=day`, where the response reports `week_start: null`.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/week_start`.
+                package var weekStart: Operations.GetFoodLogSummary.Input.Query.WeekStartPayload?
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - startDate: First local calendar date in `timezone`, inclusive.
+                ///   - endDate: Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. The inclusive range may not exceed 366 calendar days.
+                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
+                ///   - groupBy: Bucket size. `day` is one bucket per local calendar date; `week` is one per week, with the first and last clipped to the range.
+                ///   - weekStart: Which weekday a week bucket begins on. Ignored when `group_by=day`, where the response reports `week_start: null`.
+                package init(
+                    startDate: Swift.String,
+                    endDate: Swift.String,
+                    timezone: Swift.String,
+                    groupBy: Operations.GetFoodLogSummary.Input.Query.GroupByPayload? = nil,
+                    weekStart: Operations.GetFoodLogSummary.Input.Query.WeekStartPayload? = nil
+                ) {
+                    self.startDate = startDate
+                    self.endDate = endDate
+                    self.timezone = timezone
+                    self.groupBy = groupBy
+                    self.weekStart = weekStart
+                }
+            }
+            package var query: Operations.GetFoodLogSummary.Input.Query
+            /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///
+                /// | Credential | Header | Result |
+                /// | --- | --- | --- |
+                /// | API key (`sk-…`) | absent | `400 end_user_id_required` |
+                /// | API key (`sk-…`) | present | the request acts on that end user |
+                /// | Client token (`ct-…`) | absent | filled in from the token |
+                /// | Client token (`ct-…`) | the end user the token is bound to | accepted |
+                /// | Client token (`ct-…`) | any other end user | `403 end_user_id_mismatch` |
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/header/January-End-User-ID`.
+                package var januaryEndUserID: Components.Parameters.JanuaryEndUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetFoodLogSummary.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - accept:
+                package init(
+                    januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetFoodLogSummary.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.januaryEndUserID = januaryEndUserID
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.GetFoodLogSummary.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - query:
+            ///   - headers:
+            package init(
+                query: Operations.GetFoodLogSummary.Input.Query,
+                headers: Operations.GetFoodLogSummary.Input.Headers = .init()
+            ) {
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.FoodLogSummary)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.FoodLogSummary {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFoodLogSummary.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFoodLogSummary.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The aggregated summary. A range with no logs is a valid result: buckets are still returned, with zero counts.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetFoodLogSummary.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.GetFoodLogSummary.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFoodLogSummary.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFoodLogSummary.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// A date is missing, malformed, or the range is inverted or exceeds 366 days; `timezone` is missing or not a valid IANA name; or `group_by`/`week_start` is not one of the documented values.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetFoodLogSummary.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.GetFoodLogSummary.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/401/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/401/headers/WWW-Authenticate`.
+                    package var wwwAuthenticate: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - wwwAuthenticate: RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    package init(wwwAuthenticate: Swift.String? = nil) {
+                        self.wwwAuthenticate = wwwAuthenticate
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.GetFoodLogSummary.Output.Unauthorized.Headers
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFoodLogSummary.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.GetFoodLogSummary.Output.Unauthorized.Headers = .init(),
+                    body: Operations.GetFoodLogSummary.Output.Unauthorized.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The request carried no `Authorization` header, or the credential in it was rejected.
+            ///
+            /// `unauthorized` — the header is missing or malformed, or the key is not one we recognise. A valid key belonging to the other API version is `403 forbidden` instead.
+            ///
+            /// A client token is rejected in one of three ways, and only the first should be handled automatically:
+            ///
+            /// - `token_expired` — the token is past its TTL. Mint a fresh one from your backend and retry the request once. This is routine and expected once per TTL window.
+            /// - `token_invalid` — no such token: it was never issued, or it has been purged, which happens shortly after it expires. This code is not an automatic token-refresh signal.
+            /// - `token_revoked` — the token was revoked, by `POST /v1.2/auth/client-token-revocations` or from the dashboard. The end user signs in again in your app, and your backend decides whether to mint another; a device that just re-mints defeats the revocation.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetFoodLogSummary.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.GetFoodLogSummary.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/403/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFoodLogSummary.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFoodLogSummary.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            ///
+            /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.GetFoodLogSummary.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            package var forbidden: Operations.GetFoodLogSummary.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.GetFoodLogSummary.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFoodLogSummary.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.GetFoodLogSummary.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.GetFoodLogSummary.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.GetFoodLogSummary.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.GetFoodLogSummary.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.GetFoodLogSummary.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.GetFoodLogSummary.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { code, message }. Retry only rate_limited and the transient 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.GetFoodLogSummary.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.GetFoodLogSummary.Output.Default {
                 get throws {
                     switch self {
                     case let .`default`(_, response):
@@ -10359,7 +11155,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -10438,14 +11234,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -10484,7 +11280,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/get(getFoodLog)/responses/429`.
             ///
@@ -10875,7 +11677,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -10954,14 +11756,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -11000,7 +11802,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/patch(updateFoodLog)/responses/429`.
             ///
@@ -11366,7 +12174,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -11394,14 +12202,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -11440,7 +12248,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/delete(deleteFoodLog)/responses/429`.
             ///
@@ -11796,7 +12610,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -11824,14 +12638,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying; present when the window is known.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying; present when the window is known.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -11870,7 +12684,13 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Either a rate limit was exceeded (`code: rate_limited`) or the monthly credit allowance is spent (`code: credit_limit_exceeded`). When Retry-After is present, wait that many seconds; a per-day allowance resets 24 hours after the first request in its window. Credit exhaustion carries no Retry-After and retrying does not help — the allowance returns at the start of the next calendar month. Call `GET /v1.2/credits` for the balance and reset date.
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/429`.
             ///
