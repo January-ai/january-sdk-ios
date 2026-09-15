@@ -4,6 +4,9 @@ See [Versioning and support](versioning-and-support.md) before installing or upd
 
 ## Unreleased
 
+* Breaking: `DetectedFood` exposes `serving` and `quantity` instead of `servings`, matching the current Partner API; `0.1.0` fails to decode photo scans
+* Food-log summaries per day or week with `foodLogs.getSummary`
+* Optional reasoning-based photo analysis with `ScanFoodPhotoRequest.reasoningEffort`
 * Reusable microphone capture, live audio metering, and Apple Speech transcription
 * Native Swift 5.9 package for iOS 15+
 * No third-party runtime dependencies

@@ -5,6 +5,7 @@
 ```swift
 public func create(_ request: CreateFoodLogRequest) async throws -> FoodLog
 public func list(_ request: ListFoodLogsRequest) async throws -> ListFoodLogsResponse
+public func getSummary(_ request: GetFoodLogSummaryRequest) async throws -> FoodLogSummary
 public func update(_ request: UpdateFoodLogRequest) async throws -> FoodLog
 public func delete(_ request: DeleteFoodLogRequest) async throws -> DeleteFoodLogResponse
 ```
@@ -38,6 +39,16 @@ public struct ListFoodLogsRequest: Hashable, Sendable {
 public struct DeleteFoodLogRequest: Hashable, Sendable {
     public init(id: String, user: PartnerUserContext)
 }
+
+public struct GetFoodLogSummaryRequest: Hashable, Sendable {
+    public init(
+        start: String,
+        end: String,
+        groupBy: FoodLogSummaryGrouping = .day,
+        weekStart: WeekStart = .monday,
+        user: PartnerUserContext
+    )
+}
 ```
 
 `FoodLogUserContext` is a public type alias for `PartnerUserContext`.
@@ -52,6 +63,13 @@ public func create(
 ) async throws -> FoodLog
 
 public func list(start: String, end: String) async throws -> ListFoodLogsResponse
+
+public func getSummary(
+    start: String,
+    end: String,
+    groupBy: FoodLogSummaryGrouping = .day,
+    weekStart: WeekStart = .monday
+) async throws -> FoodLogSummary
 
 public func update(
     id: String,
@@ -69,6 +87,8 @@ client's configured context.
 ## Responses
 
 `FoodLog` contains `id`, `[LoggedFood]`, `timestampUTC`, and optional `name`. Logged foods include nutrition, consumed serving, and serving details. `ListFoodLogsResponse` contains `totalCount` and `items`; delete returns a status string.
+
+`getSummary` aggregates the logs in the inclusive range (at most 366 days) into `buckets`, one per local calendar day or per week, each with `logsCount`, `daysWithLogs`, and summed `nutrients`. Empty periods are still returned with zero counts. `totals` covers the whole range and `averagePerLoggedDay` divides the totals by the number of days that have a log. `nutrients` is sparse: read `logsCount` to tell an empty bucket from one whose logs had no nutrition data. `weekStart` is `nil` when grouping by day.
 
 ## Errors
 

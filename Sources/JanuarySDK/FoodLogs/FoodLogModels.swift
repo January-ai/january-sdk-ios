@@ -34,6 +34,31 @@ public struct GetFoodLogRequest: Hashable, Sendable {
     public init(id: String, user: FoodLogUserContext) { self.id = id; self.user = user }
 }
 
+/// Bucket size for a food-log summary.
+public enum FoodLogSummaryGrouping: String, Codable, Hashable, Sendable, CaseIterable { case day, week }
+
+/// Which weekday a week bucket begins on. Ignored when grouping by day.
+public enum WeekStart: String, Codable, Hashable, Sendable, CaseIterable { case monday, sunday }
+
+/// Summarizes the logs between `start` and `end` (inclusive calendar dates in the user's timezone,
+/// at most 366 days) into day or week buckets with summed nutrients.
+public struct GetFoodLogSummaryRequest: Hashable, Sendable {
+    public var start: String
+    public var end: String
+    public var groupBy: FoodLogSummaryGrouping
+    public var weekStart: WeekStart
+    public var user: FoodLogUserContext
+    public init(
+        start: String,
+        end: String,
+        groupBy: FoodLogSummaryGrouping = .day,
+        weekStart: WeekStart = .monday,
+        user: FoodLogUserContext
+    ) {
+        self.start = start; self.end = end; self.groupBy = groupBy; self.weekStart = weekStart; self.user = user
+    }
+}
+
 public struct DeleteFoodLogRequest: Hashable, Sendable {
     public var id: String; public var user: FoodLogUserContext
     public init(id: String, user: FoodLogUserContext) { self.id = id; self.user = user }
@@ -78,3 +103,67 @@ public struct ListFoodLogsResponse: Codable, Hashable, Sendable {
 }
 
 public typealias DeleteFoodLogResponse = Void
+
+/// One day or week of a food-log summary. Buckets tile the requested range, so an empty period is present with zero counts.
+public struct FoodLogSummaryBucket: Codable, Hashable, Sendable {
+    public var startDate: String
+    public var endDate: String
+    public var logsCount: Int
+    public var daysWithLogs: Int
+    /// Nutrients summed over the bucket. Sparse: a key is absent when nothing could be totalled.
+    public var nutrients: NutritionFacts
+    public init(startDate: String, endDate: String, logsCount: Int, daysWithLogs: Int, nutrients: NutritionFacts) {
+        self.startDate = startDate; self.endDate = endDate; self.logsCount = logsCount
+        self.daysWithLogs = daysWithLogs; self.nutrients = nutrients
+    }
+    enum CodingKeys: String, CodingKey {
+        case nutrients; case startDate = "start_date"; case endDate = "end_date"
+        case logsCount = "logs_count"; case daysWithLogs = "days_with_logs"
+    }
+}
+
+public struct FoodLogSummaryTotals: Codable, Hashable, Sendable {
+    public var logsCount: Int
+    public var daysWithLogs: Int
+    public var nutrients: NutritionFacts
+    public init(logsCount: Int, daysWithLogs: Int, nutrients: NutritionFacts) {
+        self.logsCount = logsCount; self.daysWithLogs = daysWithLogs; self.nutrients = nutrients
+    }
+    enum CodingKeys: String, CodingKey { case nutrients; case logsCount = "logs_count"; case daysWithLogs = "days_with_logs" }
+}
+
+/// Totals divided by the number of days that have at least one log.
+public struct FoodLogSummaryAverage: Codable, Hashable, Sendable {
+    public var nutrients: NutritionFacts
+    public init(nutrients: NutritionFacts) { self.nutrients = nutrients }
+}
+
+public struct FoodLogSummary: Codable, Hashable, Sendable {
+    public var groupBy: FoodLogSummaryGrouping
+    /// `nil` when grouped by day.
+    public var weekStart: WeekStart?
+    public var timezone: String
+    public var startDate: String
+    public var endDate: String
+    public var buckets: [FoodLogSummaryBucket]
+    public var totals: FoodLogSummaryTotals
+    public var averagePerLoggedDay: FoodLogSummaryAverage
+    public init(
+        groupBy: FoodLogSummaryGrouping,
+        weekStart: WeekStart?,
+        timezone: String,
+        startDate: String,
+        endDate: String,
+        buckets: [FoodLogSummaryBucket],
+        totals: FoodLogSummaryTotals,
+        averagePerLoggedDay: FoodLogSummaryAverage
+    ) {
+        self.groupBy = groupBy; self.weekStart = weekStart; self.timezone = timezone
+        self.startDate = startDate; self.endDate = endDate; self.buckets = buckets
+        self.totals = totals; self.averagePerLoggedDay = averagePerLoggedDay
+    }
+    enum CodingKeys: String, CodingKey {
+        case timezone, buckets, totals; case groupBy = "group_by"; case weekStart = "week_start"
+        case startDate = "start_date"; case endDate = "end_date"; case averagePerLoggedDay = "average_per_logged_day"
+    }
+}

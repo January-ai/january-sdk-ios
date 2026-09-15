@@ -1,16 +1,29 @@
 import Foundation
 
+/// How much analysis effort a photo scan uses. Both modes return the same ``FoodScan`` shape and cost the same.
+public enum AnalysisEffort: String, Codable, Hashable, Sendable, CaseIterable {
+    /// The standard analyzer.
+    case none
+    /// The reasoning-based analyzer.
+    case xhigh
+}
+
 public struct ScanFoodPhotoRequest: Hashable, Sendable {
     public var image: String
     public var endUserID: PartnerUserID?
-    public init(image: String, endUserID: PartnerUserID? = nil) { self.image = image; self.endUserID = endUserID }
+    /// `nil` or `.none` uses the standard analyzer; `.xhigh` uses the reasoning-based one.
+    public var reasoningEffort: AnalysisEffort?
+    public init(image: String, endUserID: PartnerUserID? = nil, reasoningEffort: AnalysisEffort? = nil) {
+        self.image = image; self.endUserID = endUserID; self.reasoningEffort = reasoningEffort
+    }
 
     /// Creates a request from local image bytes after resizing and JPEG compression.
     public init(
         imageData: Data,
         endUserID: PartnerUserID? = nil,
         maxDimension: Int = PhotoScanImage.defaultMaxDimension,
-        compressionQuality: Double = PhotoScanImage.defaultCompressionQuality
+        compressionQuality: Double = PhotoScanImage.defaultCompressionQuality,
+        reasoningEffort: AnalysisEffort? = nil
     ) throws {
         self.image = try PhotoScanImage.dataURI(
             from: imageData,
@@ -18,6 +31,7 @@ public struct ScanFoodPhotoRequest: Hashable, Sendable {
             compressionQuality: compressionQuality
         )
         self.endUserID = endUserID
+        self.reasoningEffort = reasoningEffort
     }
 }
 

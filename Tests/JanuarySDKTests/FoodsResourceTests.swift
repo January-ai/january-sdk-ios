@@ -95,7 +95,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     #expect(request.operationID == "searchFoods")
     #expect(request.authorization == "Bearer fixture-api-key")
     #expect(request.endUserID == nil)
-    #expect(request.userAgent?.hasPrefix("JanuarySDK/0.1.0-beta.1 ") == true)
+    #expect(request.userAgent?.hasPrefix("JanuarySDK/0.2.0 ") == true)
     #expect(request.userAgent?.contains("Swift/6") == true)
     #expect(request.userAgent?.contains("Platform/") == true)
     #expect(request.userAgent?.contains("OS/") == true)

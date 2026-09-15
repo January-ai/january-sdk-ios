@@ -26,8 +26,14 @@ PREDICTION = {
     "impact_score": "medium", "chart": {"min": 70, "max": 140},
 }
 
+def detected(identifier="101", name="Fixture oatmeal"):
+    return {
+        "id": str(identifier), "name": name, "brand_name": "January fixture", "nutrients": NUTRIENTS,
+        "quantity": 1, "serving": {"id": "11", "quantity": 1, "unit": "cup"},
+    }
+
 def scan(name="Fixture breakfast"):
-    return {"meal_name": name, "detections": [{"food": food(), "confidence": "high"}], "total_nutrients": NUTRIENTS}
+    return {"meal_name": name, "detections": [{"food": detected(), "confidence": "high"}], "total_nutrients": NUTRIENTS}
 
 def food_log(name="Fixture breakfast"):
     logged = food()
@@ -78,7 +84,7 @@ class Handler(BaseHTTPRequestHandler):
         elif path.endswith("/glucose/predictions"): result = PREDICTION
         elif path.endswith("/food-analysis/image"): result = scan()
         elif path.endswith("/food-analysis/corrections"): result = scan("Corrected breakfast")
-        elif path.endswith("/food-analysis/text"): result = {"meal_name": None, "detections": [] if empty else [{"food": food(), "confidence": None}], "total_nutrients": NUTRIENTS}
+        elif path.endswith("/food-analysis/text"): result = {"meal_name": None, "detections": [] if empty else [{"food": detected(), "confidence": None}], "total_nutrients": NUTRIENTS}
         elif "/food-logs" in path:
             if self.command == "GET": result = {"items": STATE["logs"]}
             elif self.command == "DELETE": STATE["logs"] = []; return self.respond({}, 204)

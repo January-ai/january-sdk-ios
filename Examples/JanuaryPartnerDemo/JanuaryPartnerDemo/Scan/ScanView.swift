@@ -338,6 +338,12 @@ private struct ScanResultContent: View {
                             }
                         }
                         if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
+                        if let unit = detection.food.serving.unit {
+                            let eaten = detection.food.quantity ?? 1
+                            let size = detection.food.serving.quantity ?? 1
+                            Text("\(eaten.formatted(.number.precision(.fractionLength(0...2)))) × \(size.formatted(.number.precision(.fractionLength(0...2)))) \(unit)")
+                                .font(.caption).monospacedDigit().foregroundStyle(AppPalette.muted)
+                        }
                         MacroGrid(
                             calories: detection.food.nutrients.calories?.value,
                             protein: detection.food.nutrients.protein?.value,

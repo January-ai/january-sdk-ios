@@ -28,6 +28,16 @@ let selectedFood = portion.selection
 
 `portion.selection` is the exact `FoodSelection` accepted by Food Logs and glucose prediction.
 
+A photo or description analysis already returns a selected `serving` and the
+`quantity` eaten, so a `DetectedFood` logs without another lookup:
+
+```swift
+let selections = scan.detections.compactMap { detection -> FoodSelection? in
+    guard let id = detection.food.id, let servingID = detection.food.serving.id else { return nil }
+    return FoodSelection(id: id, serving: ServingSelection(id: servingID, quantity: detection.food.quantity ?? 1))
+}
+```
+
 ## Create
 
 ```swift
@@ -36,6 +46,21 @@ let log = try await client.foodLogs.create(
     timestampUTC: ISO8601DateFormatter().string(from: Date()),
     name: "Breakfast"
 )
+```
+
+## Summarize a range
+
+Ask for a summary instead of paging through logs when a screen needs weekly or
+daily totals:
+
+```swift
+let summary = try await client.foodLogs.getSummary(
+    start: "2026-09-01", end: "2026-09-30", groupBy: .week
+)
+for week in summary.buckets {
+    print(week.startDate, week.logsCount, week.nutrients.calories?.value ?? 0)
+}
+let dailyAverage = summary.averagePerLoggedDay.nutrients
 ```
 
 ## List

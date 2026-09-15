@@ -521,13 +521,12 @@ private struct NaturalMealResultView: View {
     private var foods: [FoodSelection] {
         result.detections.compactMap { detection in
             guard let foodID = detection.food.id,
-                  let serving = detection.food.servings?.first(where: { $0.id != nil }),
-                  let servingID = serving.id else { return nil }
+                  let servingID = detection.food.serving.id else { return nil }
             return FoodSelection(
                 id: foodID,
                 serving: ServingSelection(
                     id: servingID,
-                    quantity: serving.selectedQuantity ?? serving.quantity ?? 1
+                    quantity: detection.food.quantity ?? 1
                 )
             )
         }
@@ -1168,7 +1167,7 @@ private struct AlternativesView: View {
 }
 
 private struct AlternativeFoodRow: View {
-    let food: DetectedFood
+    let food: AlternativeFood
     let photoURL: String?
     let isInteractive: Bool
 
@@ -1194,8 +1193,8 @@ private struct AlternativeFoodRow: View {
                             .font(.subheadline)
                             .foregroundStyle(AppPalette.muted)
                     }
-                    if let serving = food.servings?.first {
-                        Text("\((serving.quantity ?? 1).formatted(.number.precision(.fractionLength(0...2)))) \(serving.unit)")
+                    if let serving = food.servings.first {
+                        Text("\((serving.quantity ?? 1).formatted(.number.precision(.fractionLength(0...2)))) \(serving.unit ?? "")")
                             .font(.caption)
                             .monospacedDigit()
                             .foregroundStyle(AppPalette.muted)
@@ -1238,11 +1237,11 @@ private struct AlternativeFoodRow: View {
     }
 }
 
-private func alternativeDetailFood(_ food: DetectedFood) -> FoodSearchItem? {
-    guard let id = food.id, let detectedServings = food.servings, !detectedServings.isEmpty else {
+private func alternativeDetailFood(_ food: AlternativeFood) -> FoodSearchItem? {
+    guard let id = food.id, !food.servings.isEmpty else {
         return nil
     }
-    let servings = detectedServings.enumerated().map { index, serving in
+    let servings = food.servings.enumerated().map { index, serving in
         ServingOption(
             id: serving.id,
             quantity: serving.quantity ?? 1,
