@@ -5,6 +5,27 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] - Unreleased
+
+Breaking: the Partner API changed the shape of a detected food, and `0.1.0`
+clients fail to decode photo scans and description analyses with a decoding
+error. Update to this version to restore them.
+
+- `DetectedFood` no longer has `servings`. It has `serving` (the selected
+  catalog serving, a `ServingSummary`) and `quantity` (how many of that serving
+  were eaten). `nutrients` are already scaled to `quantity`. `DetectedServing`
+  is a deprecated alias of `ServingSummary`; its `selectedQuantity` moved to
+  `DetectedFood.quantity`.
+- Food alternatives are `AlternativeFood` values with `servings:
+  [ServingSummary]`. `FoodAlternative` remains as an alias.
+- Added `foodLogs.getSummary`: nutrients summed per day or week over a date
+  range, with totals and a per-logged-day average (`FoodLogSummary`).
+- Added `ScanFoodPhotoRequest.reasoningEffort` (`AnalysisEffort.xhigh`) to opt
+  into the reasoning-based photo analyzer.
+- Regenerated the internal transport from contract release 1.2.0
+  (`searchFoods` paging, new error codes). The user agent now reports the
+  released SDK version.
+
 ## [0.1.0] - 2026-09-03
 
 - Promote the complete iOS SDK, CocoaPods packages, Swift Package Manager

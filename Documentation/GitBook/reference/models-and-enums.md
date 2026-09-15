@@ -47,7 +47,7 @@ Without a serving ID, portion selection uses the primary serving or the first se
 
 ## Food models
 
-`FoodSearchItem` includes typed ID, name, optional brand, optional structured and compatibility nutrition fields, glycemic values, optional photo URL, and `[ServingOption]`. `FoodSuggestion` is deliberately smaller. `DetectedFood` represents scan/meal parsing results and may not have a database ID.
+`FoodSearchItem` includes typed ID, name, optional brand, optional structured and compatibility nutrition fields, glycemic values, optional photo URL, and `[ServingOption]`. `FoodSuggestion` is deliberately smaller. `DetectedFood` represents scan/meal parsing results and may not have a database ID; it carries the selected `serving` (`ServingSummary`) and the `quantity` eaten. `FoodLogSummaryGrouping` (`day`, `week`), `WeekStart` (`monday`, `sunday`), and `AnalysisEffort` (`none`, `xhigh`) are the remaining request enums.
 
 ## Dietary enums
 

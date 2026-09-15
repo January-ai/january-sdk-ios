@@ -517,14 +517,14 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     )
     let serving = ServingSelection(id: .init(rawValue: 7), quantity: 1.5)
     let selection = FoodSelection(id: .init(rawValue: 42), serving: serving)
-    let naturalServing = DetectedServing(id: .init(rawValue: 7), quantity: 1, unit: "cup")
-    let naturalFood = DetectedFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [naturalServing])
+    let naturalServing = ServingSummary(id: .init(rawValue: 7), quantity: 1, unit: "cup")
+    let naturalFood = DetectedFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, serving: naturalServing, quantity: 2)
     let naturalResponse = FoodScan(
         totalNutrients: complete, detections: [.init(food: naturalFood)]
     )
-    let detectedServing = DetectedServing(id: .init(rawValue: 7), quantity: 1, unit: "cup")
-    let detectedFood = DetectedFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [detectedServing])
-    let alternatives = SuggestFoodAlternativesResponse(alternatives: [detectedFood])
+    let alternativeServing = ServingSummary(id: .init(rawValue: 7), quantity: 1, unit: "cup")
+    let alternativeFood = AlternativeFood(id: .init(rawValue: 42), name: "Food", brandName: "Brand", nutrients: complete, servings: [alternativeServing])
+    let alternatives = SuggestFoodAlternativesResponse(alternatives: [alternativeFood])
     let user = FoodLogUserContext(
         endUserID: .init(rawValue: "user"),
         timezone: TimeZone(secondsFromGMT: 0)!
@@ -556,7 +556,7 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
     _ = SearchRestaurantsResponse(totalCount: 0, items: [])
     _ = SearchRestaurantMenuItemsResponse(totalCount: 0, items: [])
     _ = ScanFoodPhotoRequest(image: "https://example.com/food.png", endUserID: user.endUserID)
-    let detection = FoodDetection(food: detectedFood, confidenceScore: .high)
+    let detection = FoodDetection(food: naturalFood, confidenceScore: .high)
     let point = GlucosePredictionPoint(minutes: 0, value: 100)
     let impact = PhotoScanGlucoseImpact(impactScore: "low", prediction: [point])
     _ = FoodScan(mealName: "Meal", totalNutrients: complete, detections: [detection], glucoseImpact: impact)
@@ -605,7 +605,8 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
             id: .init(rawValue: 42),
             name: "Banana",
             nutrients: .init(),
-            servings: [.init(id: .init(rawValue: 7), quantity: 1, unit: "serving")]
+            serving: .init(id: .init(rawValue: 7), quantity: 1, unit: "serving"),
+            quantity: 1
         ),
         confidenceScore: .high
     )
@@ -804,7 +805,8 @@ func everyPhotoScanningResponseVariantMapsThroughBothPublicOperations() async th
         food: .init(
             name: "Food",
             nutrients: .init(),
-            servings: [.init(id: .init(rawValue: 7), quantity: 1, unit: "serving")]
+            serving: .init(id: .init(rawValue: 7), quantity: 1, unit: "serving"),
+            quantity: 1
         )
     )
     for (status, category) in [

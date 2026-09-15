@@ -624,7 +624,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Full-text search over the January food database, returning up to 40 ranked matches. Generic foods, branded products and recipes are searched together unless `type` narrows it to one. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
+    /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
     ///
@@ -664,6 +664,13 @@ package struct Client: APIProtocol {
                     explode: true,
                     name: "limit",
                     value: input.query.limit
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "offset",
+                    value: input.query.offset
                 )
                 converter.setAcceptHeader(
                     in: &request.headerFields,
@@ -2351,7 +2358,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -2789,7 +2796,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry at least one serving.
+    /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
     ///
@@ -3399,6 +3406,233 @@ package struct Client: APIProtocol {
                 default:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.CreateFoodLog.Output.Default.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .`default`(
+                        statusCode: response.status.code,
+                        .init(body: body)
+                    )
+                }
+            }
+        )
+    }
+    /// Summarize a user's food logs over a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Aggregates the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`) into per-day or per-week buckets, each with summed nutrients, plus totals for the range and an average per logged day. The range spans at most 366 days — wide enough for a year at a time; the 366-day cap bounds the number of buckets. The buckets tile the whole range in chronological order: a day or week with no logs is still returned, with zero counts, and under `group_by=week` the first and last buckets are clipped to the dates you asked for. `nutrients` is sparse, so read `logs_count` to tell a bucket with no logs from one whose logs could not be resolved.
+    ///
+    /// Callable with a client token carrying the `food_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/food-logs/summary`.
+    /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)`.
+    package func getFoodLogSummary(_ input: Operations.GetFoodLogSummary.Input) async throws -> Operations.GetFoodLogSummary.Output {
+        try await client.send(
+            input: input,
+            forOperation: Operations.GetFoodLogSummary.id,
+            serializer: { input in
+                let path = try converter.renderedPath(
+                    template: "/v1.2/food-logs/summary",
+                    parameters: []
+                )
+                var request: HTTPTypes.HTTPRequest = .init(
+                    soar_path: path,
+                    method: .get
+                )
+                suppressMutabilityWarning(&request)
+                try converter.setHeaderFieldAsURI(
+                    in: &request.headerFields,
+                    name: "January-End-User-ID",
+                    value: input.headers.januaryEndUserID
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "start_date",
+                    value: input.query.startDate
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "end_date",
+                    value: input.query.endDate
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "timezone",
+                    value: input.query.timezone
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "group_by",
+                    value: input.query.groupBy
+                )
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "week_start",
+                    value: input.query.weekStart
+                )
+                converter.setAcceptHeader(
+                    in: &request.headerFields,
+                    contentTypes: input.headers.accept
+                )
+                return (request, nil)
+            },
+            deserializer: { response, responseBody in
+                switch response.status.code {
+                case 200:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLogSummary.Output.Ok.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.FoodLogSummary.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .ok(.init(body: body))
+                case 400:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLogSummary.Output.BadRequest.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .badRequest(.init(body: body))
+                case 401:
+                    let headers: Operations.GetFoodLogSummary.Output.Unauthorized.Headers = .init(wwwAuthenticate: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "WWW-Authenticate",
+                        as: Swift.String.self
+                    ))
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLogSummary.Output.Unauthorized.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .unauthorized(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                case 403:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLogSummary.Output.Forbidden.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .forbidden(.init(body: body))
+                case 429:
+                    let headers: Operations.GetFoodLogSummary.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
+                        in: response.headerFields,
+                        name: "Retry-After",
+                        as: Swift.String.self
+                    ))
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLogSummary.Output.TooManyRequests.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .tooManyRequests(.init(
+                        headers: headers,
+                        body: body
+                    ))
+                default:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLogSummary.Output.Default.Body
                     let chosenContentType = try converter.bestContentType(
                         received: contentType,
                         options: [

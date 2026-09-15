@@ -103,7 +103,8 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
             id: FoodID(rawValue: 1),
             name: "Banana",
             nutrients: .init(),
-            servings: [.init(id: ServingID(rawValue: 2), quantity: 1, unit: "serving")]
+            serving: .init(id: ServingID(rawValue: 2), quantity: 1, unit: "serving"),
+            quantity: 1
         )
     )
 

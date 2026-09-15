@@ -11,7 +11,12 @@ public struct FoodAnalysisResource: Sendable {
 
     public func analyzePhoto(_ request: ScanFoodPhotoRequest) async throws -> FoodScan {
         try await performTransportRequest {
-            let body = Components.Schemas.ScanFoodPhotoBody(image: request.image)
+            let body = Components.Schemas.ScanFoodPhotoBody(
+                image: request.image,
+                reasoning: request.reasoningEffort.map { effort in
+                    .init(effort: effort == .xhigh ? .xhigh : .none)
+                }
+            )
             let output = try await client.scanFoodPhoto(
                 .init(body: .json(body))
             )
@@ -88,14 +93,12 @@ public struct FoodAnalysisResource: Sendable {
                         name: detection.food.name,
                         brandName: detection.food.brandName,
                         nutrients: try ModelBridge.convert(detection.food.nutrients),
-                        servings: detection.food.servings.map { serving in
-                            DetectedServing(
-                                id: serving.id.map { ServingID(rawValue: $0) },
-                                quantity: serving.quantity,
-                                unit: serving.unit,
-                                selectedQuantity: serving.selectedQuantity
-                            )
-                        }
+                        serving: ServingSummary(
+                            id: detection.food.serving.id.map { ServingID(rawValue: $0) },
+                            quantity: detection.food.serving.quantity,
+                            unit: detection.food.serving.unit
+                        ),
+                        quantity: detection.food.quantity
                     ),
                     confidenceScore: detection.confidence.flatMap(ConfidenceScore.init(rawValue:))
                 )
@@ -114,22 +117,16 @@ public struct FoodAnalysisResource: Sendable {
                         id: detection.food.id?.rawValue,
                         name: detection.food.name,
                         brandName: detection.food.brandName,
-                        nutrients: try ModelBridge.convert(detection.food.nutrients),
-                        servings: detection.food.servings.orEmpty.map { serving in
-                            .init(
-                                id: serving.id?.rawValue,
-                                quantity: serving.quantity,
-                                unit: serving.unit,
-                                selectedQuantity: serving.selectedQuantity
-                            )
-                        }
+                        quantity: detection.food.quantity,
+                        serving: .init(
+                            id: detection.food.serving.id?.rawValue,
+                            quantity: detection.food.serving.quantity,
+                            unit: detection.food.serving.unit
+                        ),
+                        nutrients: try ModelBridge.convert(detection.food.nutrients)
                     )
                 )
             }
         )
     }
-}
-
-private extension Optional where Wrapped == [DetectedServing] {
-    var orEmpty: [DetectedServing] { self ?? [] }
 }

@@ -134,7 +134,7 @@ With CocoaPods:
 platform :ios, "15.0"
 
 target "YourApp" do
-  pod "January", "~> 0.1.0"
+  pod "January", "~> 0.2.0"
 end
 ```
 

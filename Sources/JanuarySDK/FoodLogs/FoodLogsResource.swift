@@ -28,6 +28,16 @@ public struct FoodLogsResource: Sendable {
         try await list(.init(start: start, end: end, user: configuredUser()))
     }
 
+    /// Summarizes food logs per day or week for the user configured on ``JanuaryClient``.
+    public func getSummary(
+        start: String,
+        end: String,
+        groupBy: FoodLogSummaryGrouping = .day,
+        weekStart: WeekStart = .monday
+    ) async throws -> FoodLogSummary {
+        try await getSummary(.init(start: start, end: end, groupBy: groupBy, weekStart: weekStart, user: configuredUser()))
+    }
+
     /// Gets a single food log for the user configured on ``JanuaryClient``.
     public func get(id: String) async throws -> FoodLog {
         try await get(.init(id: id, user: configuredUser()))
@@ -101,6 +111,33 @@ public struct FoodLogsResource: Sendable {
                     totalCount: value.items.count,
                     items: try value.items.map(mapFoodLog)
                 )
+            case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
+            case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
+            case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
+            case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
+            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            }
+        }
+    }
+
+    public func getSummary(_ request: GetFoodLogSummaryRequest) async throws -> FoodLogSummary {
+        var request = request
+        request.user = resolvedUser(request.user)
+        return try await performTransportRequest {
+            let output = try await client.getFoodLogSummary(
+                .init(
+                    query: .init(
+                        startDate: request.start,
+                        endDate: request.end,
+                        timezone: request.user.timezone.identifier,
+                        groupBy: request.groupBy == .week ? .week : .day,
+                        weekStart: request.weekStart == .sunday ? .sunday : .monday
+                    ),
+                    headers: .init(januaryEndUserID: request.user.endUserID?.rawValue)
+                )
+            )
+            switch output {
+            case .ok(let response): return try mapSummary(try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
@@ -221,6 +258,31 @@ public struct FoodLogsResource: Sendable {
             },
             timestampUTC: formatTimestamp(value.eatenAt),
             name: value.name
+        )
+    }
+
+    private func mapSummary(_ value: Components.Schemas.FoodLogSummary) throws -> FoodLogSummary {
+        FoodLogSummary(
+            groupBy: value.groupBy == .week ? .week : .day,
+            weekStart: value.weekStart.map { $0 == .sunday ? WeekStart.sunday : .monday },
+            timezone: value.timezone,
+            startDate: value.startDate,
+            endDate: value.endDate,
+            buckets: try value.buckets.map { bucket in
+                FoodLogSummaryBucket(
+                    startDate: bucket.startDate,
+                    endDate: bucket.endDate,
+                    logsCount: bucket.logsCount,
+                    daysWithLogs: bucket.daysWithLogs,
+                    nutrients: try ModelBridge.convert(bucket.nutrients)
+                )
+            },
+            totals: FoodLogSummaryTotals(
+                logsCount: value.totals.logsCount,
+                daysWithLogs: value.totals.daysWithLogs,
+                nutrients: try ModelBridge.convert(value.totals.nutrients)
+            ),
+            averagePerLoggedDay: FoodLogSummaryAverage(nutrients: try ModelBridge.convert(value.averagePerLoggedDay.nutrients))
         )
     }
 
