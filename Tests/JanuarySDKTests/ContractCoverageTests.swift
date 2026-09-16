@@ -462,12 +462,12 @@ func transportBoundaryPreservesDirectStructuredFailures() async throws {
     }
 }
 
-@Test(arguments: [0, 41])
-func foodSearchRejectsLimitsOutsideTheDocumentedRange(_ limit: Int) async throws {
+@Test(arguments: [(0, 0), (51, 0), (10, -1)])
+func foodSearchRejectsInvalidPagination(_ limit: Int, _ offset: Int) async throws {
     let transport = ContractProbeTransport()
     let client = try probeClient(transport)
     await #expect(throws: JanuaryError.self) {
-        _ = try await client.foods.search(.init(query: "banana", limit: limit))
+        _ = try await client.foods.search(.init(query: "banana", limit: limit, offset: offset))
     }
     #expect(await transport.requests().isEmpty)
 }

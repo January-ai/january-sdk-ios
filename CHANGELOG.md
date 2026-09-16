@@ -7,6 +7,9 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.2.0] - Unreleased
 
+- `SearchFoodsRequest` gains `offset` for paging and accepts `limit` up to 50,
+  matching the API.
+
 Breaking: the Partner API changed the shape of a detected food, and `0.1.0`
 clients fail to decode photo scans and description analyses with a decoding
 error. Update to this version to restore them.

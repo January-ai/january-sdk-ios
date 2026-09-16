@@ -92,10 +92,16 @@ public struct FoodsResource: Sendable {
                 message: "Food search query must contain between 1 and 256 characters."
             )
         }
-        guard (1...40).contains(request.limit) else {
+        guard (1...50).contains(request.limit) else {
             throw JanuaryError(
                 category: .validation,
-                message: "Food search limit must be between 1 and 40."
+                message: "Food search limit must be between 1 and 50."
+            )
+        }
+        guard request.offset >= 0 else {
+            throw JanuaryError(
+                category: .validation,
+                message: "Food search offset must be 0 or more."
             )
         }
 
@@ -103,7 +109,8 @@ public struct FoodsResource: Sendable {
             query: .init(
                 query: request.query,
                 _type: request.category.map(Components.Schemas.FoodCategory.init),
-                limit: request.limit
+                limit: request.limit,
+                offset: request.offset
             )
         )
 

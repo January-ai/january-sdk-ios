@@ -32,7 +32,7 @@ public func suggestAlternatives(
 | Request | Required | Defaults |
 | --- | --- | --- |
 | `AutocompleteFoodsRequest` | `query` | `category: nil`, `limit: 8`, `endUserID: nil` |
-| `SearchFoodsRequest` | `query` | `category: nil`, `limit: 10`, `endUserID: nil` |
+| `SearchFoodsRequest` | `query` | `category: nil`, `limit: 10` (1–50), `offset: 0`, `endUserID: nil` |
 | `LookupFoodByBarcodeRequest` | `upc` | `endUserID: nil` |
 | `SuggestFoodAlternativesRequest` | `foodID` | empty restriction/preference arrays, `endUserID: nil` |
 
@@ -56,6 +56,6 @@ public enum FoodCategory: String, Codable, CaseIterable, Sendable {
 
 ## Errors
 
-Local validation covers query, limit, and barcode shape. API responses may map 400 to `.validation`, 401 to `.authentication`, 404 to `.notFound` where declared, 429 to `.rateLimited`, and other statuses through the stable category mapper.
+Local validation covers query, limit, offset, and barcode shape. API responses may map 400 to `.validation`, 401 to `.authentication`, 404 to `.notFound` where declared, 429 to `.rateLimited`, and other statuses through the stable category mapper.
 
 Always use `get` after selecting a discovery result and before presenting servings.

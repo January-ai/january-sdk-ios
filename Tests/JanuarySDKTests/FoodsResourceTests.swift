@@ -79,7 +79,8 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
             query: "banana",
             category: .branded,
             limit: 10,
-            endUserID: PartnerUserID(rawValue: "test-user-123")
+            endUserID: PartnerUserID(rawValue: "test-user-123"),
+            offset: 20
         )
     )
 
@@ -108,6 +109,7 @@ func foodSearchUsesAsyncTransportAndMapsPublicModels() async throws {
     #expect(query["query"] == "banana")
     #expect(query["type"] == "branded")
     #expect(query["limit"] == "10")
+    #expect(query["offset"] == "20")
 }
 
 @Test
@@ -143,7 +145,7 @@ func foodSearchValidatesInputsBeforeTransport() async throws {
     )
 
     do {
-        _ = try await client.foods.search(SearchFoodsRequest(query: "", limit: 41))
+        _ = try await client.foods.search(SearchFoodsRequest(query: "", limit: 51))
         Issue.record("Expected validation error")
     } catch let error as JanuaryError {
         #expect(error.category == .validation)
