@@ -138,14 +138,19 @@ jobs:
 
       - name: Publish CocoaPods
         run: |
-          pod trunk push JanuaryPartnerTransport.podspec \
-            --skip-tests \
-            --allow-warnings \
-            --synchronous
-          pod trunk push January.podspec \
-            --skip-tests \
-            --allow-warnings \
-            --synchronous
+          # Trunk rejects a version that already exists, so a rerun after a
+          # partial publish (for example a GitHub API timeout between the two
+          # pushes) skips the pod that already made it.
+          publish() {
+            local name="$1" spec="$2"
+            if pod trunk info "$name" 2>/dev/null | grep -q "^ *- $GITHUB_REF_NAME "; then
+              echo "$name $GITHUB_REF_NAME is already on Trunk; skipping."
+              return 0
+            fi
+            pod trunk push "$spec" --skip-tests --allow-warnings --synchronous
+          }
+          publish JanuaryPartnerTransport JanuaryPartnerTransport.podspec
+          publish January January.podspec
 
       - name: Publish GitHub release
         env:
