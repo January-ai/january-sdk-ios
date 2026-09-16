@@ -141,9 +141,28 @@ jobs:
           # Trunk rejects a version that already exists, so a rerun after a
           # partial publish (for example a GitHub API timeout between the two
           # pushes) skips the pod that already made it.
+          # Lists the versions Trunk has for a pod, one per line. Retries transient
+          # failures and exits non-zero if Trunk cannot be read, so an unknown state
+          # never turns into a duplicate push.
+          trunk_versions() {
+            local name="$1" attempt output
+            for attempt in 1 2 3; do
+              if output="$(pod trunk info "$name" 2>&1)"; then
+                printf '%s\n' "$output" | awk '/^ *- [0-9]/ { print $2 }'
+                return 0
+              fi
+              echo "pod trunk info $name failed (attempt $attempt): $output" >&2
+              sleep 10
+            done
+            return 1
+          }
           publish() {
-            local name="$1" spec="$2"
-            if pod trunk info "$name" 2>/dev/null | grep -q "^ *- $GITHUB_REF_NAME "; then
+            local name="$1" spec="$2" versions
+            versions="$(trunk_versions "$name")" || {
+              echo "Cannot determine whether $name $GITHUB_REF_NAME is already on Trunk." >&2
+              exit 1
+            }
+            if printf '%s\n' "$versions" | grep -Fxq -- "$GITHUB_REF_NAME"; then
               echo "$name $GITHUB_REF_NAME is already on Trunk; skipping."
               return 0
             fi
