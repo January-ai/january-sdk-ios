@@ -5,7 +5,7 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.2.0] - Unreleased
+## [0.2.0] - 2026-09-16
 
 - `SearchFoodsRequest` gains `offset` for paging and accepts `limit` up to 50,
   matching the API.
