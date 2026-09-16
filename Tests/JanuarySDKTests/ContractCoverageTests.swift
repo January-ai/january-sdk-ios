@@ -463,7 +463,7 @@ func transportBoundaryPreservesDirectStructuredFailures() async throws {
 }
 
 @Test(arguments: [(0, 0), (51, 0), (10, -1)])
-func foodSearchRejectsLimitsOutsideTheDocumentedRange(_ limit: Int, _ offset: Int) async throws {
+func foodSearchRejectsInvalidPagination(_ limit: Int, _ offset: Int) async throws {
     let transport = ContractProbeTransport()
     let client = try probeClient(transport)
     await #expect(throws: JanuaryError.self) {

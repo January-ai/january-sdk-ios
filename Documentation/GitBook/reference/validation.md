@@ -7,7 +7,8 @@ The SDK rejects these invalid inputs before transport where validation is implem
 | Autocomplete query | At most 64 characters |
 | Autocomplete limit | Integer from 1 through 20 |
 | Food search query | 1 through 256 characters |
-| Food search limit | 1 through 40 |
+| Food search limit | 1 through 50 |
+| Food search offset | 0 or more |
 | Barcode | 6 through 14 ASCII digits |
 | Natural-language meal | 1 through 512 characters |
 | Restaurant/menu query | 1 through 256 characters |
