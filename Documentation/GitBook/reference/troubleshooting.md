@@ -33,7 +33,7 @@ and one API replay.
 
 ## Food search validation errors
 
-Name searches require 1–256 characters and a limit from 1–40. Natural-language searches allow up to 512 characters.
+Name searches require 1–256 characters and a limit from 1–50. Natural-language searches allow up to 512 characters.
 
 ## Restaurant validation errors
 

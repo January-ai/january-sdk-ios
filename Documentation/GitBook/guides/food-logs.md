@@ -33,8 +33,12 @@ A photo or description analysis already returns a selected `serving` and the
 
 ```swift
 let selections = scan.detections.compactMap { detection -> FoodSelection? in
-    guard let id = detection.food.id, let servingID = detection.food.serving.id else { return nil }
-    return FoodSelection(id: id, serving: ServingSelection(id: servingID, quantity: detection.food.quantity ?? 1))
+    // Skip a detection the API could not size rather than inventing a quantity;
+    // let the user pick a serving for it instead.
+    guard let id = detection.food.id,
+          let servingID = detection.food.serving.id,
+          let quantity = detection.food.quantity else { return nil }
+    return FoodSelection(id: id, serving: ServingSelection(id: servingID, quantity: quantity))
 }
 ```
 

@@ -32,7 +32,7 @@ public func suggestAlternatives(
 | Request | Required | Defaults |
 | --- | --- | --- |
 | `AutocompleteFoodsRequest` | `query` | `category: nil`, `limit: 8`, `endUserID: nil` |
-| `SearchFoodsRequest` | `query` | `category: nil`, `limit: 10`, `endUserID: nil` |
+| `SearchFoodsRequest` | `query` | `category: nil`, `limit: 10` (1–50), `offset: 0`, `endUserID: nil` |
 | `LookupFoodByBarcodeRequest` | `upc` | `endUserID: nil` |
 | `SuggestFoodAlternativesRequest` | `foodID` | empty restriction/preference arrays, `endUserID: nil` |
 

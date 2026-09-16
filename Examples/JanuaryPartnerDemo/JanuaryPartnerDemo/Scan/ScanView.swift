@@ -338,10 +338,11 @@ private struct ScanResultContent: View {
                             }
                         }
                         if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
+                        // Show only what the API returned; a missing quantity is not "1".
                         if let unit = detection.food.serving.unit {
-                            let eaten = detection.food.quantity ?? 1
-                            let size = detection.food.serving.quantity ?? 1
-                            Text("\(eaten.formatted(.number.precision(.fractionLength(0...2)))) × \(size.formatted(.number.precision(.fractionLength(0...2)))) \(unit)")
+                            let format = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0...2))
+                            let size = [detection.food.serving.quantity.map { $0.formatted(format) }, unit].compactMap { $0 }.joined(separator: " ")
+                            Text(detection.food.quantity.map { "\($0.formatted(format)) × \(size)" } ?? size)
                                 .font(.caption).monospacedDigit().foregroundStyle(AppPalette.muted)
                         }
                         MacroGrid(

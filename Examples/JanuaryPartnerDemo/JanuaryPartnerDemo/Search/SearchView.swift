@@ -520,14 +520,13 @@ private struct NaturalMealResultView: View {
 
     private var foods: [FoodSelection] {
         result.detections.compactMap { detection in
+            // A detection the API could not size is left out rather than counted as one serving.
             guard let foodID = detection.food.id,
-                  let servingID = detection.food.serving.id else { return nil }
+                  let servingID = detection.food.serving.id,
+                  let quantity = detection.food.quantity else { return nil }
             return FoodSelection(
                 id: foodID,
-                serving: ServingSelection(
-                    id: servingID,
-                    quantity: detection.food.quantity ?? 1
-                )
+                serving: ServingSelection(id: servingID, quantity: quantity)
             )
         }
     }
