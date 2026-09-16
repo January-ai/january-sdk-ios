@@ -609,7 +609,7 @@ private struct NaturalMealResultView: View {
             lineColor: lineColor
         )
 
-        Text("Prediction for all detected foods. This estimate is for demonstration purposes, not medical advice.")
+        Text("Prediction for the detected foods that came with a serving quantity. This estimate is for demonstration purposes, not medical advice.")
             .font(.footnote)
             .foregroundStyle(AppPalette.muted)
     }

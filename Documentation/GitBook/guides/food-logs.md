@@ -28,8 +28,10 @@ let selectedFood = portion.selection
 
 `portion.selection` is the exact `FoodSelection` accepted by Food Logs and glucose prediction.
 
-A photo or description analysis already returns a selected `serving` and the
-`quantity` eaten, so a `DetectedFood` logs without another lookup:
+A photo or description analysis returns a selected `serving` and, when the
+analyzer could size the portion, the `quantity` eaten, so such a `DetectedFood`
+logs without another lookup. `quantity` is `nil` when no usable portion was
+found; let the user pick a serving for that detection instead:
 
 ```swift
 let selections = scan.detections.compactMap { detection -> FoodSelection? in
