@@ -151,6 +151,10 @@ jobs:
                 printf '%s\n' "$output" | awk '/^ *- [0-9]/ { print $2 }'
                 return 0
               fi
+              # A pod that has never been pushed is a known, empty state, not an error.
+              if printf '%s\n' "$output" | grep -q "No pod found with the specified name"; then
+                return 0
+              fi
               echo "pod trunk info $name failed (attempt $attempt): $output" >&2
               sleep 10
             done
