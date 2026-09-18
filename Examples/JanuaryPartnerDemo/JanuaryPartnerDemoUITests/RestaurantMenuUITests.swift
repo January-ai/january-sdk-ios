@@ -137,6 +137,7 @@ final class RestaurantMenuUITests: XCTestCase {
         let correction = app.textViews.firstMatch
         XCTAssertTrue(correction.waitForExistence(timeout: 5))
         correction.tap(); correction.typeText("This was lentils")
+        dismissKeyboard()
         try await control("/v1.2/food-analysis/corrections", status: 500)
         tap("Submit correction")
         wait("January couldn’t complete the request")
@@ -330,6 +331,13 @@ final class RestaurantMenuUITests: XCTestCase {
             return
         }
         element.tap()
+    }
+
+    /// The correction editor's keyboard toolbar has a Done button; the submit
+    /// button below the editor is hidden behind the keyboard until it is used.
+    private func dismissKeyboard() {
+        let done = app.toolbars.buttons["Done"]
+        if done.waitForExistence(timeout: 2) { done.tap() }
     }
 
     private func reveal(_ label: String) -> XCUIElement {
