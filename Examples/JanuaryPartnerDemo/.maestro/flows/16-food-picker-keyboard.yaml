@@ -10,10 +10,10 @@ tags:
     timeout: 15000
 - tapOn:
     id: tab-glucose
-- scrollUntilVisible:
-    element:
-      id: glucose-add-food
-    direction: DOWN
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
 - tapOn:
     id: glucose-add-food
 - assertVisible:

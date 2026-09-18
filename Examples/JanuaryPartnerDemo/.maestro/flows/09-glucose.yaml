@@ -11,10 +11,10 @@ tags:
 - tapOn:
     id: tab-glucose
 - assertVisible: Estimate this meal.s response
-- scrollUntilVisible:
-    element:
-      id: glucose-add-food
-    direction: DOWN
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
 - tapOn:
     id: glucose-add-food
 - tapOn:
