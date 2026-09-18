@@ -80,18 +80,15 @@ struct SearchField: View {
             }
 
             if voiceCaptureEnabled {
-                HStack(spacing: 0) {
-                    Button("Use voice input", systemImage: "mic.fill") {
-                        startVoiceCapture()
-                    }
-                    .labelStyle(.iconOnly)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(AppPalette.green)
-                    .frame(width: 36, height: 36)
-                    .accessibilityIdentifier("voice-capture-button")
+                Button("Use voice input", systemImage: "mic.fill") {
+                    startVoiceCapture()
                 }
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier(voiceIdentifier ?? "")
+                .labelStyle(.iconOnly)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(AppPalette.green)
+                .frame(width: 36, height: 36)
+                // The identifier belongs on the control that receives the tap.
+                .accessibilityIdentifier(voiceIdentifier ?? "voice-capture-button")
             }
         }
     }

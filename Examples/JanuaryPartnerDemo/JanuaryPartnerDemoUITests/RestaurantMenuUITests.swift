@@ -210,7 +210,7 @@ final class RestaurantMenuUITests: XCTestCase {
     }
 
     func testSearchShowcasesVoiceCapture() {
-        let voiceButton = app.buttons["voice-capture-button"]
+        let voiceButton = app.buttons["search-voice"]
         XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
         XCTAssertEqual(voiceButton.label, "Use voice input")
         attachScreenshot("search-voice-capture")
@@ -225,7 +225,7 @@ final class RestaurantMenuUITests: XCTestCase {
             return false
         }
 
-        let voiceButton = app.buttons["voice-capture-button"]
+        let voiceButton = app.buttons["search-voice"]
         XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
         voiceButton.tap()
 
@@ -256,7 +256,7 @@ final class RestaurantMenuUITests: XCTestCase {
             return false
         }
 
-        let voiceButton = app.buttons["voice-capture-button"]
+        let voiceButton = app.buttons["search-voice"]
         XCTAssertTrue(voiceButton.waitForExistence(timeout: 5), app.debugDescription)
         voiceButton.tap()
         if !tapSystemPermissionButton(labels: ["Don’t Allow", "Don't Allow"], timeout: 5) {
