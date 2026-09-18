@@ -17,14 +17,9 @@ tags:
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-initial
 - scrollUntilVisible:
     element:
-      text: Last month
-    direction: DOWN
-- tapOn:
-    text: Last month
-- extendedWaitUntil:
-    visible:
       id: food-log-0
-    timeout: 15000
+    direction: DOWN
+    timeout: 30000
 - scrollUntilVisible:
     element:
       id: food-logs-refresh

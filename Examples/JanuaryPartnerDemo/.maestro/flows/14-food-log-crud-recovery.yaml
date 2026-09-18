@@ -13,16 +13,12 @@ tags:
     file: ../scripts/seed-fixture.js
 - tapOn:
     id: tab-food-logs
+# The list sits below the user and create cards; rows offscreen are not in the hierarchy.
 - scrollUntilVisible:
     element:
-      text: Last month
-    direction: DOWN
-- tapOn:
-    text: Last month
-- extendedWaitUntil:
-    visible:
       id: food-log-0
-    timeout: 15000
+    direction: DOWN
+    timeout: 30000
 - tapOn:
     id: food-log-0
 - assertVisible:

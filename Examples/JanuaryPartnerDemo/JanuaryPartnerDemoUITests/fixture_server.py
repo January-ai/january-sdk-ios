@@ -2,6 +2,7 @@
 import json
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -35,11 +36,15 @@ def detected(identifier="101", name="Fixture oatmeal"):
 def scan(name="Fixture breakfast"):
     return {"meal_name": name, "detections": [{"food": detected(), "confidence": "high"}], "total_nutrients": NUTRIENTS}
 
+def seeded_eaten_at():
+    """An hour ago, so the seeded log always falls in the demo's default date range."""
+    return (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 def food_log(name="Fixture breakfast"):
     logged = food()
     logged.pop("servings"); logged.pop("type"); logged.pop("barcode")
     logged.update({"food_id": logged.pop("id"), "quantity": 1, "serving": {"id": "11", "quantity": 1, "unit": "cup", "weight_grams": 100}})
-    return {"id": "opaque-log-1", "name": name, "eaten_at": "2026-09-01T16:00:00Z", "foods": [logged]}
+    return {"id": "opaque-log-1", "name": name, "eaten_at": seeded_eaten_at(), "foods": [logged]}
 
 STATE = {"rules": {}, "logs": [], "requests": []}
 
