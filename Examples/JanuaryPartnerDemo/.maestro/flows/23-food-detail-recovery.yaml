@@ -24,10 +24,10 @@ tags:
     timeout: 15000
 - tapOn:
     id: food-result-0
-- scrollUntilVisible:
-    element:
-      id: food-check-glucose
-    direction: DOWN
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-check-glucose
 - tapOn:
     id: food-check-glucose
 - extendedWaitUntil:

@@ -39,6 +39,8 @@ tags:
     id: scan-correction-input
 - inputText: This was lentils
 - tapOn:
+    text: Done
+- tapOn:
     id: scan-correction-submit
 - extendedWaitUntil:
     visible: Corrected breakfast

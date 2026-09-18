@@ -31,6 +31,10 @@ tags:
     env:
       ROUTE: /v1.2/food-analysis/image
       STATUS: "200"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: scan-error-retry
 - tapOn:
     id: scan-error-retry
 - extendedWaitUntil:
@@ -53,6 +57,8 @@ tags:
     id: scan-correction-input
 - inputText: retry correction
 - tapOn:
+    text: Done
+- tapOn:
     id: scan-correction-submit
 - extendedWaitUntil:
     visible:
@@ -64,19 +70,19 @@ tags:
     env:
       ROUTE: /v1.2/food-analysis/corrections
       STATUS: "200"
-- scrollUntilVisible:
-    element:
-      id: scan-correction-error-retry
-    direction: DOWN
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: scan-correction-error-retry
 - tapOn:
     id: scan-correction-error-retry
 - extendedWaitUntil:
     visible: Corrected breakfast
     timeout: 15000
-- scrollUntilVisible:
-    element:
-      id: scan-another
-    direction: DOWN
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: scan-another
 - tapOn:
     id: scan-another
 - assertVisible:

@@ -408,6 +408,7 @@ private struct CorrectScanView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var mealName: String
     @State private var correction = ""
+    @FocusState private var isCorrectionFocused: Bool
     @State private var isLoading = false
     @State private var error: Error?
 
@@ -460,6 +461,15 @@ private struct CorrectScanView: View {
                                 .padding(10)
                                 .frame(minHeight: 150)
                                 .background(Color.clear)
+                                .focused($isCorrectionFocused)
+                                // A multiline editor has no return-to-dismiss, and the
+                                // submit button sits under the keyboard on small phones.
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .keyboard) {
+                                        Spacer()
+                                        Button("Done") { isCorrectionFocused = false }
+                                    }
+                                }
                                 .accessibilityIdentifier("scan-correction-input")
                         }
                         .background(

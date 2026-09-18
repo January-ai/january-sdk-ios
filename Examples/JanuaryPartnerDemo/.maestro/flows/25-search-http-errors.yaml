@@ -25,9 +25,8 @@ tags:
 - assertVisible: Couldn.t use the configured credentials
 - tapOn:
     id: search-error-details
-- assertVisible:
-    id: search-error-details-body
-- assertVisible: 401
+- assertVisible: HTTP status
+- assertVisible: .*401.*
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-401
 - tapOn:
     id: search-error-details

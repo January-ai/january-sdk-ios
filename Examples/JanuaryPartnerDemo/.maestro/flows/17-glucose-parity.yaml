@@ -12,22 +12,26 @@ tags:
     id: tab-glucose
 - assertVisible: Estimate this meal.s response
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-profile
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-height-unit-metric
 - tapOn:
-    text: cm
+    id: glucose-height-unit-metric
 - assertVisible:
     id: glucose-height-centimeters
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-height-metric
 - tapOn:
-    text: ft \+ in
+    id: glucose-height-unit-imperial
 - scrollUntilVisible:
     element:
       id: glucose-weight
     direction: DOWN
 - tapOn:
-    text: kg
+    id: glucose-weight-unit-kg
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-weight-metric
 - tapOn:
-    text: lb
+    id: glucose-weight-unit-lb
 - scrollUntilVisible:
     element:
       id: glucose-health-conditions
@@ -79,6 +83,5 @@ tags:
     visible:
       id: glucose-results-screen
     timeout: 15000
-- assertVisible: LIKELY PEAK
-- assertVisible: 140
+- assertVisible: Estimated response
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-result

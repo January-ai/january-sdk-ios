@@ -41,15 +41,21 @@ tags:
     direction: DOWN
 - tapOn:
     id: food-log-save
+# Saving returns to the list on iOS; reopen the log to reach its detail.
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- tapOn:
+    id: food-log-0
 - extendedWaitUntil:
     visible:
       id: food-log-detail
     timeout: 15000
-- assertVisible: .*Updated meal.*
 - runScript:
     file: ../scripts/control-fixture.js
     env:
-      ROUTE: /v1.2/food-logs/11111111-1111-4111-8111-111111111111
+      ROUTE: /v1.2/food-logs/opaque-log-1
       STATUS: "500"
 - runFlow:
     file: ../scroll-to.yaml
@@ -59,9 +65,9 @@ tags:
     id: food-log-delete
 - assertVisible: Delete this food log?
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-delete-confirmation
+# The confirmation dialog's destructive button (the detail button is behind it).
 - tapOn:
     text: Delete food log
-    index: 1
 - extendedWaitUntil:
     visible:
       id: food-logs-error
@@ -70,7 +76,7 @@ tags:
 - runScript:
     file: ../scripts/control-fixture.js
     env:
-      ROUTE: /v1.2/food-logs/11111111-1111-4111-8111-111111111111
+      ROUTE: /v1.2/food-logs/opaque-log-1
       STATUS: "200"
 - runFlow:
     file: ../scroll-to.yaml

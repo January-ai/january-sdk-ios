@@ -27,10 +27,7 @@ tags:
       id: food-logs-refresh
     direction: UP
 - runScript:
-    file: ../scripts/control-fixture.js
-    env:
-      ROUTE: /v1.2/food-logs
-      EMPTY: "true"
+    file: ../scripts/reset-fixture.js
 - tapOn:
     id: food-logs-refresh
 - extendedWaitUntil:
@@ -56,6 +53,8 @@ tags:
     env:
       ROUTE: /v1.2/food-logs
       STATUS: "200"
+- runScript:
+    file: ../scripts/seed-fixture.js
 - runFlow:
     file: ../scroll-to.yaml
     env:

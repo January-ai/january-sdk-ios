@@ -15,7 +15,6 @@ tags:
 - tapOn:
     id: search-input
 - inputText: a bowl of oatmeal with honey and a banana
-- hideKeyboard
 - pressKey: Enter
 - extendedWaitUntil:
     visible:

@@ -26,10 +26,10 @@ tags:
       id: food-nutrition
     direction: DOWN
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-food-nutrition
-- scrollUntilVisible:
-    element:
-      id: food-check-glucose
-    direction: DOWN
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-check-glucose
 - tapOn:
     id: food-check-glucose
 - assertVisible: Glucose response

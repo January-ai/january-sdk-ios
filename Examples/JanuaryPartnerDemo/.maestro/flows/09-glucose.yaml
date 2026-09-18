@@ -48,5 +48,5 @@ tags:
     timeout: 15000
 - assertVisible:
     id: glucose-chart
-- assertVisible: LIKELY PEAK
+- assertVisible: Estimated response
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-result

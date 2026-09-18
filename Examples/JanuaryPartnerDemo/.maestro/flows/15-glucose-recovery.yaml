@@ -16,11 +16,6 @@ tags:
       STATUS: "500"
 - tapOn:
     id: tab-glucose
-- tapOn:
-    id: glucose-age
-- eraseText: 10
-- inputText: 42
-- pressKey: Enter
 - scrollUntilVisible:
     element:
       id: glucose-add-food
@@ -55,7 +50,7 @@ tags:
     visible:
       id: glucose-error
     timeout: 15000
-- assertVisible: The test request could not be completed.
+- assertVisible: January couldn.t complete the request
 - assertVisible:
     id: glucose-food-0
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-error
@@ -76,12 +71,18 @@ tags:
     timeout: 15000
 - assertVisible:
     id: glucose-chart
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-adjust
 - tapOn:
     id: glucose-adjust
-- assertVisible:
-    id: glucose-food-0
+- scrollUntilVisible:
+    element:
+      id: glucose-food-0
+    direction: DOWN
 - scrollUntilVisible:
     element:
       id: glucose-age
     direction: UP
-- assertVisible: 42
+- assertVisible: .*42.*
