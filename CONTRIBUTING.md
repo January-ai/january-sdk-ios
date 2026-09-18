@@ -27,6 +27,12 @@ Keep public API changes documented and add tests for behavior changes. Do not
 commit API keys, client tokens, user data, generated build output, or local
 environment files.
 
+## Example app end-to-end suite
+
+The demo's Maestro flows and how to run them locally are described in
+[Examples/JanuaryPartnerDemo/.maestro/README.md](Examples/JanuaryPartnerDemo/.maestro/README.md).
+They run on every pull request as the `ui-tests` check.
+
 ## Releases
 
 Maintainers update `CHANGELOG.md`, confirm CI is green, and create a full

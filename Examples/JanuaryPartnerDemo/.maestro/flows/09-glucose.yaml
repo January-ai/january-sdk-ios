@@ -1,0 +1,52 @@
+appId: ai.january.partner.demo
+name: Glucose meal prediction
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- tapOn:
+    id: tab-glucose
+- assertVisible: Estimate this meal.s response
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- assertVisible:
+    id: food-serving-sheet
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-meal
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- waitForAnimationToEnd
+- tapOn:
+    text: Estimate glucose response
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: glucose-results-screen
+    timeout: 15000
+- assertVisible:
+    id: glucose-chart
+- assertVisible: Estimated response
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-result

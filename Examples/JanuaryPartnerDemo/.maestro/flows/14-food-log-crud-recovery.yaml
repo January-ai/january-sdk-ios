@@ -1,0 +1,88 @@
+appId: ai.january.partner.demo
+name: Food log update delete and retry preserve state
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-fixture.js
+- tapOn:
+    id: tab-food-logs
+# The list sits below the user and create cards; rows offscreen are not in the hierarchy.
+- scrollUntilVisible:
+    element:
+      id: food-log-0
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: food-log-0
+- assertVisible:
+    id: food-log-detail
+- tapOn:
+    id: food-log-edit
+- assertVisible: Edit food log
+- tapOn:
+    id: food-log-name
+- eraseText: 30
+- inputText: Updated meal
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: food-log-save
+    direction: DOWN
+- tapOn:
+    id: food-log-save
+# Saving returns to the list on iOS; reopen the log to reach its detail.
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- tapOn:
+    id: food-log-0
+- extendedWaitUntil:
+    visible:
+      id: food-log-detail
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs/opaque-log-1
+      STATUS: "500"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-delete
+- tapOn:
+    id: food-log-delete
+- assertVisible: Delete this food log?
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-delete-confirmation
+# The confirmation dialog's destructive button (the detail button is behind it).
+- tapOn:
+    text: Delete food log
+- extendedWaitUntil:
+    visible:
+      id: food-logs-error
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-delete-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs/opaque-log-1
+      STATUS: "200"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-retry
+- tapOn:
+    id: food-logs-retry
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+- assertNotVisible:
+    id: food-logs-error

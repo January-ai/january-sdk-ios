@@ -1,0 +1,78 @@
+appId: ai.january.partner.demo
+name: Food picker empty error retry and validation
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- tapOn:
+    id: tab-glucose
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      EMPTY: "true"
+- tapOn:
+    id: food-picker-input
+- inputText: nothing
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-empty
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "500"
+- tapOn:
+    id: food-picker-input
+- eraseText: 30
+- inputText: broken
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-error
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "200"
+- tapOn:
+    id: food-picker-retry
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-close
+- tapOn:
+    id: glucose-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- assertVisible:
+    id: food-serving-sheet
+- assertVisible:
+    id: food-serving-add
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0

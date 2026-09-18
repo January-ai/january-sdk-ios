@@ -1,0 +1,28 @@
+appId: ai.january.partner.demo
+name: Launch and primary navigation
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-screen
+    timeout: 15000
+- assertVisible:
+    id: search-input
+- assertVisible:
+    id: search-prompt
+- assertVisible:
+    id: category-all
+- assertVisible:
+    id: category-general
+- assertVisible:
+    id: tab-search
+- assertVisible:
+    id: tab-scan
+- assertVisible:
+    id: tab-food-logs
+- assertVisible:
+    id: tab-glucose
+- assertNotVisible:
+    id: search-results

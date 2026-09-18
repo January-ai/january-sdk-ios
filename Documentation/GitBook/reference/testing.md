@@ -33,6 +33,11 @@ From an authorized checkout:
 node scripts/check-coverage.mjs
 ```
 
+The example app also has an end-to-end suite of Maestro flows that exercise
+every screen against a local fixture server; see
+`Examples/JanuaryPartnerDemo/.maestro/README.md` in the repository for how to
+run it.
+
 This runs the SDK tests on an iPhone Simulator with code coverage enabled. The tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
 
 ## Partner-backend integration

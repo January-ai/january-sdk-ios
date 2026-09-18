@@ -1,0 +1,60 @@
+appId: ai.january.partner.demo
+name: Native parity - search and food detail surfaces
+tags:
+  - parity
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-search
+    timeout: 15000
+- assertVisible: Restaurants
+- assertVisible: Barcode
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+- tapOn:
+    id: food-result-0
+- assertVisible: Food details
+- scrollUntilVisible:
+    element:
+      id: food-nutrition
+    direction: DOWN
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-food-nutrition
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-check-glucose
+- tapOn:
+    id: food-check-glucose
+- assertVisible: Glucose response
+- extendedWaitUntil:
+    visible:
+      id: food-glucose-result
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-food-glucose
+- tapOn:
+    text: Close glucose response
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-alternatives
+- tapOn:
+    id: food-alternatives
+- assertVisible: Food alternatives
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-alternatives-initial
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: alternatives-refresh
+- tapOn:
+    id: alternatives-refresh
+- extendedWaitUntil:
+    visible: SUGGESTIONS · 1
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-alternatives-results

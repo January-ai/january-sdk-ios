@@ -46,6 +46,7 @@ struct SettingsView: View {
                                 )
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
+                        .accessibilityIdentifier("settings-user-id")
                             Text("Food Logs requires a stable ID. Other requests include it when available.")
                                 .font(.footnote)
                                 .foregroundStyle(AppPalette.muted)
@@ -86,8 +87,11 @@ struct SettingsView: View {
                 .padding(.vertical, AppSpacing.sheetTop)
             }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("settings-sheet")
             .appNavigationBar("Settings") {
                 AppNavigationButton(.close, title: "Close settings") { dismiss() }
+                    .accessibilityIdentifier("settings-close")
             } trailing: {
                 EmptyView()
             }

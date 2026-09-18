@@ -27,6 +27,8 @@ struct RootView: View {
                 DemoSetupView(detail: message)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("app-root")
         .task {
             await model.bootstrap()
         }

@@ -1,0 +1,87 @@
+appId: ai.january.partner.demo
+name: Native parity - glucose surfaces
+tags:
+  - parity
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- tapOn:
+    id: tab-glucose
+- assertVisible: Estimate this meal.s response
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-profile
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-height-unit-metric
+- tapOn:
+    id: glucose-height-unit-metric
+- assertVisible:
+    id: glucose-height-centimeters
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-height-metric
+- tapOn:
+    id: glucose-height-unit-imperial
+- scrollUntilVisible:
+    element:
+      id: glucose-weight
+    direction: DOWN
+- tapOn:
+    id: glucose-weight-unit-kg
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-weight-metric
+- tapOn:
+    id: glucose-weight-unit-lb
+- scrollUntilVisible:
+    element:
+      id: glucose-health-conditions
+    direction: DOWN
+- tapOn:
+    id: glucose-health-conditions
+- assertVisible: Health conditions
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-conditions
+- tapOn:
+    id: condition-type-2-diabetes
+- tapOn:
+    text: Glucose
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- assertVisible:
+    id: food-picker
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-food-picker-initial
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- assertVisible:
+    id: food-serving-sheet
+- assertVisible: Choose serving
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-serving
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- waitForAnimationToEnd
+- tapOn:
+    text: Estimate glucose response
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: glucose-results-screen
+    timeout: 15000
+- assertVisible: Estimated response
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-result

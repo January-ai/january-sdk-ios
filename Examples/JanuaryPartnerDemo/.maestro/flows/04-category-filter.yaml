@@ -1,0 +1,34 @@
+appId: ai.january.partner.demo
+name: Food category selection reaches search
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: category-general
+    timeout: 15000
+- tapOn:
+    id: category-general
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: category-branded
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+- tapOn:
+    id: category-all

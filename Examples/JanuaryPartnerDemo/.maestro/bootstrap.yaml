@@ -1,0 +1,21 @@
+appId: ai.january.partner.demo
+---
+# Every flow starts here: reset the fixture server, then launch the demo in
+# fixture mode and wait for the search screen. The `-ui-testing` launch
+# argument (Debug builds only) points the app at the fixture server on
+# 127.0.0.1:18768 with a stub token and disables animations; the scripts under
+# scripts/ reach the same server's control endpoints from the host.
+- runScript:
+    file: scripts/reset-fixture.js
+- retry:
+    maxRetries: 2
+    commands:
+      - launchApp:
+          clearState: false
+          stopApp: true
+          arguments:
+            -ui-testing: true
+      - extendedWaitUntil:
+          visible:
+            id: search-screen
+          timeout: 120000

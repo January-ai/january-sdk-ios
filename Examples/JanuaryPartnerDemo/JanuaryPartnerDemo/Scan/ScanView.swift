@@ -32,10 +32,13 @@ struct ScanView: View {
                 .padding(.vertical, 16)
             }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("scan-screen")
             .appNavigationBar("Scan a meal", style: .leading) {
                 EmptyView()
             } trailing: {
                 AppNavigationButton(.settings, action: settingsAction)
+                    .accessibilityIdentifier("settings-button")
             }
             .fullScreenCover(isPresented: $isShowingCamera, onDismiss: presentPendingScannerResult) {
                 JanuaryFoodScannerView(
@@ -100,32 +103,40 @@ struct ScanView: View {
                 PrimaryButton(title: "Take photo", systemImage: "camera") {
                     presentCamera()
                 }
+                .accessibilityIdentifier("scan-camera")
 
                 PhotosPicker(selection: $selectedPhoto, matching: .images) {
                     Label("Choose from library", systemImage: "photo")
                 }
                 .buttonStyle(SecondaryButtonStyle())
+                .accessibilityIdentifier("scan-library")
 
                 SectionLabel("Other ways")
                 LazyVGrid(columns: actionColumns, spacing: 10) {
                     Button("Sample meal", systemImage: "fork.knife") { useSampleMeal() }
                         .buttonStyle(OutlinedButtonStyle())
+                        .accessibilityIdentifier("scan-sample")
                     Button("Image URL", systemImage: "link") { isShowingURL = true }
                         .buttonStyle(OutlinedButtonStyle())
+                        .accessibilityIdentifier("scan-image-url")
                 }
             } else {
                 ScanImagePreview { imageInputPreview }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("scan-preview")
 
                 LazyVGrid(columns: actionColumns, spacing: 10) {
                     PhotosPicker(selection: $selectedPhoto, matching: .images) {
                         Label("Change photo", systemImage: "photo")
                     }
                     .buttonStyle(SecondaryButtonStyle())
+                    .accessibilityIdentifier("scan-change")
 
                     Button("Remove", systemImage: "trash") {
                         reset()
                     }
                     .buttonStyle(OutlinedButtonStyle())
+                    .accessibilityIdentifier("scan-remove")
                 }
 
                 PrimaryButton(
@@ -134,13 +145,21 @@ struct ScanView: View {
                 ) {
                     Task { await analyze() }
                 }
+                .accessibilityIdentifier("scan-analyze")
             }
 
             if isLoading {
                 Text("Complex meals can take a little longer. You can leave this screen while the request completes.")
                     .font(.subheadline).foregroundStyle(AppPalette.muted)
             }
-            if let error { ErrorNotice(error: error) { Task { await analyze() } } }
+            if let error {
+                ErrorNotice(
+                    error: error,
+                    retry: { Task { await analyze() } },
+                    identifier: "scan-error",
+                    retryIdentifier: "scan-error-retry"
+                )
+            }
         }
     }
 
@@ -256,18 +275,22 @@ private struct ScanResultSheet: View {
                         PrimaryButton(title: "Correct result") {
                             isShowingCorrection = true
                         }
+                        .accessibilityIdentifier("scan-correct")
 
                         Button("Scan another meal") {
                             onScanAnother()
                             dismiss()
                         }
                         .buttonStyle(SecondaryButtonStyle())
+                        .accessibilityIdentifier("scan-another")
                     }
                 }
                 .padding(.vertical, 16)
                 .padding(.bottom, 32)
             }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("scan-results")
             .appNavigationBar("Meal analysis") {
                 AppNavigationButton(.close, title: "Close result") { dismiss() }
             } trailing: {
@@ -385,6 +408,7 @@ private struct CorrectScanView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var mealName: String
     @State private var correction = ""
+    @FocusState private var isCorrectionFocused: Bool
     @State private var isLoading = false
     @State private var error: Error?
 
@@ -407,6 +431,7 @@ private struct CorrectScanView: View {
                                 AppPalette.control,
                                 in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
                             )
+                            .accessibilityIdentifier("correction-meal-name")
 
                         SectionLabel("Current detections")
                         VStack(alignment: .leading, spacing: 0) {
@@ -436,6 +461,16 @@ private struct CorrectScanView: View {
                                 .padding(10)
                                 .frame(minHeight: 150)
                                 .background(Color.clear)
+                                .focused($isCorrectionFocused)
+                                // A multiline editor has no return-to-dismiss, and the
+                                // submit button sits under the keyboard on small phones.
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .keyboard) {
+                                        Spacer()
+                                        Button("Done") { isCorrectionFocused = false }
+                                    }
+                                }
+                                .accessibilityIdentifier("scan-correction-input")
                         }
                         .background(
                             AppPalette.surface,
@@ -451,7 +486,12 @@ private struct CorrectScanView: View {
                             .foregroundStyle(AppPalette.muted)
 
                         if let error {
-                            ErrorNotice(error: error) { Task { await submit() } }
+                            ErrorNotice(
+                                error: error,
+                                retry: { Task { await submit() } },
+                                identifier: "scan-correction-error",
+                                retryIdentifier: "scan-correction-error-retry"
+                            )
                         }
 
                     PrimaryButton(
@@ -461,6 +501,7 @@ private struct CorrectScanView: View {
                     ) {
                         Task { await submit() }
                         }
+                        .accessibilityIdentifier("scan-correction-submit")
                     }
                 }
                 .padding(.vertical, AppSpacing.sheetTop)
@@ -522,6 +563,7 @@ private struct ImageURLSheet: View {
                                     AppPalette.control,
                                     in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
                                 )
+                                .accessibilityIdentifier("image-url-input")
                             Text("The server must be able to download the image without signing in.")
                                 .font(.footnote)
                                 .foregroundStyle(AppPalette.muted)
@@ -534,6 +576,7 @@ private struct ImageURLSheet: View {
                         ) {
                             if let url = validURL { onSelect(url) }
                         }
+                        .accessibilityIdentifier("image-url-use")
                     }
                 }
                 .padding(.vertical, AppSpacing.sheetTop)

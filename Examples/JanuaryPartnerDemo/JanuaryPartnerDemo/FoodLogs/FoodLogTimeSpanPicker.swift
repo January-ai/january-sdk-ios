@@ -7,7 +7,11 @@ struct FoodLogTimeSpanPicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            SegmentedControl(FoodLogTimeSpan.allCases, selection: $selection) { $0.title }
+            SegmentedControl(
+                FoodLogTimeSpan.allCases,
+                selection: $selection,
+                identifier: { $0.accessibilityIdentifier }
+            ) { $0.title }
 
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Text("Dates")

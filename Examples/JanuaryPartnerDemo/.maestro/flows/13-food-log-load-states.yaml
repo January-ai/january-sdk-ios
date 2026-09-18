@@ -1,0 +1,65 @@
+appId: ai.january.partner.demo
+name: Food logs loading empty failure and retry
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-fixture.js
+- tapOn:
+    id: tab-food-logs
+# The list sits below the user and create cards; rows offscreen are not in the hierarchy.
+- scrollUntilVisible:
+    element:
+      id: food-log-0
+    direction: DOWN
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: food-logs-refresh
+    direction: UP
+- runScript:
+    file: ../scripts/reset-fixture.js
+- tapOn:
+    id: food-logs-refresh
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+- assertVisible: No food logs in this range
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-empty
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      STATUS: "500"
+- tapOn:
+    id: food-logs-refresh
+- extendedWaitUntil:
+    visible:
+      id: food-logs-error
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      STATUS: "200"
+- runScript:
+    file: ../scripts/seed-fixture.js
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-retry
+- tapOn:
+    id: food-logs-retry
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- assertNotVisible:
+    id: food-logs-error

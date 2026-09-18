@@ -6,6 +6,9 @@ struct SearchField: View {
     let prompt: String
     @Binding var text: String
     var voiceCaptureEnabled = true
+    var identifier: String?
+    var clearIdentifier: String?
+    var voiceIdentifier: String?
     var submit: (() -> Void)?
 
     @Environment(\.openURL) private var openURL
@@ -67,11 +70,13 @@ struct SearchField: View {
                 .font(AppTypography.body)
                 .submitLabel(.search)
                 .onSubmit { submit?() }
+                .accessibilityIdentifier(identifier ?? "")
 
             if !text.isEmpty {
                 Button("Clear search", systemImage: "xmark.circle.fill") { text = "" }
                     .labelStyle(.iconOnly)
                     .foregroundStyle(AppPalette.subdued)
+                    .accessibilityIdentifier(clearIdentifier ?? "")
             }
 
             if voiceCaptureEnabled {
@@ -82,7 +87,8 @@ struct SearchField: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(AppPalette.green)
                 .frame(width: 36, height: 36)
-                .accessibilityIdentifier("voice-capture-button")
+                // The identifier belongs on the control that receives the tap.
+                .accessibilityIdentifier(voiceIdentifier ?? "voice-capture-button")
             }
         }
     }

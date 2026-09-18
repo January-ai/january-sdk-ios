@@ -1,0 +1,88 @@
+appId: ai.january.partner.demo
+name: Glucose failure retains profile and meal then recovers
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      STATUS: "500"
+- tapOn:
+    id: tab-glucose
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- assertVisible:
+    id: food-serving-sheet
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- waitForAnimationToEnd
+- tapOn:
+    text: Estimate glucose response
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: glucose-error
+    timeout: 15000
+- assertVisible: January couldn.t complete the request
+- assertVisible:
+    id: glucose-food-0
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-glucose-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      STATUS: "200"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-retry
+- tapOn:
+    id: glucose-retry
+- extendedWaitUntil:
+    visible:
+      id: glucose-results-screen
+    timeout: 15000
+- assertVisible:
+    id: glucose-chart
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-adjust
+- tapOn:
+    id: glucose-adjust
+- scrollUntilVisible:
+    element:
+      id: glucose-food-0
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: glucose-age
+    direction: UP
+- assertVisible: .*42.*

@@ -4,10 +4,17 @@ struct SegmentedControl<Option: Hashable>: View {
     let options: [Option]
     @Binding var selection: Option
     let label: (Option) -> String
+    let identifier: ((Option) -> String)?
 
-    init(_ options: [Option], selection: Binding<Option>, label: @escaping (Option) -> String) {
+    init(
+        _ options: [Option],
+        selection: Binding<Option>,
+        identifier: ((Option) -> String)? = nil,
+        label: @escaping (Option) -> String
+    ) {
         self.options = options
         _selection = selection
+        self.identifier = identifier
         self.label = label
     }
 
@@ -16,6 +23,7 @@ struct SegmentedControl<Option: Hashable>: View {
             ForEach(options, id: \.self) { option in
                 Text(label(option))
                     .tag(option)
+                    .accessibilityIdentifier(identifier?(option) ?? "")
             }
         } label: {
             EmptyView()

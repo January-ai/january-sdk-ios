@@ -4,6 +4,10 @@ import SwiftUI
 struct ErrorNotice: View {
     let error: Error
     var retry: (() -> Void)?
+    var identifier: String?
+    var retryIdentifier: String?
+    var detailsIdentifier: String?
+    var detailsBodyIdentifier: String?
 
     private var title: String {
         guard let januaryError = error as? JanuaryError else { return "Couldn’t complete that request" }
@@ -29,18 +33,26 @@ struct ErrorNotice: View {
             if let januaryError = error as? JanuaryError,
                januaryError.requestID != nil || januaryError.httpStatus != nil {
                 DisclosureGroup("Technical details") {
-                    if let status = januaryError.httpStatus { LabeledContent("HTTP status", value: "\(status)") }
-                    if let code = januaryError.code { LabeledContent("Error code", value: code) }
-                    if let requestID = januaryError.requestID { LabeledContent("Request ID", value: requestID) }
+                    VStack(alignment: .leading) {
+                        if let status = januaryError.httpStatus { LabeledContent("HTTP status", value: "\(status)") }
+                        if let code = januaryError.code { LabeledContent("Error code", value: code) }
+                        if let requestID = januaryError.requestID { LabeledContent("Request ID", value: requestID) }
+                    }
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier(detailsBodyIdentifier ?? "")
                 }
                 .font(.footnote)
+                .accessibilityIdentifier(detailsIdentifier ?? "")
             }
             if let retry {
-                Button("Try again", action: retry).font(.headline)
+                Button("Try again", action: retry)
+                    .font(.headline)
+                    .accessibilityIdentifier(retryIdentifier ?? "")
             }
         }
         .appCard()
         .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(identifier ?? "")
     }
 }
 

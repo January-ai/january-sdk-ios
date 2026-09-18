@@ -1,0 +1,40 @@
+appId: ai.january.partner.demo
+name: Empty and error states are actionable
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      EMPTY: "true"
+- tapOn:
+    id: search-input
+- inputText: nothing
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: empty-results
+    timeout: 15000
+- assertVisible: No foods found
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "500"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: broken
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: January couldn.t complete the request

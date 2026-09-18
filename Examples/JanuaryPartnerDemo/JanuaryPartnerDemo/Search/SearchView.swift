@@ -60,13 +60,20 @@ struct SearchView: View {
                         SearchField(
                             prompt: searchPrompt,
                             text: queryBinding,
-                            voiceCaptureEnabled: foodMode != .barcode
+                            voiceCaptureEnabled: foodMode != .barcode,
+                            identifier: scope == .foods ? "search-input" : "restaurant-search-input",
+                            clearIdentifier: scope == .foods ? "search-clear" : "restaurant-search-clear",
+                            voiceIdentifier: "search-voice"
                         ) {
                             Task { await submit() }
                         }
 
                         if !foodSuggestions.isEmpty {
-                            FoodSuggestionList(items: foodSuggestions) { suggestion in
+                            FoodSuggestionList(
+                                items: foodSuggestions,
+                                identifier: "autocomplete-suggestions",
+                                itemIdentifier: { "autocomplete-result-\($0)" }
+                            ) { suggestion in
                                 guard let suggestionName = suggestion.name else { return }
                                 autocompleteSuppressedQuery = suggestionName
                                 query = suggestionName
@@ -75,7 +82,11 @@ struct SearchView: View {
                             }
                         }
 
-                        SegmentedControl(Scope.allCases, selection: $scope) { $0.rawValue }
+                        SegmentedControl(
+                            Scope.allCases,
+                            selection: $scope,
+                            identifier: { "search-scope-\($0.rawValue.lowercased())" }
+                        ) { $0.rawValue }
                             .onChange(of: scope) { _, _ in resetResults() }
 
                         if scope == .foods { foodContent } else { restaurantContent }
@@ -85,10 +96,13 @@ struct SearchView: View {
             }
             .scrollDismissesKeyboard(.interactively)
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(scope == .foods ? "search-screen" : "restaurant-search-screen")
             .appNavigationBar("Search", style: .leading) {
                 EmptyView()
             } trailing: {
                 AppNavigationButton(.settings, action: settingsAction)
+                    .accessibilityIdentifier("settings-button")
             }
             .sheet(isPresented: $isShowingFilters) {
                 RestaurantFiltersSheet(
@@ -165,7 +179,17 @@ struct SearchView: View {
 
     @ViewBuilder
     private var foodContent: some View {
-        SegmentedControl(FoodMode.allCases, selection: $foodMode) { mode in
+        SegmentedControl(
+            FoodMode.allCases,
+            selection: $foodMode,
+            identifier: { mode in
+                switch mode {
+                case .name: "search-mode-name"
+                case .meal: "search-mode-description"
+                case .barcode: "search-mode-barcode"
+                }
+            }
+        ) { mode in
             mode == .meal ? "Description" : mode.rawValue
         }
         .onChange(of: foodMode) { _, _ in resetResults() }
@@ -173,12 +197,12 @@ struct SearchView: View {
         if foodMode == .name {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    categoryChip("All", category: nil)
-                    categoryChip("General", category: .generic)
-                    categoryChip("Branded", category: .branded)
+                    categoryChip("All", category: nil, identifier: "category-all")
+                    categoryChip("General", category: .generic, identifier: "category-general")
+                    categoryChip("Branded", category: .branded, identifier: "category-branded")
                 }
                 HStack(spacing: 8) {
-                    categoryChip("Recipe", category: .recipe)
+                    categoryChip("Recipe", category: .recipe, identifier: "category-recipe")
                 }
             }
         } else if foodMode == .barcode {
@@ -188,6 +212,7 @@ struct SearchView: View {
                 Label("Scan barcode", systemImage: "barcode.viewfinder")
             }
             .buttonStyle(OutlinedButtonStyle())
+            .accessibilityIdentifier("scan-barcode-button")
         } else {
             Text("Try “a bowl of oatmeal with honey and a banana.”")
                 .font(.subheadline)
@@ -200,6 +225,8 @@ struct SearchView: View {
                 message: foodMode == .meal ? "January will identify foods, servings, and nutrition from a sentence." : "Search January’s database, then choose a serving and quantity.",
                 symbol: foodMode == .barcode ? "barcode" : "fork.knife"
             )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("search-prompt")
         }
 
         submitButton
@@ -214,6 +241,8 @@ struct SearchView: View {
                 onAnalyzeAnother: resetMealAnalysis
             )
             .id(naturalResult)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("description-results")
         } else if !foodResults.isEmpty {
             HStack(alignment: .firstTextBaseline) {
                 SectionLabel("Results · January food database")
@@ -237,24 +266,33 @@ struct SearchView: View {
                             .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("food-result-\(index)")
                     if index < foodResults.count - 1 {
                         Divider().overlay(AppPalette.divider)
                     }
                 }
             }
             .appCard()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("search-results")
         } else if !isLoading, error == nil, !query.isEmpty {
             EmptyStateCard(
                 title: "No foods found",
                 message: "Try another name or broaden the selected food category.",
                 symbol: "magnifyingglass"
             )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("empty-results")
         }
     }
 
     @ViewBuilder
     private var restaurantContent: some View {
-        SegmentedControl(RestaurantMode.allCases, selection: $restaurantMode) { $0.rawValue }
+        SegmentedControl(
+            RestaurantMode.allCases,
+            selection: $restaurantMode,
+            identifier: { $0 == .restaurants ? "restaurant-mode-restaurants" : "restaurant-mode-menu" }
+        ) { $0.rawValue }
         .onChange(of: restaurantMode) { _, _ in resetResults() }
 
         Button { isShowingFilters = true } label: {
@@ -279,9 +317,12 @@ struct SearchView: View {
             .foregroundStyle(AppPalette.body)
         }
         .appCard()
+        .accessibilityIdentifier("restaurant-filters-button")
 
         if query.isEmpty {
             SearchPromptCard(title: "Search nearby", message: "Find restaurants or dishes around a location.", symbol: "mappin.and.ellipse")
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("restaurants-initial")
         }
 
         submitButton
@@ -289,7 +330,7 @@ struct SearchView: View {
 
         if restaurantMode == .restaurants, !restaurants.isEmpty {
             Text("Nearby restaurants").font(.system(.title3, design: .serif, weight: .semibold))
-            ForEach(restaurants, id: \.id) { restaurant in
+            ForEach(Array(restaurants.enumerated()), id: \.element.id) { index, restaurant in
                 NavigationLink {
                     RestaurantDetailView(
                         client: client,
@@ -304,10 +345,11 @@ struct SearchView: View {
                     RestaurantRow(restaurant: restaurant).appCard()
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("restaurant-result-\(index)")
             }
         } else if restaurantMode == .menuItems, !menuItems.isEmpty {
             Text("Nearby menu items").font(.system(.title3, design: .serif, weight: .semibold))
-            ForEach(menuItems, id: \.id) { item in
+            ForEach(Array(menuItems.enumerated()), id: \.element.id) { index, item in
                 NavigationLink {
                     RestaurantMenuItemDetailView(
                         client: client,
@@ -318,6 +360,7 @@ struct SearchView: View {
                     MenuItemRow(item: item).appCard()
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("menu-result-\(index)")
             }
         } else if !isLoading, error == nil, !query.isEmpty {
             EmptyStateCard(
@@ -325,6 +368,8 @@ struct SearchView: View {
                 message: "Try another name, location, or search radius.",
                 symbol: "mappin.slash"
             )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("restaurants-empty")
         }
     }
 
@@ -343,6 +388,12 @@ struct SearchView: View {
         ) {
             Task { await submit() }
         }
+        .accessibilityIdentifier(submitIdentifier)
+    }
+
+    private var submitIdentifier: String {
+        if scope == .restaurants { return isLoading ? "restaurants-loading" : "restaurant-search-submit" }
+        return "search-submit"
     }
 
     private var buttonTitle: String {
@@ -352,12 +403,31 @@ struct SearchView: View {
 
     @ViewBuilder
     private var requestState: some View {
-        if let error { ErrorNotice(error: error) { Task { await submit() } } }
+        if let error {
+            if scope == .foods {
+                ErrorNotice(
+                    error: error,
+                    retry: { Task { await submit() } },
+                    identifier: "search-error",
+                    retryIdentifier: "search-retry",
+                    detailsIdentifier: "search-error-details",
+                    detailsBodyIdentifier: "search-error-details-body"
+                )
+            } else {
+                ErrorNotice(
+                    error: error,
+                    retry: { Task { await submit() } },
+                    identifier: "restaurants-error",
+                    retryIdentifier: "restaurants-error-retry"
+                )
+            }
+        }
     }
 
-    private func categoryChip(_ label: String, category value: FoodCategory?) -> some View {
+    private func categoryChip(_ label: String, category value: FoodCategory?, identifier: String) -> some View {
         Button(label) { category = value }
             .buttonStyle(ChipButtonStyle(isSelected: category == value))
+            .accessibilityIdentifier(identifier)
     }
 
     @MainActor
@@ -435,15 +505,21 @@ struct SearchView: View {
 struct FoodSuggestionList: View {
     let items: [FoodSuggestion]
     var loadingID: FoodID?
+    var identifier: String?
+    var itemIdentifier: ((Int) -> String)?
     let onSelect: (FoodSuggestion) -> Void
 
     init(
         items: [FoodSuggestion],
         loadingID: FoodID? = nil,
+        identifier: String? = nil,
+        itemIdentifier: ((Int) -> String)? = nil,
         onSelect: @escaping (FoodSuggestion) -> Void
     ) {
         self.items = items
         self.loadingID = loadingID
+        self.identifier = identifier
+        self.itemIdentifier = itemIdentifier
         self.onSelect = onSelect
     }
 
@@ -474,6 +550,7 @@ struct FoodSuggestionList: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(loadingID != nil)
+                .accessibilityIdentifier(itemIdentifier?(index) ?? "")
 
                 if index < items.count - 1 {
                     Divider().overlay(AppPalette.divider)
@@ -481,6 +558,8 @@ struct FoodSuggestionList: View {
             }
         }
         .appCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(identifier ?? "")
     }
 }
 
@@ -738,6 +817,8 @@ struct FoodDetailView: View {
                     fat: portion?.nutrition.totalFat?.value
                 )
                     .appCard()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("food-macros")
 
                 let rows = portion.map(portionNutrients) ?? []
                 if !rows.isEmpty {
@@ -746,6 +827,8 @@ struct FoodDetailView: View {
                         NutritionList(rows: rows)
                     }
                     .appCard()
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("food-nutrition")
                 }
 
                 PrimaryButton(
@@ -755,10 +838,12 @@ struct FoodDetailView: View {
                 ) {
                     isShowingGlucose = true
                 }
+                .accessibilityIdentifier("food-check-glucose")
 
                 PrimaryButton(title: "Find alternatives") {
                     isShowingAlternatives = true
                 }
+                .accessibilityIdentifier("food-alternatives")
 
                 DisclosureGroup("Technical details") {
                     LabeledContent("Food ID", value: "\(detailFood.id.rawValue)")
@@ -775,6 +860,8 @@ struct FoodDetailView: View {
             .padding(.vertical, 16)
         }
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("food-detail-screen")
         .appNavigationBar("Food details")
         .task(id: food.id) { await loadFullFood() }
         .sheet(isPresented: $isShowingAlternatives) {
@@ -885,12 +972,21 @@ private struct FoodGlucoseSheet: View {
                         }
                         .padding(.vertical, 42)
                         .appCard()
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("food-glucose-loading")
                     } else if let error {
-                        ErrorNotice(error: error) {
-                            Task { await predict() }
-                        }
+                        ErrorNotice(
+                            error: error,
+                            retry: { Task { await predict() } },
+                            identifier: "food-glucose-error",
+                            retryIdentifier: "food-glucose-error-retry"
+                        )
                     } else if let prediction {
-                        predictionContent(prediction)
+                        VStack(alignment: .leading, spacing: 18) {
+                            predictionContent(prediction)
+                        }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("food-glucose-result")
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -1071,7 +1167,14 @@ private struct AlternativesView: View {
                             FlowChoiceGrid(values: DietPreference.allCases, selected: $preferences)
                         }
 
-                        if let error { ErrorNotice(error: error) { Task { await load() } } }
+                        if let error {
+                            ErrorNotice(
+                                error: error,
+                                retry: { Task { await load() } },
+                                identifier: "alternatives-error",
+                                retryIdentifier: "alternatives-error-retry"
+                            )
+                        }
                         if let result {
                             if result.alternatives.isEmpty {
                                 EmptyStateCard(
@@ -1079,25 +1182,31 @@ private struct AlternativesView: View {
                                     message: "No foods matched every selected dietary need.",
                                     symbol: "leaf"
                                 )
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("alternatives-empty")
                             } else {
-                                SectionLabel("Suggestions · \(result.alternatives.count)")
-                                ForEach(Array(result.alternatives.enumerated()), id: \.offset) { _, alternative in
-                                    let loadedFood = alternative.id.flatMap { alternativeDetails[$0] }
-                                    let detailFood = loadedFood ?? alternativeDetailFood(alternative)
-                                    Group {
-                                        if let detailFood {
-                                            NavigationLink {
-                                                FoodDetailView(client: client, food: detailFood, endUserID: endUserID)
-                                            } label: {
-                                                AlternativeFoodRow(food: alternative, photoURL: detailFood.photoURL, isInteractive: true)
+                                VStack(alignment: .leading, spacing: AppSpacing.section) {
+                                    SectionLabel("Suggestions · \(result.alternatives.count)")
+                                    ForEach(Array(result.alternatives.enumerated()), id: \.offset) { _, alternative in
+                                        let loadedFood = alternative.id.flatMap { alternativeDetails[$0] }
+                                        let detailFood = loadedFood ?? alternativeDetailFood(alternative)
+                                        Group {
+                                            if let detailFood {
+                                                NavigationLink {
+                                                    FoodDetailView(client: client, food: detailFood, endUserID: endUserID)
+                                                } label: {
+                                                    AlternativeFoodRow(food: alternative, photoURL: detailFood.photoURL, isInteractive: true)
+                                                }
+                                                .buttonStyle(.plain)
+                                            } else {
+                                                AlternativeFoodRow(food: alternative, photoURL: nil, isInteractive: false)
                                             }
-                                            .buttonStyle(.plain)
-                                        } else {
-                                            AlternativeFoodRow(food: alternative, photoURL: nil, isInteractive: false)
                                         }
+                                        .appCard()
                                     }
-                                    .appCard()
                                 }
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("alternatives-results")
                             }
                         }
                     }
@@ -1114,6 +1223,7 @@ private struct AlternativesView: View {
                 ) {
                     Task { await load() }
                 }
+                .accessibilityIdentifier(isLoading ? "alternatives-loading" : "alternatives-refresh")
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
                 .background(AppPalette.paper)
@@ -1396,6 +1506,8 @@ private struct RestaurantDetailView: View {
             .padding(.vertical, 16)
         }
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("restaurant-detail-screen")
         .appNavigationBar("Restaurant")
         .task(id: restaurant.id) { await model.loadIfNeeded() }
     }
@@ -1411,14 +1523,23 @@ private struct RestaurantDetailView: View {
                 Spacer(minLength: 0)
             }
             .appCard()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("menu-loading")
         } else if model.menuItems.isEmpty, let menuError = model.error {
-            ErrorNotice(error: menuError) { Task { await model.retry() } }
+            ErrorNotice(
+                error: menuError,
+                retry: { Task { await model.retry() } },
+                identifier: "menu-error",
+                retryIdentifier: "menu-error-retry"
+            )
         } else if model.menuItems.isEmpty {
             EmptyStateCard(
                 title: "No menu items found",
                 message: "January did not return menu items for this restaurant.",
                 symbol: "fork.knife"
             )
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("menu-empty")
         } else {
             VStack(spacing: 0) {
                 ForEach(Array(model.menuItems.enumerated()), id: \.element.id) { index, item in
@@ -1429,12 +1550,15 @@ private struct RestaurantDetailView: View {
                             .padding(.vertical, 12)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("restaurant-menu-item-\(index)")
                     if index < model.menuItems.count - 1 {
                         Divider().overlay(AppPalette.divider)
                     }
                 }
             }
             .appCard()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("menu-results")
         }
     }
 
@@ -1526,6 +1650,7 @@ private struct RestaurantMenuItemDetailView: View {
                 ) {
                     isShowingGlucoseImpact = true
                 }
+                .accessibilityIdentifier("menu-glucose-button")
 
                 DisclosureGroup("Technical details") { LabeledContent("Menu item ID", value: item.id) }.font(.footnote)
                 }
@@ -1533,6 +1658,8 @@ private struct RestaurantMenuItemDetailView: View {
             .padding(.vertical, 16)
         }
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("menu-item-detail-screen")
         .appNavigationBar("Menu item")
         .sheet(isPresented: $isShowingGlucoseImpact) {
             if let glucoseFoodID, let selectedServing {
@@ -1697,13 +1824,17 @@ private struct RestaurantFiltersSheet: View {
                         .appCard()
 
                         PrimaryButton(title: "Apply filters") { dismiss() }
+                            .accessibilityIdentifier("restaurant-filters-apply")
                     }
                 }
                 .padding(.vertical, AppSpacing.sheetTop)
             }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("restaurant-filters")
             .appNavigationBar("Search filters") {
                 AppNavigationButton(.close, title: "Close filters") { dismiss() }
+                    .accessibilityIdentifier("restaurant-filters-close")
             } trailing: {
                 EmptyView()
             }
