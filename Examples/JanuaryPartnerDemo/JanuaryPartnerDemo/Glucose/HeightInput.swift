@@ -23,7 +23,11 @@ struct HeightInput: View {
                     .font(AppTypography.bodyStrong)
                     .foregroundStyle(AppPalette.ink)
                 Spacer(minLength: 12)
-                SegmentedControl(HeightDisplayUnit.allCases, selection: $displayUnit) { $0.title }
+                SegmentedControl(
+                    HeightDisplayUnit.allCases,
+                    selection: $displayUnit,
+                    identifier: { "glucose-height-unit-\($0.rawValue)" }
+                ) { $0.title }
                     .frame(maxWidth: 170)
                     .accessibilityLabel("Height units")
             }
@@ -33,7 +37,8 @@ struct HeightInput: View {
                     valueField("Feet") {
                         EndAlignedNumberField(
                             value: String(imperialHeight.feet),
-                            allowsDecimal: false
+                            allowsDecimal: false,
+                            accessibilityIdentifier: "glucose-height-feet"
                         ) { value in
                             if let value = Int(value) { feet.wrappedValue = value }
                         }
@@ -41,7 +46,8 @@ struct HeightInput: View {
                     valueField("Inches") {
                         EndAlignedNumberField(
                             value: String(imperialHeight.inches),
-                            allowsDecimal: false
+                            allowsDecimal: false,
+                            accessibilityIdentifier: "glucose-height-inches"
                         ) { value in
                             if let value = Int(value) { inches.wrappedValue = value }
                         }
@@ -51,7 +57,8 @@ struct HeightInput: View {
                 valueField("Centimeters") {
                     EndAlignedNumberField(
                         value: formatNumber(centimeters.wrappedValue),
-                        allowsDecimal: true
+                        allowsDecimal: true,
+                        accessibilityIdentifier: "glucose-height-centimeters"
                     ) { value in
                         if let value = Double(value) { centimeters.wrappedValue = value }
                     }

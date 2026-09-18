@@ -1,0 +1,39 @@
+appId: ai.january.partner.demo
+name: Search loading failure retry and state retention
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "500"
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: oatmeal
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "200"
+- tapOn:
+    id: search-retry
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 15000
+- assertVisible:
+    id: food-result-0
+- assertNotVisible:
+    id: search-error

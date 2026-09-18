@@ -14,6 +14,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  MAESTRO_VERSION: '2.7.0'
+  MAESTRO_SHA256: 'a4ccab6b604617e7aef6db4f885666056eabe5cfa32befaa3bc994041b8fcbb5'
+
 jobs:
   minimum-toolchain:
     name: Build with Swift 5.9
@@ -99,3 +103,100 @@ jobs:
 
       - name: Run complete example-app UI suite
         run: scripts/test-demo-ui.sh
+
+      - name: Build the example app for the Maestro suite
+        # A Debug simulator build: fixture mode (-ui-testing) is Debug-only.
+        run: >-
+          xcodebuild
+          -project Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj
+          -scheme JanuaryPartnerDemo
+          -destination 'generic/platform=iOS Simulator'
+          -configuration Debug
+          -derivedDataPath "$RUNNER_TEMP/demo-derived"
+          CODE_SIGNING_ALLOWED=NO
+          build
+          -quiet
+
+      - name: Pack the example app
+        # tar keeps the executable bits that upload-artifact would drop.
+        run: |
+          app="$RUNNER_TEMP/demo-derived/Build/Products/Debug-iphonesimulator/JanuaryPartnerDemo.app"
+          test -d "$app"
+          tar -czf "$RUNNER_TEMP/ios-demo-app.tgz" -C "$(dirname "$app")" "$(basename "$app")"
+
+      - name: Upload the example app for the UI suite
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-demo-app
+          path: ${{ runner.temp }}/ios-demo-app.tgz
+          if-no-files-found: error
+          retention-days: 1
+
+  # The Maestro suite (Examples/JanuaryPartnerDemo/.maestro) runs the demo end
+  # to end against the fixture server, split across simulators so each job
+  # stays short. Failed flows are rerun once and named in a warning; Maestro's
+  # failure screenshots and view hierarchies are uploaded with the JUnit report.
+  ui-test-ios:
+    name: ui-test-ios (shard ${{ matrix.shard }} of 3)
+    needs: sdk-and-demo
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    env:
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install Maestro
+        run: |
+          archive="$RUNNER_TEMP/maestro.zip"
+          curl --fail --location --silent --show-error --retry 3 \
+            "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip" \
+            --output "$archive"
+          echo "${MAESTRO_SHA256}  ${archive}" | shasum -a 256 --check
+          unzip -q "$archive" -d "$RUNNER_TEMP/maestro"
+          "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
+          echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Download the example app
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-demo-app
+          path: ${{ runner.temp }}
+
+      - name: Run iOS device suite
+        run: |
+          mkdir -p "$RUNNER_TEMP/ios-demo-app"
+          tar -xzf "$RUNNER_TEMP/ios-demo-app.tgz" -C "$RUNNER_TEMP/ios-demo-app"
+          .github/scripts/ios-ui-suite.sh "$RUNNER_TEMP/ios-demo-app/JanuaryPartnerDemo.app" ${{ matrix.shard }} 3
+
+      - name: Upload iOS UI artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: maestro-ios-${{ matrix.shard }}
+          path: |
+            Examples/JanuaryPartnerDemo/.maestro/artifacts
+            !Examples/JanuaryPartnerDemo/.maestro/artifacts/debug/**/device-simulator.log
+            ${{ runner.temp }}/ios-fixture.log
+
+  # One check that summarizes every shard, so branch protection can require a
+  # single stable name.
+  ui-tests:
+    needs: ui-test-ios
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every UI shard passed
+        env:
+          RESULT: ${{ needs.ui-test-ios.result }}
+        run: |
+          echo "ios=$RESULT"
+          test "$RESULT" = "success"

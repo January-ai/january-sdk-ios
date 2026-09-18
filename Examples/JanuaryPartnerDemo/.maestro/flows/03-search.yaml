@@ -1,0 +1,23 @@
+appId: ai.january.partner.demo
+name: Food search renders fixture results
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 15000
+- assertVisible: RESULTS · JANUARY FOOD DATABASE
+- assertVisible: Fixture oatmeal
+- assertVisible: .*100.*
+- assertVisible:
+    id: food-result-0

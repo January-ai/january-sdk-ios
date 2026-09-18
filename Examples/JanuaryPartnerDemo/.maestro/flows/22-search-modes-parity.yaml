@@ -1,0 +1,46 @@
+appId: ai.january.partner.demo
+name: Native parity - description and barcode search
+tags:
+  - parity
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-search
+    timeout: 15000
+- tapOn:
+    text: Description
+- assertVisible: Describe a meal
+- tapOn:
+    id: search-input
+- inputText: a bowl of oatmeal with honey and a banana
+- hideKeyboard
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: description-results
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-description-results
+- tapOn:
+    id: search-clear
+- tapOn:
+    text: Barcode
+- assertVisible: Enter or scan a barcode
+- assertVisible:
+    id: scan-barcode-button
+- tapOn:
+    id: search-input
+- inputText: 012345678905
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-barcode-result
+- tapOn:
+    id: search-clear
+- tapOn:
+    text: Name
+- assertVisible:
+    id: search-input

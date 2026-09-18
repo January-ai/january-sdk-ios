@@ -23,6 +23,8 @@ struct ScanPhotoInstructions: View {
             Spacer(minLength: 0)
         }
         .appCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("scan-guide")
     }
 }
 

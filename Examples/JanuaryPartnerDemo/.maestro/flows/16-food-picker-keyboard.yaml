@@ -1,0 +1,39 @@
+appId: ai.january.partner.demo
+name: Glucose food picker remains usable above the keyboard
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- tapOn:
+    id: tab-glucose
+- scrollUntilVisible:
+    element:
+      id: glucose-add-food
+    direction: DOWN
+- tapOn:
+    id: glucose-add-food
+- assertVisible:
+    id: food-picker
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- assertVisible: Add food
+- assertVisible:
+    id: food-picker-input
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-food-picker-keyboard-open
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- assertVisible: Fixture oatmeal
+- tapOn:
+    id: food-picker-result-0
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0

@@ -1,0 +1,85 @@
+appId: ai.january.partner.demo
+name: Food detail glucose and alternatives recover without losing context
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-search
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      STATUS: "500"
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+- tapOn:
+    id: food-result-0
+- scrollUntilVisible:
+    element:
+      id: food-check-glucose
+    direction: DOWN
+- tapOn:
+    id: food-check-glucose
+- extendedWaitUntil:
+    visible:
+      id: food-glucose-error
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      STATUS: "200"
+- tapOn:
+    id: food-glucose-error-retry
+- extendedWaitUntil:
+    visible:
+      id: food-glucose-result
+    timeout: 15000
+- tapOn:
+    text: Close glucose response
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/101/alternatives
+      STATUS: "500"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-alternatives
+- tapOn:
+    id: food-alternatives
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: alternatives-refresh
+- tapOn:
+    id: alternatives-refresh
+- extendedWaitUntil:
+    visible:
+      id: alternatives-error
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/101/alternatives
+      STATUS: "200"
+- scrollUntilVisible:
+    element:
+      id: alternatives-error-retry
+    direction: DOWN
+- tapOn:
+    id: alternatives-error-retry
+- extendedWaitUntil:
+    visible:
+      id: alternatives-results
+    timeout: 15000

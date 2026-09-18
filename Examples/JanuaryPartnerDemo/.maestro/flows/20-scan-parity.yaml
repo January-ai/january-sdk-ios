@@ -1,0 +1,50 @@
+appId: ai.january.partner.demo
+name: Native parity - scan and correction surfaces
+tags:
+  - parity
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-scan
+    timeout: 15000
+- tapOn:
+    id: tab-scan
+- assertVisible:
+    id: scan-guide
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-scan-guide
+- tapOn:
+    id: scan-image-url
+- assertVisible: Use image URL
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-scan-image-url
+- tapOn:
+    text: Close image URL entry
+- tapOn:
+    id: scan-sample
+- assertVisible:
+    id: scan-preview
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-scan-preview
+- tapOn:
+    id: scan-analyze
+- extendedWaitUntil:
+    visible:
+      id: scan-results
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-scan-results
+- scrollUntilVisible:
+    element:
+      id: scan-correct
+    direction: DOWN
+- tapOn:
+    id: scan-correct
+- assertVisible: Correct result
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-scan-correction
+- tapOn:
+    id: scan-correction-input
+- inputText: This was lentils
+- tapOn:
+    id: scan-correction-submit
+- extendedWaitUntil:
+    visible: Corrected breakfast
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-scan-corrected

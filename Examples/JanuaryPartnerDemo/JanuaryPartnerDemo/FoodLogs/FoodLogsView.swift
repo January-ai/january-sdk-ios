@@ -40,6 +40,7 @@ struct FoodLogsView: View {
                             PrimaryButton(title: "Create a food log", systemImage: "plus") {
                                 isCreating = true
                             }
+                            .accessibilityIdentifier("food-log-create")
 
                             SectionLabel("Browse saved logs")
                             Text("Food logs are fetched for the selected user ID and date range.")
@@ -59,6 +60,7 @@ struct FoodLogsView: View {
                             ) {
                                 Task { await load() }
                             }
+                            .accessibilityIdentifier("food-logs-refresh")
 
                             if isLoading, logs.isEmpty {
                                 HStack(spacing: 12) {
@@ -68,16 +70,27 @@ struct FoodLogsView: View {
                                         .foregroundStyle(AppPalette.muted)
                                 }
                                 .padding()
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("food-logs-loading")
                             }
-                            if let error { ErrorNotice(error: error) { Task { await load() } } }
+                            if let error {
+                                ErrorNotice(
+                                    error: error,
+                                    retry: { Task { await load() } },
+                                    identifier: "food-logs-error",
+                                    retryIdentifier: "food-logs-retry"
+                                )
+                            }
 
                             if !logs.isEmpty {
-                                ForEach(logs, id: \.id) { log in
+                                ForEach(Array(logs.enumerated()), id: \.element.id) { index, log in
                                     NavigationLink {
                                         FoodLogDetailView(client: client, log: log, context: context) { Task { await load() } }
                                     } label: {
                                         FoodLogRow(log: log).appCard()
-                                    }.buttonStyle(.plain)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityIdentifier("food-log-\(index)")
                                 }
                             } else if !isLoading, error == nil {
                                 EmptyStateCard(
@@ -85,6 +98,8 @@ struct FoodLogsView: View {
                                     message: "Create a log, add one or more foods to the meal, then save it for this user.",
                                     symbol: "list.bullet.clipboard"
                                 )
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("food-logs-empty")
                             }
                         }
                     }
@@ -94,14 +109,18 @@ struct FoodLogsView: View {
             }
             .refreshable { await load() }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("food-logs-screen")
             .appNavigationBar("Food logs", style: .leading) {
                 EmptyView()
             } trailing: {
                 HStack(spacing: 8) {
                     if userID != nil {
                         AppNavigationButton(.add, title: "Add food log") { isCreating = true }
+                            .accessibilityIdentifier("food-log-add")
                     }
                     AppNavigationButton(.settings, action: settingsAction)
+                        .accessibilityIdentifier("settings-button")
                 }
             }
             .sheet(isPresented: $isCreating) {
@@ -222,6 +241,7 @@ private struct FoodLogEditorView: View {
                                     AppPalette.control,
                                     in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
                                 )
+                                .accessibilityIdentifier("food-log-name")
                         }
 
                         HStack(spacing: 12) {
@@ -240,6 +260,8 @@ private struct FoodLogEditorView: View {
                                 message: "Start with one food, then keep adding until the complete meal is represented.",
                                 symbol: "plus.circle"
                             )
+                            .accessibilityElement(children: .contain)
+                            .accessibilityIdentifier("food-log-editor-empty")
                         } else {
                             ForEach($foods) { $item in
                                 VStack(alignment: .leading, spacing: 14) {
@@ -301,8 +323,16 @@ private struct FoodLogEditorView: View {
                             isShowingFoodPicker = true
                         }
                             .buttonStyle(OutlinedButtonStyle())
+                            .accessibilityIdentifier("food-log-add-food")
 
-                        if let error { ErrorNotice(error: error) { Task { await save() } } }
+                        if let error {
+                            ErrorNotice(
+                                error: error,
+                                retry: { Task { await save() } },
+                                identifier: "food-log-save-error",
+                                retryIdentifier: "food-log-save-retry"
+                            )
+                        }
 
                         PrimaryButton(
                             title: existing == nil ? "Save food log" : "Update food log",
@@ -311,12 +341,15 @@ private struct FoodLogEditorView: View {
                         ) {
                             Task { await save() }
                         }
+                        .accessibilityIdentifier(isSaving ? "food-log-save-loading" : "food-log-save")
                     }
                 }
                 .padding(.vertical, AppSpacing.sheetTop)
                 .padding(.bottom, 88)
             }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("food-log-editor")
             .appNavigationBar(existing == nil ? "New food log" : "Edit food log") {
                 AppNavigationButton(.close, title: existing == nil ? "Close new food log" : "Close food log editor") { dismiss() }
             } trailing: {
@@ -403,18 +436,31 @@ private struct FoodLogDetailView: View {
                             RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous)
                                 .stroke(AppPalette.rust.opacity(0.35), lineWidth: 1.5)
                         }
+                        .accessibilityIdentifier("food-log-delete")
                     Spacer(minLength: 0)
                 }
-                if let error { ErrorNotice(error: error) { Task { await delete() } } }
+                if let error {
+                    // A failed deletion is reported here, on the detail screen; the RN example
+                    // reports it on the list, so the same IDs are used for the same recovery step.
+                    ErrorNotice(
+                        error: error,
+                        retry: { Task { await delete() } },
+                        identifier: "food-logs-error",
+                        retryIdentifier: "food-logs-retry"
+                    )
+                }
                 }
             }
             .padding(.vertical, 16)
         }
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("food-log-detail")
         .appNavigationBar("Food log") {
             EmptyView()
         } trailing: {
             AppNavigationButton(.edit) { isEditing = true }
+                .accessibilityIdentifier("food-log-edit")
         }
         .sheet(isPresented: $isEditing) {
             FoodLogEditorView(client: client, context: context, existing: log) { isEditing = false; onChanged(); dismiss() }
@@ -453,12 +499,21 @@ struct FoodPickerView: View {
             ScrollView {
                 ScreenShell {
                     VStack(alignment: .leading, spacing: 16) {
-                            SearchField(prompt: "Search foods", text: queryBinding) {
+                            SearchField(
+                                prompt: "Search foods",
+                                text: queryBinding,
+                                identifier: "food-picker-input",
+                                voiceIdentifier: "food-picker-voice"
+                            ) {
                                 Task { await search() }
                             }
 
                             if !suggestions.isEmpty {
-                                FoodSuggestionList(items: suggestions) { suggestion in
+                                FoodSuggestionList(
+                                    items: suggestions,
+                                    identifier: "food-picker-suggestions",
+                                    itemIdentifier: { "food-picker-suggestion-\($0)" }
+                                ) { suggestion in
                                     guard let suggestionName = suggestion.name else { return }
                                     autocompleteSuppressedQuery = suggestionName
                                     query = suggestionName
@@ -468,21 +523,28 @@ struct FoodPickerView: View {
                             }
 
                             if let error {
-                                ErrorNotice(error: error) {
-                                    Task {
-                                        if let failedFoodID {
-                                            await hydrate(failedFoodID)
-                                        } else {
-                                            await search()
+                                ErrorNotice(
+                                    error: error,
+                                    retry: {
+                                        Task {
+                                            if let failedFoodID {
+                                                await hydrate(failedFoodID)
+                                            } else {
+                                                await search()
+                                            }
                                         }
-                                    }
-                                }
+                                    },
+                                    identifier: "food-picker-error",
+                                    retryIdentifier: "food-picker-retry"
+                                )
                             } else if suggestions.isEmpty && results.isEmpty && !isLoading {
                                 EmptyStateCard(
                                     title: "Find a food",
                                     message: "Start typing for suggestions, or search January’s food database.",
                                     symbol: "fork.knife"
                                 )
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("food-picker-empty")
                             } else if !results.isEmpty {
                                 VStack(alignment: .leading, spacing: 10) {
                                     SectionLabel("Results · January food database")
@@ -494,6 +556,7 @@ struct FoodPickerView: View {
                                             }
                                             .buttonStyle(.plain)
                                             .disabled(hydratingFoodID != nil)
+                                            .accessibilityIdentifier("food-picker-result-\(index)")
                                             if index < results.count - 1 { Divider().overlay(AppPalette.divider) }
                                         }
                                     }
@@ -514,8 +577,11 @@ struct FoodPickerView: View {
                 .padding(.bottom, 32)
             }
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("food-picker")
             .appNavigationBar("Add food") {
                 AppNavigationButton(.close, title: "Close add food") { dismiss() }
+                    .accessibilityIdentifier("food-picker-close")
             } trailing: {
                 EmptyView()
             }
@@ -629,12 +695,15 @@ private struct ServingSelectionSheet: View {
                                         .font(AppTypography.bodyStrong)
                                     Spacer(minLength: 8)
                                     Picker("Serving", selection: $serving) {
-                                        ForEach(food.servings, id: \.id) {
-                                            Text("\(($0.quantity ?? 1).formatted()) \($0.unit ?? "serving")").tag($0)
+                                        ForEach(Array(food.servings.enumerated()), id: \.element.id) { index, option in
+                                            Text("\((option.quantity ?? 1).formatted()) \(option.unit ?? "serving")")
+                                                .tag(option)
+                                                .accessibilityIdentifier("food-serving-option-\(index)")
                                         }
                                     }
                                     .labelsHidden()
                                     .tint(AppPalette.goldText)
+                                    .accessibilityIdentifier("food-serving-unit")
                                 }
                                 .padding(.horizontal, 22)
                                 .padding(.vertical, 11)
@@ -670,6 +739,8 @@ private struct ServingSelectionSheet: View {
                                 RoundedRectangle(cornerRadius: AppRadius.card, style: .continuous)
                                     .stroke(AppPalette.border, lineWidth: 1.5)
                             }
+                            .accessibilityElement(children: .contain)
+                            .accessibilityIdentifier("food-serving-controls")
 
                             LazyVGrid(
                                 columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4),
@@ -685,11 +756,14 @@ private struct ServingSelectionSheet: View {
                                 onSelect(.init(food: food, serving: serving, quantity: quantity))
                                 dismiss()
                             }
+                            .accessibilityIdentifier("food-serving-add")
                 }
             }
             .padding(.top, AppSpacing.sheetTop)
             .padding(.bottom, 12)
             .appBackground()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("food-serving-sheet")
             .appNavigationBar("Choose serving") {
                 AppNavigationButton(.close, title: "Close serving picker") { dismiss() }
             } trailing: {

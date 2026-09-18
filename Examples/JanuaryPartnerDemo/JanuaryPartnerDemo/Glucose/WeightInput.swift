@@ -23,7 +23,11 @@ struct WeightInput: View {
                     .font(AppTypography.bodyStrong)
                     .foregroundStyle(AppPalette.ink)
                 Spacer(minLength: 12)
-                SegmentedControl(WeightDisplayUnit.allCases, selection: $displayUnit) { $0.title }
+                SegmentedControl(
+                    WeightDisplayUnit.allCases,
+                    selection: $displayUnit,
+                    identifier: { "glucose-weight-unit-\($0.title)" }
+                ) { $0.title }
                     .frame(maxWidth: 170)
                     .accessibilityLabel("Weight units")
             }
@@ -31,7 +35,8 @@ struct WeightInput: View {
             valueField(displayUnit == .pounds ? "Pounds" : "Kilograms") {
                 EndAlignedNumberField(
                     value: formatNumber(displayedWeight.wrappedValue),
-                    allowsDecimal: true
+                    allowsDecimal: true,
+                    accessibilityIdentifier: "glucose-weight"
                 ) { value in
                     if let value = Double(value) { displayedWeight.wrappedValue = value }
                 }

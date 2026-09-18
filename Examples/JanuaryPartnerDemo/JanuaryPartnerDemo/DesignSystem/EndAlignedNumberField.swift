@@ -4,6 +4,7 @@ import UIKit
 struct EndAlignedNumberField: UIViewRepresentable {
     let value: String
     let allowsDecimal: Bool
+    var accessibilityIdentifier: String? = nil
     let onValueChange: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -23,11 +24,13 @@ struct EndAlignedNumberField: UIViewRepresentable {
         textField.keyboardType = allowsDecimal ? .decimalPad : .numberPad
         textField.adjustsFontSizeToFitWidth = true
         textField.minimumFontSize = 18
+        textField.accessibilityIdentifier = accessibilityIdentifier
         return textField
     }
 
     func updateUIView(_ textField: UITextField, context: Context) {
         context.coordinator.parent = self
+        textField.accessibilityIdentifier = accessibilityIdentifier
         if !textField.isFirstResponder, textField.text != value {
             textField.text = value
         }

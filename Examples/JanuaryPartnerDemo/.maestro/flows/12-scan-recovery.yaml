@@ -1,0 +1,85 @@
+appId: ai.january.partner.demo
+name: Scan and correction failures recover without losing input
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-scan
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/image
+      STATUS: "500"
+- tapOn:
+    id: tab-scan
+- tapOn:
+    id: scan-sample
+- assertVisible:
+    id: scan-preview
+- tapOn:
+    id: scan-analyze
+- extendedWaitUntil:
+    visible:
+      id: scan-error
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/image
+      STATUS: "200"
+- tapOn:
+    id: scan-error-retry
+- extendedWaitUntil:
+    visible:
+      id: scan-results
+    timeout: 15000
+- assertVisible: Fixture breakfast
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/corrections
+      STATUS: "500"
+- scrollUntilVisible:
+    element:
+      id: scan-correct
+    direction: DOWN
+- tapOn:
+    id: scan-correct
+- tapOn:
+    id: scan-correction-input
+- inputText: retry correction
+- tapOn:
+    id: scan-correction-submit
+- extendedWaitUntil:
+    visible:
+      id: scan-correction-error
+    timeout: 15000
+- assertVisible: retry correction
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/corrections
+      STATUS: "200"
+- scrollUntilVisible:
+    element:
+      id: scan-correction-error-retry
+    direction: DOWN
+- tapOn:
+    id: scan-correction-error-retry
+- extendedWaitUntil:
+    visible: Corrected breakfast
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: scan-another
+    direction: DOWN
+- tapOn:
+    id: scan-another
+- assertVisible:
+    id: scan-guide
+- assertNotVisible:
+    id: scan-results

@@ -1,0 +1,26 @@
+appId: ai.january.partner.demo
+# Bring a control near the end of a scrolling screen into view and clear of the
+# floating tab bar and the Android navigation bar.
+#
+# Centering does that when the content is long enough. When it is not, Maestro
+# keeps scrolling to center an element that cannot move and then reports it as
+# not found (seen on iOS with the food-log delete and glucose estimate buttons,
+# both already fully on screen). So the centering pass is optional and bounded,
+# and a plain scroll settles the result.
+#
+#   - runFlow:
+#       file: ../scroll-to.yaml
+#       env:
+#         TARGET_ID: food-log-delete
+---
+- scrollUntilVisible:
+    element:
+      id: ${TARGET_ID}
+    direction: DOWN
+    centerElement: true
+    timeout: 8000
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: ${TARGET_ID}
+    direction: DOWN

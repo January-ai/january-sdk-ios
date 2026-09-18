@@ -1,0 +1,118 @@
+appId: ai.january.partner.demo
+name: Native parity - categorized food search errors
+tags:
+  - fixture
+  - parity
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "401"
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: Couldn.t use the configured credentials
+- tapOn:
+    id: search-error-details
+- assertVisible:
+    id: search-error-details-body
+- assertVisible: 401
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-401
+- tapOn:
+    id: search-error-details
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "403"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: Couldn.t use the configured credentials
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-403
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "404"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: No matching result was found
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-404
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "422"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: Check the information you entered
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-422
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "429"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: Too many requests
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-429
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      STATUS: "504"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: The request took too long
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-search-error-504

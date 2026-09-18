@@ -7,6 +7,15 @@ enum FoodLogTimeSpan: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    /// Matches the React Native example's `logs-range-*` test IDs.
+    var accessibilityIdentifier: String {
+        switch self {
+        case .today: "logs-range-today"
+        case .currentWeek: "logs-range-week"
+        case .lastMonth: "logs-range-month"
+        }
+    }
+
     var title: String {
         switch self {
         case .today: "Today"

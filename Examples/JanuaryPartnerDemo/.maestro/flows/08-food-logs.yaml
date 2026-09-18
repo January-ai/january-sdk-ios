@@ -1,0 +1,73 @@
+appId: ai.january.partner.demo
+name: Food logs browse and create
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-fixture.js
+- tapOn:
+    id: tab-food-logs
+- scrollUntilVisible:
+    element:
+      text: Last month
+    direction: DOWN
+- tapOn:
+    text: Last month
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- tapOn:
+    id: food-log-0
+- assertVisible:
+    id: food-log-detail
+- assertVisible: Fixture oatmeal
+- tapOn:
+    text: Food logs
+- extendedWaitUntil:
+    visible:
+      id: food-log-add
+    timeout: 15000
+- tapOn:
+    id: food-log-add
+- assertVisible: New food log
+- tapOn:
+    id: food-log-name
+- inputText: Afternoon snack
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: food-log-add-food
+    direction: DOWN
+- tapOn:
+    id: food-log-add-food
+- assertVisible:
+    id: food-picker
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- assertVisible:
+    id: food-serving-sheet
+- tapOn:
+    id: food-serving-add
+- scrollUntilVisible:
+    element:
+      id: food-log-save
+    direction: DOWN
+- tapOn:
+    id: food-log-save
+- extendedWaitUntil:
+    visible: .*Afternoon snack.*
+    timeout: 15000

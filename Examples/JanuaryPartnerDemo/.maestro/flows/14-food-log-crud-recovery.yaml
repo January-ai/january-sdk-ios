@@ -1,0 +1,86 @@
+appId: ai.january.partner.demo
+name: Food log update delete and retry preserve state
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-fixture.js
+- tapOn:
+    id: tab-food-logs
+- scrollUntilVisible:
+    element:
+      text: Last month
+    direction: DOWN
+- tapOn:
+    text: Last month
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- tapOn:
+    id: food-log-0
+- assertVisible:
+    id: food-log-detail
+- tapOn:
+    id: food-log-edit
+- assertVisible: Edit food log
+- tapOn:
+    id: food-log-name
+- eraseText: 30
+- inputText: Updated meal
+- pressKey: Enter
+- scrollUntilVisible:
+    element:
+      id: food-log-save
+    direction: DOWN
+- tapOn:
+    id: food-log-save
+- extendedWaitUntil:
+    visible:
+      id: food-log-detail
+    timeout: 15000
+- assertVisible: .*Updated meal.*
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs/11111111-1111-4111-8111-111111111111
+      STATUS: "500"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-delete
+- tapOn:
+    id: food-log-delete
+- assertVisible: Delete this food log?
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-delete-confirmation
+- tapOn:
+    text: Delete food log
+    index: 1
+- extendedWaitUntil:
+    visible:
+      id: food-logs-error
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-delete-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs/11111111-1111-4111-8111-111111111111
+      STATUS: "200"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-retry
+- tapOn:
+    id: food-logs-retry
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+- assertNotVisible:
+    id: food-logs-error

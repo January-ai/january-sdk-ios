@@ -1,0 +1,45 @@
+appId: ai.january.partner.demo
+name: Meal scan and correction
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-scan
+    timeout: 15000
+- tapOn:
+    id: tab-scan
+- tapOn:
+    id: scan-sample
+- assertVisible:
+    id: scan-preview
+- tapOn:
+    id: scan-analyze
+- extendedWaitUntil:
+    visible:
+      id: scan-results
+    timeout: 15000
+- assertVisible: Fixture breakfast
+- scrollUntilVisible:
+    element:
+      text: Fixture oatmeal
+    direction: DOWN
+- scrollUntilVisible:
+    element:
+      id: scan-correct
+    direction: DOWN
+- tapOn:
+    id: scan-correct
+- extendedWaitUntil:
+    visible:
+      id: scan-correction-input
+    timeout: 15000
+- tapOn:
+    id: scan-correction-input
+- inputText: This was lentils
+- tapOn:
+    id: scan-correction-submit
+- extendedWaitUntil:
+    visible: Corrected breakfast
+    timeout: 15000

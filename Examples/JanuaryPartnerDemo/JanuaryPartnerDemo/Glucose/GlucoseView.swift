@@ -59,7 +59,7 @@ struct GlucoseView: View {
                         detail: "Age, sex, body measurements, and health conditions influence the estimated response."
                     ) {
                         VStack(spacing: 0) {
-                            measurementRow("Age", value: $age, unit: "years")
+                            measurementRow("Age", value: $age, unit: "years", identifier: "glucose-age")
                             Divider()
 
                             HStack(spacing: 16) {
@@ -69,7 +69,9 @@ struct GlucoseView: View {
                                 Spacer(minLength: 12)
                                 Picker("Sex", selection: $sex) {
                                     Text("Female").tag(Sex.female)
+                                        .accessibilityIdentifier("glucose-sex-female")
                                     Text("Male").tag(Sex.male)
+                                        .accessibilityIdentifier("glucose-sex-male")
                                 }
                                 .pickerStyle(.segmented)
                                 .labelsHidden()
@@ -97,6 +99,7 @@ struct GlucoseView: View {
                                 .padding(.vertical, 12)
                                 .contentShape(Rectangle())
                             }
+                            .accessibilityIdentifier("glucose-health-conditions")
                         }
                     }
 
@@ -144,6 +147,8 @@ struct GlucoseView: View {
                                     .buttonStyle(QuantityButtonStyle(isPrimary: true))
                                 }
                                 .padding(.vertical, 10)
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("glucose-food-\(foods.firstIndex { $0.id == item.id } ?? 0)")
                             }
 
                             Divider()
@@ -153,12 +158,18 @@ struct GlucoseView: View {
                             .font(.headline)
                             .foregroundStyle(AppPalette.goldText)
                             .padding(.vertical, 12)
+                            .accessibilityIdentifier("glucose-add-food")
 
                         }
                     }
 
                     if let error {
-                        ErrorNotice(error: error) { Task { await predict() } }
+                        ErrorNotice(
+                            error: error,
+                            retry: { Task { await predict() } },
+                            identifier: "glucose-error",
+                            retryIdentifier: "glucose-retry"
+                        )
                     }
 
                     PrimaryButton(
@@ -168,6 +179,7 @@ struct GlucoseView: View {
                     ) {
                         Task { await predict() }
                     }
+                    .accessibilityIdentifier(isLoading ? "glucose-loading" : "glucose-predict")
                 }
             }
             .padding(.vertical, 16)
@@ -175,10 +187,13 @@ struct GlucoseView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("glucose-screen")
         .appNavigationBar("Glucose", style: .leading) {
             EmptyView()
         } trailing: {
             AppNavigationButton(.settings, action: settingsAction)
+                .accessibilityIdentifier("settings-button")
         }
     }
 
@@ -211,7 +226,8 @@ struct GlucoseView: View {
     private func measurementRow(
         _ title: String,
         value: Binding<Double>,
-        unit: String
+        unit: String,
+        identifier: String
     ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(title)
@@ -224,6 +240,7 @@ struct GlucoseView: View {
                 .font(AppTypography.metric)
                 .monospacedDigit()
                 .frame(width: 72)
+                .accessibilityIdentifier(identifier)
             Text(unit)
                 .font(.system(size: 14))
                 .foregroundStyle(AppPalette.muted)
@@ -266,9 +283,9 @@ private struct ConditionSelectionView: View {
                         .foregroundStyle(AppPalette.muted)
 
                     VStack(spacing: 0) {
-                        condition("Type 2 diabetes", .type2Diabetes)
+                        condition("Type 2 diabetes", .type2Diabetes, identifier: "condition-type-2-diabetes")
                         Divider()
-                        condition("Prediabetes", .prediabetes)
+                        condition("Prediabetes", .prediabetes, identifier: "condition-prediabetes")
                     }
                     .appCard()
                 }
@@ -276,10 +293,12 @@ private struct ConditionSelectionView: View {
             .padding(.vertical, 16)
         }
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("conditions-screen")
         .appNavigationBar("Health conditions", style: .leading)
     }
 
-    private func condition(_ label: String, _ value: MedicalCondition) -> some View {
+    private func condition(_ label: String, _ value: MedicalCondition, identifier: String) -> some View {
         Button {
             if selection.contains(value) { selection.remove(value) } else { selection.insert(value) }
         } label: {
@@ -295,6 +314,7 @@ private struct ConditionSelectionView: View {
         .buttonStyle(.plain)
         .foregroundStyle(AppPalette.ink)
         .accessibilityValue(selection.contains(value) ? "Selected" : "Not selected")
+        .accessibilityIdentifier(identifier)
     }
 }
 
@@ -318,6 +338,7 @@ private struct GlucoseResultView: View {
                         summaryDelta: deltaSummary,
                         showsPeakAnnotation: false
                     )
+                    .accessibilityIdentifier("glucose-chart")
 
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(Array(foods.enumerated()), id: \.element.id) { index, food in
@@ -365,16 +386,23 @@ private struct GlucoseResultView: View {
                     ) {
                         Button("Adjust meal", action: adjust)
                             .buttonStyle(SecondaryButtonStyle())
+                            .accessibilityIdentifier("glucose-adjust")
                         PrimaryButton(title: "Start over", action: startOver)
+                            .accessibilityIdentifier("glucose-start-over")
                     }
                 }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("glucose-result")
             }
             .padding(.vertical, 16)
             .padding(.bottom, 88)
         }
         .appBackground()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("glucose-results-screen")
         .appNavigationBar("Estimated response") {
             AppNavigationButton(.back, title: "Glucose", action: adjust)
+                .accessibilityIdentifier("glucose-result-back")
         } trailing: {
             EmptyView()
         }

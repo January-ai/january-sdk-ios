@@ -1,0 +1,47 @@
+appId: ai.january.partner.demo
+name: Native parity - food log surfaces
+tags:
+  - parity
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-fixture.js
+- tapOn:
+    id: tab-food-logs
+- assertVisible:
+    id: food-log-user-card
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-initial
+- scrollUntilVisible:
+    element:
+      text: Last month
+    direction: DOWN
+- tapOn:
+    text: Last month
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: food-logs-refresh
+    direction: UP
+- tapOn:
+    id: food-logs-refresh
+- extendedWaitUntil:
+    visible:
+      id: food-log-0
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-list
+- tapOn:
+    id: food-log-0
+- assertVisible:
+    id: food-log-detail
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-detail
+- tapOn:
+    id: food-log-edit
+- assertVisible: Edit food log
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-log-editor

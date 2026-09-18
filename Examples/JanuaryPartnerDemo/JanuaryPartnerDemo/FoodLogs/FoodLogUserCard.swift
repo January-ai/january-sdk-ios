@@ -82,6 +82,8 @@ struct FoodLogUserCard: View {
             RoundedRectangle(cornerRadius: AppRadius.feature, style: .continuous)
                 .stroke(AppPalette.goldText.opacity(0.28), lineWidth: 1.5)
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("food-log-user-card")
     }
 
     private var normalizedUserID: String? {

@@ -1,0 +1,29 @@
+appId: ai.january.partner.demo
+name: Every primary destination is reachable
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-scan
+    timeout: 15000
+- tapOn:
+    id: tab-scan
+- assertVisible:
+    id: scan-screen
+- assertVisible: Scan a meal
+- tapOn:
+    id: tab-food-logs
+- assertVisible:
+    id: food-logs-screen
+- assertVisible: Food logs
+- tapOn:
+    id: tab-glucose
+- assertVisible:
+    id: glucose-screen
+- assertVisible: Estimate this meal.s response
+- tapOn:
+    id: tab-search
+- assertVisible:
+    id: search-screen
