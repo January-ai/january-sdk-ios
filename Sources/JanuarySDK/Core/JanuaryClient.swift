@@ -18,6 +18,10 @@ public struct JanuaryClient: Sendable {
     public let foodAnalysis: FoodAnalysisResource
     public let foodLogs: FoodLogsResource
     public let glucose: GlucoseResource
+    /// Water intake logs.
+    public let waterLogs: WaterLogsResource
+    /// Body-weight logs.
+    public let weightLogs: WeightLogsResource
 
     /// Creates a client using API-key authentication for local development only.
     ///
@@ -335,5 +339,7 @@ public struct JanuaryClient: Sendable {
         self.foodAnalysis = FoodAnalysisResource(client: transportClient, userContext: userContext)
         self.foodLogs = FoodLogsResource(client: transportClient, userContext: userContext)
         self.glucose = GlucoseResource(client: transportClient, userContext: userContext)
+        self.waterLogs = WaterLogsResource(client: transportClient, userContext: userContext)
+        self.weightLogs = WeightLogsResource(client: transportClient, userContext: userContext)
     }
 }

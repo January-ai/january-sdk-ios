@@ -84,7 +84,8 @@ The start and end dates are inclusive calendar dates in the supplied timezone. T
 
 ## Update
 
-Only fields supplied in the request are changed.
+Only fields supplied in the request are changed. An update that supplies no
+field is rejected before transport with a `.validation` error.
 
 ```swift
 let updated = try await client.foodLogs.update(

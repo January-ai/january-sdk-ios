@@ -4,7 +4,7 @@
 [![CocoaPods](https://img.shields.io/cocoapods/v/January.svg)](https://cocoapods.org/pods/January)
 
 The official Swift SDK for January food discovery, restaurants, meal scanning,
-food logs, and glucose prediction. It supports iOS 15+, Xcode 15+, and Swift
+food, water, and weight logs, and glucose prediction. It supports iOS 15+, Xcode 15+, and Swift
 5.9+, with no third-party runtime dependencies. The included demo currently
 requires Xcode 26 and an iOS 26 simulator or device.
 
@@ -211,6 +211,7 @@ for the complete contract.
 - [Photo scanning](Documentation/GitBook/guides/photo-scanning.md)
 - [Native meal scanner](Documentation/GitBook/guides/native-meal-scanner.md)
 - [Food logs](Documentation/GitBook/guides/food-logs.md)
+- [Water and weight logs](Documentation/GitBook/guides/water-and-weight-logs.md)
 - [Glucose prediction](Documentation/GitBook/guides/glucose-prediction.md)
 - [Voice capture](Documentation/GitBook/guides/voice-capture.md)
 

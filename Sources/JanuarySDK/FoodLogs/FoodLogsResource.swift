@@ -170,6 +170,13 @@ public struct FoodLogsResource: Sendable {
     public func update(_ request: UpdateFoodLogRequest) async throws -> FoodLog {
         var request = request
         request.user = resolvedUser(request.user)
+        // The API rejects an empty patch; only the fields set here are sent.
+        guard request.foods != nil || request.timestampUTC != nil || request.name != nil else {
+            throw JanuaryError(
+                category: .validation,
+                message: "An update must change at least one of foods, timestampUTC, or name."
+            )
+        }
         return try await performTransportRequest {
             let body = Components.Schemas.UpdateFoodLogBody(
                 foods: request.foods?.map(mapSelection),
@@ -245,11 +252,11 @@ public struct FoodLogsResource: Sendable {
                     glycemicLoad: food.glycemicLoad,
                     nutrients: try ModelBridge.convert(food.nutrients),
                     consumedServing: .init(
-                        id: food.serving.id.map { ServingID(rawValue: $0) },
+                        id: ServingID(rawValue: food.serving.id),
                         quantity: food.quantity
                     ),
                     servingDetails: .init(
-                        id: food.serving.id.map { ServingID(rawValue: $0) },
+                        id: ServingID(rawValue: food.serving.id),
                         quantity: food.serving.quantity,
                         unit: food.serving.unit,
                         weightGrams: food.serving.weightGrams

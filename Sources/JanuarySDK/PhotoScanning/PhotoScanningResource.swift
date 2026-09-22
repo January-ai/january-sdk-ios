@@ -89,14 +89,15 @@ public struct FoodAnalysisResource: Sendable {
             detections: try value.detections.map { detection in
                 FoodDetection(
                     food: DetectedFood(
-                        id: detection.food.id.map { FoodID(rawValue: $0) },
+                        id: FoodID(rawValue: detection.food.id),
                         name: detection.food.name,
                         brandName: detection.food.brandName,
                         nutrients: try ModelBridge.convert(detection.food.nutrients),
                         serving: ServingSummary(
-                            id: detection.food.serving.id.map { ServingID(rawValue: $0) },
+                            id: ServingID(rawValue: detection.food.serving.id),
                             quantity: detection.food.serving.quantity,
-                            unit: detection.food.serving.unit
+                            unit: detection.food.serving.unit,
+                            weightGrams: detection.food.serving.weightGrams
                         ),
                         quantity: detection.food.quantity
                     ),
@@ -106,27 +107,50 @@ public struct FoodAnalysisResource: Sendable {
         )
     }
 
-    private func transport(_ value: FoodScan) throws -> Components.Schemas.FoodScan {
+    /// A correction sends the prior scan back field for field. The API requires
+    /// every detection's food id, serving id, and quantity; a scan returned by
+    /// the API always has them, so a missing value is a caller-built detection.
+    private func transport(_ value: FoodScan) throws -> Components.Schemas.CorrectionAnalysis {
         .init(
             mealName: value.mealName,
             totalNutrients: try ModelBridge.convert(value.totalNutrients),
             detections: try value.detections.map { detection in
-                .init(
+                guard let foodID = detection.food.id else {
+                    throw correctionValidationError("food.id")
+                }
+                guard let servingID = detection.food.serving.id else {
+                    throw correctionValidationError("food.serving.id")
+                }
+                guard let servingQuantity = detection.food.serving.quantity else {
+                    throw correctionValidationError("food.serving.quantity")
+                }
+                guard let quantity = detection.food.quantity else {
+                    throw correctionValidationError("food.quantity")
+                }
+                return .init(
                     confidence: detection.confidenceScore?.rawValue,
                     food: .init(
-                        id: detection.food.id?.rawValue,
                         name: detection.food.name,
                         brandName: detection.food.brandName,
-                        quantity: detection.food.quantity,
+                        id: foodID.rawValue,
+                        quantity: quantity,
+                        nutrients: try ModelBridge.convert(detection.food.nutrients),
                         serving: .init(
-                            id: detection.food.serving.id?.rawValue,
-                            quantity: detection.food.serving.quantity,
-                            unit: detection.food.serving.unit
-                        ),
-                        nutrients: try ModelBridge.convert(detection.food.nutrients)
+                            id: servingID.rawValue,
+                            quantity: servingQuantity,
+                            unit: detection.food.serving.unit,
+                            weightGrams: detection.food.serving.weightGrams
+                        )
                     )
                 )
             }
+        )
+    }
+
+    private func correctionValidationError(_ field: String) -> JanuaryError {
+        JanuaryError(
+            category: .validation,
+            message: "Every detection sent for correction needs \(field); pass the analysis exactly as the API returned it."
         )
     }
 }

@@ -3,7 +3,7 @@ import Testing
 @testable import January
 
 @Test
-func exercisesAllSeventeenClientOperationsLive() async throws {
+func exercisesEveryClientOperationLive() async throws {
     let environment = ProcessInfo.processInfo.environment
     guard
         let apiKey = environment["JANUARY_API_KEY"], !apiKey.isEmpty,
@@ -132,6 +132,34 @@ func exercisesAllSeventeenClientOperationsLive() async throws {
     ))
     #expect(!prediction.prediction.isEmpty)
     pass("glucose.predict")
+
+    let today = SelfDateFormatter.string(from: Date())
+    var createdWaterLogID: String?
+    do {
+        let water = try await client.waterLogs.create(amount: .init(value: 8, unit: .fluidOunces))
+        createdWaterLogID = water.id
+        #expect(water.amount == .init(value: 8, unit: .fluidOunces))
+        pass("waterLogs.create")
+
+        let totals = try await client.waterLogs.list(start: today, end: today, unit: .fluidOunces)
+        #expect(totals.items.contains { $0.date == today && $0.total.value >= 8 })
+        pass("waterLogs.list")
+
+        try await client.waterLogs.delete(id: water.id)
+        createdWaterLogID = nil
+        pass("waterLogs.delete")
+    } catch {
+        if let createdWaterLogID { try? await client.waterLogs.delete(id: createdWaterLogID) }
+        throw error
+    }
+
+    let weight = try await client.weightLogs.create(weight: .init(value: 175, unit: .pounds))
+    #expect(weight.weight == .init(value: 175, unit: .pounds))
+    pass("weightLogs.create")
+
+    let weights = try await client.weightLogs.list(start: today, end: today)
+    #expect(weights.items.contains { $0.date == today })
+    pass("weightLogs.list")
 }
 
 private let burgerImageURL = "https://friendlysrestaurants.com/assets/live/img/production/detail/menu/lunch-dinner_999-combohs_all-american-burger-fries.jpg"

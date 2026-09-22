@@ -47,7 +47,7 @@ Without a serving ID, portion selection uses the primary serving or the first se
 
 ## Food models
 
-`FoodSearchItem` includes typed ID, name, optional brand, optional structured and compatibility nutrition fields, glycemic values, optional photo URL, and `[ServingOption]`. `FoodSuggestion` is deliberately smaller. `DetectedFood` represents scan/meal parsing results and may not have a database ID; it carries the selected `serving` (`ServingSummary`) and the `quantity` eaten. `FoodLogSummaryGrouping` (`day`, `week`), `WeekStart` (`monday`, `sunday`), and `AnalysisEffort` (`none`, `xhigh`) are the remaining request enums.
+`FoodSearchItem` includes typed ID, name, optional brand, optional structured and compatibility nutrition fields, glycemic values, optional photo URL, and `[ServingOption]`. `FoodSuggestion` is deliberately smaller. `DetectedFood` represents scan/meal parsing results and may not have a database ID; it carries the selected `serving` (`ServingSummary`, with the serving's `weightGrams` when known) and the `quantity` eaten. `FoodLogSummaryGrouping` (`day`, `week`), `WeekStart` (`monday`, `sunday`), and `AnalysisEffort` (`none`, `xhigh`) are the remaining request enums.
 
 ## Dietary enums
 
@@ -66,7 +66,22 @@ Without a serving ID, portion selection uses the primary serving or the first se
 | `MedicalCondition` | `type2Diabetes`, `prediabetes` |
 
 Use `Sex` for the profile's biological-sex field. Omit `healthConditions` or
-pass an empty array when no medical conditions apply.
+pass an empty array when no medical conditions apply. `age` is a whole number
+of years.
+
+## Water and weight logs
+
+| Type | Fields |
+| --- | --- |
+| `VolumeUnit` | `fluidOunces` (`fl_oz`), `milliliters` (`ml`) |
+| `WaterAmount` | `value`, `unit` (`VolumeUnit`) |
+| `Volume` | `value` (one decimal place), `unit` (`VolumeUnit`) |
+| `WaterLog` | `id`, `amount`, `consumedAtUTC` |
+| `DailyWaterTotal` | `date`, `total` (`Volume`) |
+| `WeightLog` | `weight` (`Weight`), `measuredAtUTC` |
+| `DailyWeight` | `date`, `weight` (`Weight`) |
+
+`Weight` and `WeightUnit` are shared with glucose prediction.
 
 ## Error categories
 

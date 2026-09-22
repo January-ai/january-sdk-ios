@@ -43,9 +43,12 @@ public struct ServingSummary: Codable, Hashable, Sendable {
     public var id: ServingID?
     public var quantity: Double?
     public var unit: String?
-    public init(id: ServingID?, quantity: Double? = nil, unit: String?) {
-        self.id = id; self.quantity = quantity; self.unit = unit
+    /// Weight in grams of one catalog serving (not the consumed portion). `nil` when unknown.
+    public var weightGrams: Double?
+    public init(id: ServingID?, quantity: Double? = nil, unit: String?, weightGrams: Double? = nil) {
+        self.id = id; self.quantity = quantity; self.unit = unit; self.weightGrams = weightGrams
     }
+    enum CodingKeys: String, CodingKey { case id, quantity, unit; case weightGrams = "weight_grams" }
 }
 
 @available(*, deprecated, renamed: "ServingSummary", message: "The amount eaten is now DetectedFood.quantity.")

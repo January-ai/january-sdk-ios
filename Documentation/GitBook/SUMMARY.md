@@ -24,6 +24,7 @@
 * [Native food scanner](guides/native-meal-scanner.md)
 * [Voice capture](guides/voice-capture.md)
 * [Food logs](guides/food-logs.md)
+* [Water and weight logs](guides/water-and-weight-logs.md)
 * [Glucose prediction](guides/glucose-prediction.md)
 
 ## Reference
@@ -34,6 +35,7 @@
 * [Restaurants API](reference/restaurants-api.md)
 * [Food analysis API](reference/photo-scanning-api.md)
 * [Food Logs API](reference/food-logs-api.md)
+* [Water and Weight Logs API](reference/water-and-weight-logs-api.md)
 * [Glucose API](reference/glucose-api.md)
 * [Models and enums](reference/models-and-enums.md)
 * [Validation limits](reference/validation.md)

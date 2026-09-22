@@ -10,7 +10,10 @@ public struct GlucoseResource: Sendable {
     }
 
     public func predict(_ request: PredictGlucoseRequest) async throws -> GlucosePrediction {
-        try await performTransportRequest {
+        guard request.userProfile.age.rounded() == request.userProfile.age else {
+            throw JanuaryError(category: .validation, message: "age must be a whole number of years.")
+        }
+        return try await performTransportRequest {
             let body = Components.Schemas.PredictGlucoseBody(
                 userProfile: try ModelBridge.convert(request.userProfile),
                 timezone: userContext?.timezone.identifier ?? request.timezone?.identifier ?? "UTC",

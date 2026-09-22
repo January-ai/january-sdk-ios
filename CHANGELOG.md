@@ -5,6 +5,23 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Added `waterLogs` (`create`, `list`, `delete`) and `weightLogs` (`create`,
+  `list`) for water intake and body-weight logging, with daily totals over a
+  date range. New models: `VolumeUnit`, `WaterAmount`, `Volume`, `WaterLog`,
+  `DailyWaterTotal`, `WeightLog`, `DailyWeight`.
+- `ServingSummary` gains `weightGrams`, the weight of one catalog serving when
+  the API reports it.
+- `foodAnalysis.correct` sends the prior scan in the API's correction shape and
+  rejects a hand-built detection that lacks its food ID, serving ID, serving
+  quantity, or quantity before transport.
+- `foodLogs.update` rejects an update that changes no field before transport,
+  matching the API.
+- `glucose.predict` rejects a fractional `age` before transport; the API takes
+  whole years.
+- Regenerated the internal transport from contract release 1.2.0: water and
+  weight logs, the correction request shape, `weight_grams` on logged servings,
+  and the `water_logs:*` and `weight_logs:*` client-token scopes.
+
 ## [0.2.0] - 2026-09-16
 
 - `SearchFoodsRequest` gains `offset` for paging and accepts `limit` up to 50,
