@@ -33,7 +33,8 @@ bootstrap runs first so no flow inherits another's configuration.
 ## Conventions
 
 - Select elements by accessibility identifier, never by position. The names
-  are the React Native example's test IDs. Segmented controls and tab items
+  are the React Native example's test IDs; the Logs day view's `logs-day-*`,
+  `water-*`, and `weight-*` identifiers (flows 26–28) were defined here first. Segmented controls and tab items
   are matched by their visible labels where identifiers do not surface.
 - Controls at the end of a scrolling screen go through `scroll-to.yaml`, which
   lifts them clear of the tab bar.

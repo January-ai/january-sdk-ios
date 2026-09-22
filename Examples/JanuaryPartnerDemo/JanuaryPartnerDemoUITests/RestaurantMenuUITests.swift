@@ -149,19 +149,19 @@ final class RestaurantMenuUITests: XCTestCase {
 
     func testFoodLogsLoadAndUpdate() async throws {
         try await request("/__seed")
-        tab("Food Logs")
+        tab("Logs")
         wait("Fixture breakfast")
         tap("Fixture breakfast")
         tap("Edit")
         wait("Edit food log")
         tap("Update food log")
-        wait("Food logs")
+        wait("Create a food log")
         wait("Fixture breakfast")
     }
 
     func testFoodLogDelete() async throws {
         try await request("/__seed")
-        tab("Food Logs")
+        tab("Logs")
         wait("Fixture breakfast")
         tap("Fixture breakfast")
         tap("Delete food log")
@@ -171,12 +171,12 @@ final class RestaurantMenuUITests: XCTestCase {
             .last(where: \.isHittable)
         XCTAssertNotNil(destructive)
         destructive?.tap()
-        wait("No food logs in this range")
+        wait("No food logs on this day")
     }
 
     func testFoodLogCreateAndRetry() async throws {
-        tab("Food Logs")
-        wait("No food logs in this range")
+        tab("Logs")
+        wait("No food logs on this day")
         tap("Add food log")
         wait("New food log")
         tap("Add first food")
@@ -204,7 +204,7 @@ final class RestaurantMenuUITests: XCTestCase {
     func testAllPrimaryDemoDestinationsAreReachable() {
         XCTAssertTrue(app.tabBars.buttons["Search"].waitForExistence(timeout: 5))
         tab("Scan"); wait("Scan a meal")
-        tab("Food Logs"); wait("Food logs")
+        tab("Logs"); wait("Create a food log")
         tab("Glucose"); wait("Estimate this meal’s response")
         tab("Search"); wait("Search foods")
     }

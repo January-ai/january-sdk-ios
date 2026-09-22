@@ -23,8 +23,10 @@ tags:
 - assertVisible:
     id: food-log-detail
 - assertVisible: Fixture oatmeal
+# The system back button carries the previous screen's title; the tab bar shows it too, lower down.
 - tapOn:
-    text: Food logs
+    text: Logs
+    index: 0
 - extendedWaitUntil:
     visible:
       id: food-log-add
@@ -64,6 +66,9 @@ tags:
     direction: DOWN
 - tapOn:
     id: food-log-save
-- extendedWaitUntil:
-    visible: .*Afternoon snack.*
-    timeout: 15000
+# The meals list sits below the day's water and weight cards.
+- scrollUntilVisible:
+    element:
+      text: .*Afternoon snack.*
+    direction: DOWN
+    timeout: 30000

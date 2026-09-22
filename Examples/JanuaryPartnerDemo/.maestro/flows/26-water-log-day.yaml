@@ -1,0 +1,35 @@
+appId: ai.january.partner.demo
+name: Logs day view water create total and delete
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- tapOn:
+    id: tab-food-logs
+- assertVisible:
+    id: logs-day-picker
+- assertVisible: Today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-log-create
+- assertVisible: No water logged
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-log-delete
+    timeout: 15000
+- assertVisible: 8 fl oz
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-water
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    visible: No water logged
+    timeout: 15000
+- assertNotVisible:
+    id: water-log-delete

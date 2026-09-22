@@ -1,0 +1,53 @@
+appId: ai.january.partner.demo
+name: Logs day view weight create in kilograms and previous day
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+- tapOn:
+    id: tab-food-logs
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-log-create
+- assertVisible: No weight logged
+# Segmented controls switch by their visible label on iOS.
+- tapOn:
+    text: kg
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible: 150 kg
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-weight
+# The previous day has no weight, and the day label leaves "Today".
+- scrollUntilVisible:
+    element:
+      id: logs-day-previous
+    direction: UP
+- tapOn:
+    id: logs-day-previous
+- assertVisible:
+    id: logs-day-today
+- assertNotVisible: Today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible: No weight logged
+- scrollUntilVisible:
+    element:
+      id: logs-day-today
+    direction: UP
+- tapOn:
+    id: logs-day-today
+- assertVisible: Today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible: 150 kg

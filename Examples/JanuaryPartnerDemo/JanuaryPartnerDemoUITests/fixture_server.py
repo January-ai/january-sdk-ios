@@ -3,6 +3,7 @@ import json
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -46,7 +47,38 @@ def food_log(name="Fixture breakfast"):
     logged.update({"food_id": logged.pop("id"), "quantity": 1, "serving": {"id": "11", "quantity": 1, "unit": "cup", "weight_grams": 100}})
     return {"id": "opaque-log-1", "name": name, "eaten_at": seeded_eaten_at(), "foods": [logged]}
 
-STATE = {"rules": {}, "logs": [], "requests": []}
+STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "requests": []}
+ML_PER_FL_OZ = 29.5735
+
+def now_iso():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+
+def local_today(query):
+    try: zone = ZoneInfo(query.get("timezone", "UTC"))
+    except Exception: zone = timezone.utc
+    return datetime.now(zone).date().isoformat()
+
+def day_in_range(query):
+    """True when today's local date falls inside the listing's start_date..end_date."""
+    today = local_today(query)
+    return query.get("start_date", today) <= today <= query.get("end_date", today)
+
+def scaled_nutrients(count):
+    return {key: {"value": amount["value"] * count, "unit": amount["unit"]} for key, amount in NUTRIENTS.items()}
+
+def food_log_summary(query):
+    count = len(STATE["logs"]); days = 1 if count else 0
+    start = query.get("start_date", local_today(query)); end = query.get("end_date", start)
+    bucket = {"start_date": start, "end_date": end, "logs_count": count, "days_with_logs": days, "nutrients": scaled_nutrients(count) if count else {}}
+    return {"group_by": query.get("group_by", "day"), "week_start": None, "timezone": query.get("timezone", "UTC"), "start_date": start, "end_date": end,
+            "buckets": [bucket], "totals": {"logs_count": count, "days_with_logs": days, "nutrients": bucket["nutrients"]},
+            "average_per_logged_day": {"nutrients": bucket["nutrients"]}}
+
+def volume(amount, unit):
+    """Converts a logged {value, unit} to the unit a listing asks for."""
+    value = float(amount.get("value", 0))
+    if amount.get("unit") == unit: return value
+    return value / ML_PER_FL_OZ if unit == "fl_oz" else value * ML_PER_FL_OZ
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_): pass
@@ -60,7 +92,7 @@ class Handler(BaseHTTPRequestHandler):
         query = {key: values[0] for key, values in parse_qs(parsed.query).items()}
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         body = json.loads(raw) if raw and "application/json" in self.headers.get("Content-Type", "") else {}
-        if path == "/__reset": STATE.update(rules={}, logs=[], requests=[]); return self.respond({})
+        if path == "/__reset": STATE.update(rules={}, logs=[], water=[], weights=[], requests=[]); return self.respond({})
         if path == "/__control": STATE["rules"][query["route"]] = query; return self.respond({})
         if path == "/__seed": STATE["logs"] = [food_log()]; return self.respond({})
         if path == "/__requests": return self.respond(STATE["requests"])
@@ -90,12 +122,33 @@ class Handler(BaseHTTPRequestHandler):
         elif path.endswith("/food-analysis/image"): result = scan()
         elif path.endswith("/food-analysis/corrections"): result = scan("Corrected breakfast")
         elif path.endswith("/food-analysis/text"): result = {"meal_name": None, "detections": [] if empty else [{"food": detected(), "confidence": None}], "total_nutrients": NUTRIENTS}
+        elif path.endswith("/food-logs/summary"): result = food_log_summary(query)
         elif "/food-logs" in path:
             if self.command == "GET": result = {"items": STATE["logs"]}
             elif self.command == "DELETE": STATE["logs"] = []; return self.respond({}, 204)
             else: result = food_log(body.get("name") or "Fixture breakfast"); STATE["logs"] = [result]
+        elif "/water-logs" in path:
+            # Every log lands on today's local date; one daily total in the requested unit.
+            if self.command == "GET":
+                unit = query.get("unit", "fl_oz")
+                total = round(sum(volume(entry["amount"], unit) for entry in STATE["water"]), 1)
+                result = {"items": [] if empty or not STATE["water"] or not day_in_range(query) else [{"date": local_today(query), "total": {"value": total, "unit": unit}}]}
+            elif self.command == "DELETE":
+                log_id = path.rsplit("/", 1)[1]; STATE["water"] = [entry for entry in STATE["water"] if entry["id"] != log_id]
+                return self.respond({}, 204)
+            else:
+                result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "consumed_at": now_iso()}
+                STATE["water"].append(result)
+        elif "/weight-logs" in path:
+            # The latest measurement stands for today's local date.
+            if self.command == "GET":
+                result = {"items": [] if empty or not STATE["weights"] or not day_in_range(query) else [{"date": local_today(query), "weight": STATE["weights"][-1]["weight"]}]}
+            else:
+                result = {"weight": body.get("weight"), "measured_at": now_iso()}
+                STATE["weights"].append(result)
         else: return self.respond({"code": "not_found", "message": f"Unmapped fixture route {path}"}, 404)
-        return self.respond(result, 201 if self.command == "POST" and path.endswith("/food-logs") else 200)
+        created = self.command == "POST" and (path.endswith("/food-logs") or path.endswith("/water-logs") or path.endswith("/weight-logs"))
+        return self.respond(result, 201 if created else 200)
 
     def respond(self, body, status=200):
         data = b"" if status == 204 else json.dumps(body).encode()

@@ -1,16 +1,32 @@
 import January
 import SwiftUI
 
+/// One day of the selected user's logs: food logs with the day's nutrient totals, the day's
+/// water total, and the day's weight, each logged through its SDK resource.
 struct FoodLogsView: View {
     let client: JanuaryClient
     let settingsAction: () -> Void
 
     @EnvironmentObject private var userSession: UserSession
-    @State private var selectedTimeSpan = FoodLogTimeSpan.currentWeek
+    @State private var day = Date.now
     @State private var logs: [FoodLog] = []
+    @State private var summary: FoodLogSummary?
     @State private var isLoading = false
     @State private var error: Error?
     @State private var isCreating = false
+
+    @State private var waterValue = 8.0
+    @State private var waterUnit = VolumeUnit.fluidOunces
+    @State private var waterTotal: Volume?
+    @State private var lastWaterLog: WaterLog?
+    @State private var waterError: Error?
+    @State private var isLoggingWater = false
+
+    @State private var weightValue = 150.0
+    @State private var weightUnit = WeightUnit.pounds
+    @State private var dayWeight: Weight?
+    @State private var weightError: Error?
+    @State private var isLoggingWeight = false
 
     var body: some View {
         NavigationStack {
@@ -18,14 +34,14 @@ struct FoodLogsView: View {
                 ScreenShell {
                     LazyVStack(alignment: .leading, spacing: 16) {
                         WorkflowGuideCard(
-                            title: "Build one complete meal",
-                            message: "One food log represents one meal or eating event. It can contain multiple foods, each with its own serving and quantity.",
+                            title: "One day at a time",
+                            message: "Each day gathers the user’s meals with their nutrient totals, the water they drank, and their latest weight. A food log is one meal with one or more foods.",
                             steps: [
-                                "Identify the user who owns the log",
-                                "Create a log and add every food in the meal",
-                                "Save it, then browse that user’s history"
+                                "Identify the user who owns the logs",
+                                "Pick a day, then log meals, water, or a weight",
+                                "Review the day’s totals"
                             ],
-                            symbol: "list.bullet.clipboard"
+                            symbol: "book.closed"
                         )
 
                         SectionLabel("User identity")
@@ -37,24 +53,22 @@ struct FoodLogsView: View {
                         )
 
                         if let context {
+                            SectionLabel("Day")
+                            dayPicker
+
                             PrimaryButton(title: "Create a food log", systemImage: "plus") {
                                 isCreating = true
                             }
                             .accessibilityIdentifier("food-log-create")
 
-                            SectionLabel("Browse saved logs")
-                            Text("Food logs are fetched for the selected user ID and date range.")
-                                .font(.system(size: 15))
-                                .foregroundStyle(AppPalette.body)
+                            SectionLabel("Water")
+                            waterCard
+                            SectionLabel("Weight")
+                            weightCard
 
-                            FoodLogTimeSpanPicker(
-                                selection: $selectedTimeSpan,
-                                range: selectedDateRange,
-                                calendar: foodLogCalendar
-                            )
-
+                            SectionLabel("Meals")
                             PrimaryButton(
-                                title: "Refresh food logs",
+                                title: "Refresh this day",
                                 isLoading: isLoading && logs.isEmpty,
                                 isDisabled: isLoading
                             ) {
@@ -82,6 +96,22 @@ struct FoodLogsView: View {
                                 )
                             }
 
+                            if let summary, summary.totals.logsCount > 0 {
+                                VStack(alignment: .leading, spacing: 10) {
+                                    Text("Day totals · \(summary.totals.logsCount) log\(summary.totals.logsCount == 1 ? "" : "s")")
+                                        .font(AppTypography.bodyStrong)
+                                    MacroGrid(
+                                        calories: summary.totals.nutrients.calories?.value,
+                                        protein: summary.totals.nutrients.protein?.value,
+                                        carbohydrates: summary.totals.nutrients.carbohydrates?.value,
+                                        fat: summary.totals.nutrients.totalFat?.value
+                                    )
+                                }
+                                .appCard()
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("food-logs-summary")
+                            }
+
                             if !logs.isEmpty {
                                 ForEach(Array(logs.enumerated()), id: \.element.id) { index, log in
                                     NavigationLink {
@@ -94,7 +124,7 @@ struct FoodLogsView: View {
                                 }
                             } else if !isLoading, error == nil {
                                 EmptyStateCard(
-                                    title: "No food logs in this range",
+                                    title: "No food logs on this day",
                                     message: "Create a log, add one or more foods to the meal, then save it for this user.",
                                     symbol: "list.bullet.clipboard"
                                 )
@@ -111,7 +141,7 @@ struct FoodLogsView: View {
             .appBackground()
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("food-logs-screen")
-            .appNavigationBar("Food logs", style: .leading) {
+            .appNavigationBar("Logs", style: .leading) {
                 EmptyView()
             } trailing: {
                 HStack(spacing: 8) {
@@ -125,7 +155,7 @@ struct FoodLogsView: View {
             }
             .sheet(isPresented: $isCreating) {
                 if let context {
-                    FoodLogEditorView(client: client, context: context, existing: nil) {
+                    FoodLogEditorView(client: client, context: context, existing: nil, defaultTimestamp: defaultMealTime) {
                         isCreating = false
                         Task { await load() }
                     }
@@ -133,44 +163,284 @@ struct FoodLogsView: View {
             }
             .task(id: loadTaskID) {
                 guard userID != nil else {
-                    logs = []
-                    error = nil
+                    logs = []; summary = nil; waterTotal = nil; dayWeight = nil
+                    error = nil; waterError = nil; weightError = nil
                     return
                 }
-                logs = []
+                logs = []; summary = nil
                 await load()
             }
         }
     }
 
+    // MARK: - Day picker
+
+    private var dayPicker: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                Button("Previous day", systemImage: "chevron.left") { shiftDay(by: -1) }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(QuantityButtonStyle())
+                    .accessibilityIdentifier("logs-day-previous")
+                VStack(spacing: 2) {
+                    Text(isToday ? "Today" : dayTitle)
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppPalette.ink)
+                    Text(dayQuery)
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(AppPalette.muted)
+                }
+                .frame(maxWidth: .infinity)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("logs-day-label")
+                Button("Next day", systemImage: "chevron.right") { shiftDay(by: 1) }
+                    .labelStyle(.iconOnly)
+                    .buttonStyle(QuantityButtonStyle())
+                    .disabled(isToday)
+                    .accessibilityIdentifier("logs-day-next")
+            }
+            if !isToday {
+                Button("Back to today") { day = .now }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppPalette.greenText)
+                    .accessibilityIdentifier("logs-day-today")
+            }
+        }
+        .appCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("logs-day-picker")
+    }
+
+    // MARK: - Water and weight
+
+    private var waterCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(waterTotal.map { volumeText($0.value, $0.unit) } ?? "No water logged")
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppPalette.ink)
+                        .accessibilityIdentifier("water-total")
+                    Text(isToday ? "Logged today" : "Logged on \(dayTitle)")
+                        .font(.subheadline)
+                        .foregroundStyle(AppPalette.muted)
+                }
+                Spacer(minLength: 12)
+                SegmentedControl(
+                    VolumeUnit.allCases,
+                    selection: $waterUnit,
+                    identifier: { "water-unit-\($0.rawValue)" }
+                ) { unitTitle($0) }
+                    .frame(maxWidth: 150)
+                    .accessibilityLabel("Water units")
+            }
+            if let waterError {
+                ErrorNotice(
+                    error: waterError,
+                    retry: { Task { await load() } },
+                    identifier: "water-error",
+                    retryIdentifier: "water-retry"
+                )
+            }
+            numberField("Amount · \(unitTitle(waterUnit))") {
+                EndAlignedNumberField(
+                    value: waterValue.formatted(.number.precision(.fractionLength(0...1))),
+                    allowsDecimal: true,
+                    accessibilityIdentifier: "water-amount"
+                ) { value in
+                    if let value = Double(value) { waterValue = value }
+                }
+            }
+            HStack(spacing: 12) {
+                PrimaryButton(
+                    title: "Log water",
+                    systemImage: "drop",
+                    isLoading: isLoggingWater,
+                    isDisabled: isLoggingWater
+                ) {
+                    Task { await logWater() }
+                }
+                .accessibilityIdentifier("water-log-create")
+                if lastWaterLog != nil {
+                    Button("Delete last", role: .destructive) { Task { await deleteLastWater() } }
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppPalette.rustText)
+                        .padding(.horizontal, 18)
+                        .frame(minHeight: 56)
+                        .background(AppPalette.rustBackground, in: RoundedRectangle(cornerRadius: AppRadius.control, style: .continuous))
+                        .accessibilityIdentifier("water-log-delete")
+                }
+            }
+        }
+        .appCard()
+    }
+
+    private var weightCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(dayWeight.map(weightText) ?? "No weight logged")
+                        .font(AppTypography.bodyStrong)
+                        .foregroundStyle(AppPalette.ink)
+                        .accessibilityIdentifier("weight-entry")
+                    Text(isToday ? "Latest today" : "Latest on \(dayTitle)")
+                        .font(.subheadline)
+                        .foregroundStyle(AppPalette.muted)
+                }
+                Spacer(minLength: 12)
+                SegmentedControl(
+                    WeightUnit.allCases,
+                    selection: $weightUnit,
+                    identifier: { "weight-unit-\($0.rawValue)" }
+                ) { $0.rawValue }
+                    .frame(maxWidth: 150)
+                    .accessibilityLabel("Weight units")
+            }
+            if let weightError {
+                ErrorNotice(
+                    error: weightError,
+                    retry: { Task { await load() } },
+                    identifier: "weight-error",
+                    retryIdentifier: "weight-retry"
+                )
+            }
+            numberField("Weight · \(weightUnit.rawValue)") {
+                EndAlignedNumberField(
+                    value: weightValue.formatted(.number.precision(.fractionLength(0...1))),
+                    allowsDecimal: true,
+                    accessibilityIdentifier: "weight-value"
+                ) { value in
+                    if let value = Double(value) { weightValue = value }
+                }
+            }
+            PrimaryButton(
+                title: "Log weight",
+                systemImage: "scalemass",
+                isLoading: isLoggingWeight,
+                isDisabled: isLoggingWeight
+            ) {
+                Task { await logWeight() }
+            }
+            .accessibilityIdentifier("weight-log-create")
+        }
+        .appCard()
+    }
+
+    // MARK: - Loading and actions
+
     private var userID: PartnerUserID? { userSession.partnerUserID }
     private var context: PartnerUserContext? { userSession.partnerContext }
-    private var foodLogCalendar: Calendar {
+    private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
         calendar.timeZone = TimeZone(identifier: userSession.timezone) ?? .current
-        calendar.firstWeekday = 1
-        calendar.minimumDaysInFirstWeek = 1
         return calendar
     }
-    private var selectedDateRange: FoodLogDateRange {
-        selectedTimeSpan.dateRange(calendar: foodLogCalendar)
+    private var dayQuery: String { AppFormatting.apiDayString(from: day, calendar: calendar) }
+    private var isToday: Bool { calendar.isDate(day, inSameDayAs: .now) }
+    private var dayTitle: String {
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: day)
+    }
+    /// A meal created for a past day is dated noon on that day; today's meals default to now.
+    private var defaultMealTime: Date {
+        isToday ? .now : (calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day)
     }
     private var loadTaskID: String {
-        "\(userSession.endUserID)|\(userSession.timezone)|\(selectedTimeSpan.rawValue)"
+        "\(userSession.endUserID)|\(userSession.timezone)|\(dayQuery)|\(waterUnit.rawValue)"
+    }
+
+    private func shiftDay(by days: Int) {
+        guard let next = calendar.date(byAdding: .day, value: days, to: day) else { return }
+        day = min(next, .now)
     }
 
     @MainActor private func load() async {
-        guard userSession.partnerUserID != nil else { return }
+        guard let context else { return }
         isLoading = true; error = nil
+        let start = dayQuery, end = dayQuery
         do {
-            let query = selectedDateRange.apiQuery(calendar: foodLogCalendar)
-            logs = try await client.foodLogs.list(
-                start: query.start,
-                end: query.end
-            ).items
+            logs = try await client.foodLogs.list(.init(start: start, end: end, user: context)).items
+            summary = try await client.foodLogs.getSummary(.init(start: start, end: end, user: context))
         } catch { self.error = error }
+        do {
+            waterTotal = try await client.waterLogs.list(.init(start: start, end: end, unit: waterUnit, user: context)).items.first?.total
+            waterError = nil
+        } catch { waterError = error }
+        do {
+            dayWeight = try await client.weightLogs.list(.init(start: start, end: end, user: context)).items.first?.weight
+            weightError = nil
+        } catch { weightError = error }
         isLoading = false
+    }
+
+    @MainActor private func logWater() async {
+        guard let context else { return }
+        isLoggingWater = true; waterError = nil
+        do {
+            lastWaterLog = try await client.waterLogs.create(.init(
+                amount: .init(value: waterValue, unit: waterUnit),
+                consumedAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
+                user: context
+            ))
+            await load()
+        } catch { waterError = error }
+        isLoggingWater = false
+    }
+
+    @MainActor private func deleteLastWater() async {
+        guard let context, let lastWaterLog else { return }
+        waterError = nil
+        do {
+            try await client.waterLogs.delete(.init(id: lastWaterLog.id, user: context))
+            self.lastWaterLog = nil
+            await load()
+        } catch { waterError = error }
+    }
+
+    @MainActor private func logWeight() async {
+        guard let context else { return }
+        isLoggingWeight = true; weightError = nil
+        do {
+            _ = try await client.weightLogs.create(.init(
+                weight: .init(value: weightValue, unit: weightUnit),
+                measuredAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
+                user: context
+            ))
+            await load()
+        } catch { weightError = error }
+        isLoggingWeight = false
+    }
+
+    private func unitTitle(_ unit: VolumeUnit) -> String {
+        switch unit {
+        case .fluidOunces: "fl oz"
+        case .milliliters: "ml"
+        }
+    }
+
+    private func volumeText(_ value: Double, _ unit: VolumeUnit) -> String {
+        "\(value.formatted(.number.precision(.fractionLength(0...1)))) \(unitTitle(unit))"
+    }
+
+    private func weightText(_ weight: Weight) -> String {
+        "\(weight.value.formatted(.number.precision(.fractionLength(0...1)))) \(weight.unit.rawValue)"
+    }
+
+    private func numberField<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppPalette.muted)
+            content()
+                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity, minHeight: 48)
+                .background(AppPalette.control, in: RoundedRectangle(cornerRadius: 14))
+        }
     }
 }
 
@@ -206,10 +476,10 @@ private struct FoodLogEditorView: View {
     @State private var isSaving = false
     @State private var error: Error?
 
-    init(client: JanuaryClient, context: FoodLogUserContext, existing: FoodLog?, onSaved: @escaping () -> Void) {
+    init(client: JanuaryClient, context: FoodLogUserContext, existing: FoodLog?, defaultTimestamp: Date = .now, onSaved: @escaping () -> Void) {
         self.client = client; self.context = context; self.existing = existing; self.onSaved = onSaved
         _name = State(initialValue: existing?.name ?? "")
-        _timestamp = State(initialValue: existing.flatMap { AppFormatting.apiDate.date(from: $0.timestampUTC) } ?? .now)
+        _timestamp = State(initialValue: existing.flatMap { AppFormatting.apiDate.date(from: $0.timestampUTC) } ?? defaultTimestamp)
         _foods = State(initialValue: existing?.foods.map(selectedFood) ?? [])
     }
 
