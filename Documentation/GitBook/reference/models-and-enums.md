@@ -73,7 +73,7 @@ of years.
 
 | Type | Fields |
 | --- | --- |
-| `VolumeUnit` | `fluidOunces` (`fl_oz`), `milliliters` (`ml`) |
+| `VolumeUnit` | `fluidOunces` (`fl_oz`), `milliliters` (`ml`), `cups` (`cup`) |
 | `WaterAmount` | `value`, `unit` (`VolumeUnit`) |
 | `Volume` | `value` (one decimal place), `unit` (`VolumeUnit`) |
 | `WaterLog` | `id`, `amount`, `consumedAtUTC` |

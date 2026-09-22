@@ -8,7 +8,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added `waterLogs` (`create`, `list`, `delete`) and `weightLogs` (`create`,
   `list`) for water intake and body-weight logging, with daily totals over a
   date range. New models: `VolumeUnit`, `WaterAmount`, `Volume`, `WaterLog`,
-  `DailyWaterTotal`, `WeightLog`, `DailyWeight`.
+  `DailyWaterTotal`, `WeightLog`, `DailyWeight`. Water is logged and totalled
+  in fluid ounces, milliliters, or cups (`VolumeUnit.cups`, 0.125–101.4 per log).
 - `ServingSummary` gains `weightGrams`, the weight of one catalog serving when
   the API reports it.
 - `foodAnalysis.correct` sends the prior scan in the API's correction shape and
@@ -19,7 +20,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `glucose.predict` rejects a fractional `age` before transport; the API takes
   whole years.
 - The demo app adds a Tracking tab: a per-day view of the day's food logs
-  with their nutrient totals, the day's water total, and the day's weight.
+  with their nutrient totals, the day's water total (in fl oz, ml, or cups),
+  and the day's weight.
 - Regenerated the internal transport from contract release 1.2.0: water and
   weight logs, the correction request shape, `weight_grams` on logged servings,
   and the `water_logs:*` and `weight_logs:*` client-token scopes.

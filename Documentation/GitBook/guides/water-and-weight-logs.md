@@ -17,13 +17,16 @@ let client = try JanuaryClient(
 
 ## Log water
 
-An amount is 1–811.5 fluid ounces or 30–24,000 milliliters. The API caps an
-end user at 24 liters per local day and refuses a log that would exceed it
-with the `daily_water_limit_exceeded` error code (a `.validation` error).
+An amount is 1–811.5 fluid ounces (`.fluidOunces`), 0.125–101.4 US cups
+(`.cups`, 8 fluid ounces each), or 30–24,000 milliliters (`.milliliters`). The
+API caps an end user at 24 liters per local day and refuses a log that would
+exceed it with the `daily_water_limit_exceeded` error code (a `.validation`
+error).
 
 ```swift
 let log = try await client.waterLogs.create(amount: WaterAmount(value: 8, unit: .fluidOunces))
 // Keep log.id to delete this entry later.
+let glass = try await client.waterLogs.create(amount: WaterAmount(value: 1.5, unit: .cups))
 ```
 
 `consumedAtUTC` accepts an ISO-8601 date-time with any offset and defaults to

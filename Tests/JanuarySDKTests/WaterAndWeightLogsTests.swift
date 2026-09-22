@@ -102,6 +102,7 @@ func waterLogCreateOmitsTheTimestampWhenNotSupplied() async throws {
 @Test(arguments: [
     WaterAmount(value: 0.5, unit: .fluidOunces), WaterAmount(value: 812, unit: .fluidOunces),
     WaterAmount(value: 29, unit: .milliliters), WaterAmount(value: 24_001, unit: .milliliters),
+    WaterAmount(value: 0.1, unit: .cups), WaterAmount(value: 101.5, unit: .cups),
     WaterAmount(value: .nan, unit: .milliliters),
 ])
 func waterLogCreateRejectsAmountsOutsideTheDocumentedRanges(_ amount: WaterAmount) async throws {
@@ -138,6 +139,23 @@ func waterLogListSendsRangeTimezoneAndUnitAndMapsDailyTotals() async throws {
         DailyWaterTotal(date: "2026-09-09", total: .init(value: 48.5, unit: .fluidOunces)),
         DailyWaterTotal(date: "2026-09-10", total: .init(value: 64, unit: .fluidOunces)),
     ])
+}
+
+@Test(arguments: [0.125, 2, 101.4])
+func waterLogsAcceptCupsAcrossTheDocumentedRange(_ value: Double) async throws {
+    let transport = LogTransport(bodies: [
+        "createWaterLog": #"{"id":"9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607","amount":{"value":2,"unit":"cup"},"consumed_at":"2026-09-10T14:30:15.123Z"}"#,
+        "listWaterLogs": #"{"items":[{"date":"2026-09-10","total":{"value":8,"unit":"cup"}}]}"#,
+    ])
+    let log = try await client(transport).waterLogs.create(.init(amount: .init(value: value, unit: .cups), user: user))
+    let totals = try await client(transport).waterLogs.list(.init(start: "2026-09-10", end: "2026-09-10", unit: .cups, user: user))
+
+    let requests = await transport.requests()
+    #expect((requests[0].body?["amount"] as? [String: Any])?["unit"] as? String == "cup")
+    #expect((requests[0].body?["amount"] as? [String: Any])?["value"] as? Double == value)
+    #expect(requests[1].path.contains("unit=cup"))
+    #expect(log.amount == .init(value: 2, unit: .cups))
+    #expect(totals.items == [DailyWaterTotal(date: "2026-09-10", total: .init(value: 8, unit: .cups))])
 }
 
 @Test
@@ -271,7 +289,7 @@ func logModelsRoundTripTheirCodingKeys() throws {
     let summary = ServingSummary(id: .init(rawValue: "1"), quantity: 1, unit: "cup", weightGrams: 81)
     let summaryJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(summary)) as? [String: Any]
     #expect(summaryJSON?["weight_grams"] as? Double == 81)
-    #expect(VolumeUnit.allCases.map(\.rawValue) == ["fl_oz", "ml"])
+    #expect(VolumeUnit.allCases.map(\.rawValue) == ["fl_oz", "ml", "cup"])
     #expect(ListWaterLogsResponse(items: []) == ListWaterLogsResponse(items: []))
     #expect(ListWeightLogsResponse(items: []) == ListWeightLogsResponse(items: []))
 }

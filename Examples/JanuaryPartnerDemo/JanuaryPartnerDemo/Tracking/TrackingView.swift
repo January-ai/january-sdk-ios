@@ -211,7 +211,7 @@ struct TrackingView: View {
                     selection: $waterUnit,
                     identifier: { "water-unit-\($0.rawValue)" }
                 ) { unitTitle($0) }
-                    .frame(maxWidth: 150)
+                    .frame(maxWidth: 200)
                     .accessibilityLabel("Water units")
             }
             if let waterError {
@@ -400,6 +400,7 @@ struct TrackingView: View {
         switch unit {
         case .fluidOunces: "fl oz"
         case .milliliters: "ml"
+        case .cups: "cup"
         }
     }
 

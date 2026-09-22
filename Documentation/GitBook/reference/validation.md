@@ -18,7 +18,7 @@ The SDK rejects these invalid inputs before transport where validation is implem
 | Restaurant limit | Integer from 1 through 100 |
 | Food-log `timestampUTC` | ISO-8601 date-time |
 | Food-log update | At least one of `foods`, `timestampUTC`, `name` |
-| Water amount | 1 through 811.5 fl oz, or 30 through 24,000 ml |
+| Water amount | 1 through 811.5 fl oz, 0.125 through 101.4 cup, or 30 through 24,000 ml |
 | Weight-log weight | 10 through 1,000 lb, or 4.5 through 453.6 kg |
 | Water and weight `consumedAtUTC` / `measuredAtUTC` | ISO-8601 date-time |
 | Glucose profile `age` | Whole number of years |

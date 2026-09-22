@@ -49,6 +49,7 @@ def food_log(name="Fixture breakfast"):
 
 STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "requests": []}
 ML_PER_FL_OZ = 29.5735
+ML_PER_UNIT = {"fl_oz": ML_PER_FL_OZ, "cup": ML_PER_FL_OZ * 8, "ml": 1}
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -78,7 +79,7 @@ def volume(amount, unit):
     """Converts a logged {value, unit} to the unit a listing asks for."""
     value = float(amount.get("value", 0))
     if amount.get("unit") == unit: return value
-    return value / ML_PER_FL_OZ if unit == "fl_oz" else value * ML_PER_FL_OZ
+    return value * ML_PER_UNIT[amount.get("unit", "ml")] / ML_PER_UNIT[unit]
 
 class Handler(BaseHTTPRequestHandler):
     def log_message(self, *_): pass
