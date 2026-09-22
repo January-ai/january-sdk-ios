@@ -18,6 +18,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   matching the API.
 - `glucose.predict` rejects a fractional `age` before transport; the API takes
   whole years.
+- The demo app adds a Tracking tab: a per-day view of the day's food logs
+  with their nutrient totals, the day's water total, and the day's weight.
 - Regenerated the internal transport from contract release 1.2.0: water and
   weight logs, the correction request shape, `weight_grams` on logged servings,
   and the `water_logs:*` and `weight_logs:*` client-token scopes.

@@ -39,7 +39,7 @@ this way. Release builds disable this mode. The demo emits a build warning and
 the SDK logs a runtime warning whenever development authentication is used.
 
 The demo includes food and restaurant discovery, autocomplete, hydrated food
-details and servings, meal scanning, food logs, glucose prediction, persistent
+details and servings, meal scanning, food logs, a per-day Tracking tab for the day's meals, water, and weight, glucose prediction, persistent
 user context, and user-friendly height and weight unit controls.
 
 On the simulator, the Scan tab can use the bundled sample meal. Camera capture requires a physical device and `NSCameraUsageDescription`.

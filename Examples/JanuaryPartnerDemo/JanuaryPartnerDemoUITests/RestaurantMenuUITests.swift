@@ -155,7 +155,7 @@ final class RestaurantMenuUITests: XCTestCase {
         tap("Edit")
         wait("Edit food log")
         tap("Update food log")
-        wait("Create a food log")
+        wait("Food logs")
         wait("Fixture breakfast")
     }
 
@@ -171,12 +171,12 @@ final class RestaurantMenuUITests: XCTestCase {
             .last(where: \.isHittable)
         XCTAssertNotNil(destructive)
         destructive?.tap()
-        wait("No food logs on this day")
+        wait("No food logs in this range")
     }
 
     func testFoodLogCreateAndRetry() async throws {
         tab("Logs")
-        wait("No food logs on this day")
+        wait("No food logs in this range")
         tap("Add food log")
         wait("New food log")
         tap("Add first food")
@@ -204,8 +204,9 @@ final class RestaurantMenuUITests: XCTestCase {
     func testAllPrimaryDemoDestinationsAreReachable() {
         XCTAssertTrue(app.tabBars.buttons["Search"].waitForExistence(timeout: 5))
         tab("Scan"); wait("Scan a meal")
-        tab("Logs"); wait("Create a food log")
+        tab("Logs"); wait("Food logs")
         tab("Glucose"); wait("Estimate this meal’s response")
+        tab("Tracking"); wait("Track one day at a time")
         tab("Search"); wait("Search foods")
     }
 

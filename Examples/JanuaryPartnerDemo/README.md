@@ -1,9 +1,9 @@
 # January iOS Demo
 
 This January-owned integration harness demonstrates food and restaurant
-discovery, meal-photo analysis, a per-day Logs view (food logs with their
-nutrient totals, water, and weight), and glucose prediction with the `January`
-Swift package.
+discovery, meal-photo analysis, food logs, a per-day Tracking dashboard (the
+day's meals with their nutrient totals, water, and weight), and glucose
+prediction with the `January` Swift package.
 
 ## Requirements
 

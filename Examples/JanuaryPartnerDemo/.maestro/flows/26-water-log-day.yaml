@@ -1,30 +1,37 @@
 appId: ai.january.partner.demo
-name: Logs day view water create total and delete
+name: Tracking day view water create total and delete
 tags:
   - fixture
 ---
 - runFlow: ../bootstrap.yaml
 - extendedWaitUntil:
     visible:
-      id: tab-food-logs
+      id: tab-tracking
     timeout: 15000
 - tapOn:
-    id: tab-food-logs
+    id: tab-tracking
 - assertVisible:
     id: logs-day-picker
 - assertVisible: Today
 - runFlow:
     file: ../scroll-to.yaml
     env:
-      TARGET_ID: water-log-create
+      TARGET_ID: water-total
 - assertVisible: No water logged
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-log-create
 - tapOn:
     id: water-log-create
+# The water total and delete button sit above the centered log button.
 - extendedWaitUntil:
-    visible:
-      id: water-log-delete
+    visible: 8 fl oz
     timeout: 15000
-- assertVisible: 8 fl oz
+- scrollUntilVisible:
+    element:
+      id: water-log-delete
+    direction: UP
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-water
 - tapOn:
     id: water-log-delete

@@ -30,7 +30,7 @@ tags:
     visible:
       id: food-logs-empty
     timeout: 15000
-- assertVisible: No food logs on this day
+- assertVisible: No food logs in this range
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-empty
 - runScript:
     file: ../scripts/control-fixture.js

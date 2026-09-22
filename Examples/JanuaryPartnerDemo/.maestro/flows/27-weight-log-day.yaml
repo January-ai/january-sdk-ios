@@ -1,15 +1,15 @@
 appId: ai.january.partner.demo
-name: Logs day view weight create in kilograms and previous day
+name: Tracking day view weight create in kilograms and previous day
 tags:
   - fixture
 ---
 - runFlow: ../bootstrap.yaml
 - extendedWaitUntil:
     visible:
-      id: tab-food-logs
+      id: tab-tracking
     timeout: 15000
 - tapOn:
-    id: tab-food-logs
+    id: tab-tracking
 - runFlow:
     file: ../scroll-to.yaml
     env:

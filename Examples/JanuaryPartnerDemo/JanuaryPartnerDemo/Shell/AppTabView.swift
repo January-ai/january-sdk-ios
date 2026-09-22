@@ -25,6 +25,12 @@ struct AppTabView: View {
                         .accessibilityIdentifier("tab-food-logs")
                 }
 
+            TrackingView(client: client, settingsAction: showSettings)
+                .tabItem {
+                    Label("Tracking", systemImage: "chart.bar.xaxis")
+                        .accessibilityIdentifier("tab-tracking")
+                }
+
             GlucoseView(client: client, settingsAction: showSettings)
                 .tabItem {
                     Label("Glucose", systemImage: "chart.xyaxis.line")
