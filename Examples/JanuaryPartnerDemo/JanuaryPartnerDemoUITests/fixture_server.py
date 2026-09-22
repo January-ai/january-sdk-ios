@@ -1,5 +1,6 @@
 """Loopback-only OpenAPI fixtures for the January iOS demo UAT suite."""
 import json
+import math
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -47,9 +48,12 @@ def food_log(name="Fixture breakfast"):
     logged.update({"food_id": logged.pop("id"), "quantity": 1, "serving": {"id": "11", "quantity": 1, "unit": "cup", "weight_grams": 100}})
     return {"id": "opaque-log-1", "name": name, "eaten_at": seeded_eaten_at(), "foods": [logged]}
 
-STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "requests": []}
+STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": []}
 ML_PER_FL_OZ = 29.5735
 ML_PER_UNIT = {"fl_oz": ML_PER_FL_OZ, "cup": ML_PER_FL_OZ * 8, "ml": 1}
+LB_PER_KG = 1 / 0.45359237
+HISTORY_DAYS = 400
+LIST_LIMIT = 100
 
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -58,11 +62,6 @@ def local_today(query):
     try: zone = ZoneInfo(query.get("timezone", "UTC"))
     except Exception: zone = timezone.utc
     return datetime.now(zone).date().isoformat()
-
-def day_in_range(query):
-    """True when today's local date falls inside the listing's start_date..end_date."""
-    today = local_today(query)
-    return query.get("start_date", today) <= today <= query.get("end_date", today)
 
 def scaled_nutrients(count):
     return {key: {"value": amount["value"] * count, "unit": amount["unit"]} for key, amount in NUTRIENTS.items()}
@@ -74,6 +73,32 @@ def food_log_summary(query):
     return {"group_by": query.get("group_by", "day"), "week_start": None, "timezone": query.get("timezone", "UTC"), "start_date": start, "end_date": end,
             "buckets": [bucket], "totals": {"logs_count": count, "days_with_logs": days, "nutrients": bucket["nutrients"]},
             "average_per_logged_day": {"nutrients": bucket["nutrients"]}}
+
+def history_water(days_ago):
+    """Milliliters drunk `days_ago` days before today in the seeded history; every sixth day is blank."""
+    if days_ago % 6 == 5: return None
+    return 1500 + (days_ago * 137) % 900
+
+def history_weight(days_ago):
+    """The seeded history's weight: a slow downward trend with a two-week wobble. Every seventh day
+    is blank, and every tenth is logged in pounds, as a user switching scales would."""
+    if days_ago % 7 == 3: return None
+    kilograms = round(70 + days_ago * 0.012 + 0.4 * math.sin(days_ago / 2.5), 1)
+    return {"value": round(kilograms * LB_PER_KG, 1), "unit": "lb"} if days_ago % 10 == 0 else {"value": kilograms, "unit": "kg"}
+
+def daily_items(query, today_item, history_item):
+    """One item per local day inside start_date..end_date, oldest first, capped at the most recent
+    LIST_LIMIT days like the API. Today comes from logs created in this run; earlier days come from
+    the seeded history (when seeded)."""
+    today = datetime.fromisoformat(local_today(query)).date()
+    start = query.get("start_date", today.isoformat()); end = query.get("end_date", today.isoformat())
+    items = []
+    if STATE["history"]:
+        for days_ago in range(HISTORY_DAYS, 0, -1):
+            date = (today - timedelta(days=days_ago)).isoformat()
+            if start <= date <= end and (item := history_item(date, days_ago)): items.append(item)
+    if start <= today.isoformat() <= end and (item := today_item(today.isoformat())): items.append(item)
+    return items[-LIST_LIMIT:]
 
 def volume(amount, unit):
     """Converts a logged {value, unit} to the unit a listing asks for."""
@@ -93,7 +118,8 @@ class Handler(BaseHTTPRequestHandler):
         query = {key: values[0] for key, values in parse_qs(parsed.query).items()}
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         body = json.loads(raw) if raw and "application/json" in self.headers.get("Content-Type", "") else {}
-        if path == "/__reset": STATE.update(rules={}, logs=[], water=[], weights=[], requests=[]); return self.respond({})
+        if path == "/__reset": STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[]); return self.respond({})
+        if path == "/__history": STATE["history"] = True; return self.respond({})
         if path == "/__control": STATE["rules"][query["route"]] = query; return self.respond({})
         if path == "/__seed": STATE["logs"] = [food_log()]; return self.respond({})
         if path == "/__requests": return self.respond(STATE["requests"])
@@ -129,11 +155,16 @@ class Handler(BaseHTTPRequestHandler):
             elif self.command == "DELETE": STATE["logs"] = []; return self.respond({}, 204)
             else: result = food_log(body.get("name") or "Fixture breakfast"); STATE["logs"] = [result]
         elif "/water-logs" in path:
-            # Every log lands on today's local date; one daily total in the requested unit.
+            # Every log lands on today's local date; one daily total per day in the requested unit.
             if self.command == "GET":
                 unit = query.get("unit", "fl_oz")
-                total = round(sum(volume(entry["amount"], unit) for entry in STATE["water"]), 1)
-                result = {"items": [] if empty or not STATE["water"] or not day_in_range(query) else [{"date": local_today(query), "total": {"value": total, "unit": unit}}]}
+                def today_water(date):
+                    if not STATE["water"]: return None
+                    return {"date": date, "total": {"value": round(sum(volume(entry["amount"], unit) for entry in STATE["water"]), 1), "unit": unit}}
+                def past_water(date, days_ago):
+                    milliliters = history_water(days_ago)
+                    return None if milliliters is None else {"date": date, "total": {"value": round(volume({"value": milliliters, "unit": "ml"}, unit), 1), "unit": unit}}
+                result = {"items": [] if empty else daily_items(query, today_water, past_water)}
             elif self.command == "DELETE":
                 log_id = path.rsplit("/", 1)[1]; STATE["water"] = [entry for entry in STATE["water"] if entry["id"] != log_id]
                 return self.respond({}, 204)
@@ -141,9 +172,11 @@ class Handler(BaseHTTPRequestHandler):
                 result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "consumed_at": now_iso()}
                 STATE["water"].append(result)
         elif "/weight-logs" in path:
-            # The latest measurement stands for today's local date.
+            # The latest measurement stands for today's local date, in the unit it was logged in.
             if self.command == "GET":
-                result = {"items": [] if empty or not STATE["weights"] or not day_in_range(query) else [{"date": local_today(query), "weight": STATE["weights"][-1]["weight"]}]}
+                def today_weight(date): return {"date": date, "weight": STATE["weights"][-1]["weight"]} if STATE["weights"] else None
+                def past_weight(date, days_ago): return {"date": date, "weight": weight} if (weight := history_weight(days_ago)) else None
+                result = {"items": [] if empty else daily_items(query, today_weight, past_weight)}
             else:
                 result = {"weight": body.get("weight"), "measured_at": now_iso()}
                 STATE["weights"].append(result)

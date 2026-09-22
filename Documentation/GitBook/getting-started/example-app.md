@@ -42,4 +42,11 @@ The demo includes food and restaurant discovery, autocomplete, hydrated food
 details and servings, meal scanning, food logs, a per-day Tracking tab for the day's meals, water, and weight, glucose prediction, persistent
 user context, and user-friendly height and weight unit controls.
 
+The Tracking tab also charts water and weight over the last week, month, or
+year, ending today in the user's timezone. Water is a bar chart of daily totals
+(monthly totals for the year) in the unit selected on the water card. Weight is
+a line of each day's latest weight, converted to the unit selected on the
+weight card. Each list request returns at most 100 days, so the year view reads
+the range in spans of up to 90 days and merges them.
+
 On the simulator, the Scan tab can use the bundled sample meal. Camera capture requires a physical device and `NSCameraUsageDescription`.

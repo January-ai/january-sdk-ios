@@ -2,8 +2,15 @@
 
 This January-owned integration harness demonstrates food and restaurant
 discovery, meal-photo analysis, food logs, a per-day Tracking dashboard (the
-day's meals with their nutrient totals, water, and weight), and glucose
-prediction with the `January` Swift package.
+day's meals with their nutrient totals, water, and weight, plus week, month,
+and year charts of water and weight), and glucose prediction with the `January`
+Swift package.
+
+The Tracking charts end today in the user's timezone. Water shows daily totals
+as bars (monthly totals for the year) in the water card's unit; weight shows
+each day's latest weight as a line in the weight card's unit. A list request
+returns at most 100 days, so the year view requests spans of up to 90 days and
+merges them (see `Tracking/TrackingChartData.swift`).
 
 ## Requirements
 

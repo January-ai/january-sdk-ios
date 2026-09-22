@@ -18,10 +18,13 @@ tags:
     env:
       TARGET_ID: water-total
 - assertVisible: No water logged
-- runFlow:
-    file: ../scroll-to.yaml
-    env:
-      TARGET_ID: water-log-create
+# With the water total in view, the log button sits just below it. Centering
+# the button itself can scroll it under the navigation bar now that the trend
+# chart follows it in the card.
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
 - tapOn:
     id: water-log-create
 # The water total and delete button sit above the centered log button.

@@ -2,7 +2,8 @@ import January
 import SwiftUI
 
 /// One day of the selected user's logs: food logs with the day's nutrient totals, the day's
-/// water total, and the day's weight, each logged through its SDK resource.
+/// water total, and the day's weight, each logged through its SDK resource, plus week, month,
+/// and year charts of water and weight that end today.
 struct TrackingView: View {
     let client: JanuaryClient
     let settingsAction: () -> Void
@@ -27,18 +28,24 @@ struct TrackingView: View {
     @State private var weightError: Error?
     @State private var isLoggingWeight = false
 
+    /// Bumped after water or a weight is logged so the trend charts reload.
+    @State private var waterChartRevision = 0
+    @State private var weightChartRevision = 0
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 ScreenShell {
-                    LazyVStack(alignment: .leading, spacing: 16) {
+                    // A plain VStack: one day's content is short, and the chart cards' heights
+                    // change as they load, which a LazyVStack can keep re-measuring.
+                    VStack(alignment: .leading, spacing: 16) {
                         WorkflowGuideCard(
                             title: "Track one day at a time",
                             message: "Each day gathers the user’s meals with their nutrient totals, the water they drank, and their latest weight. A food log is one meal with one or more foods.",
                             steps: [
                                 "Identify the user who owns the logs",
                                 "Pick a day, then log meals, water, or a weight",
-                                "Review the day’s totals"
+                                "Review the day’s totals and the water and weight trends"
                             ],
                             symbol: "book.closed"
                         )
@@ -56,9 +63,9 @@ struct TrackingView: View {
                             dayPicker
 
                             SectionLabel("Water")
-                            waterCard
+                            waterCard(context)
                             SectionLabel("Weight")
-                            weightCard
+                            weightCard(context)
 
                             SectionLabel("Meals")
                             PrimaryButton(
@@ -131,7 +138,10 @@ struct TrackingView: View {
                 .padding(.vertical, 16)
                 .padding(.bottom, 88)
             }
-            .refreshable { await load() }
+            .refreshable {
+                waterChartRevision += 1; weightChartRevision += 1
+                await load()
+            }
             .appBackground()
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("tracking-screen")
@@ -193,7 +203,7 @@ struct TrackingView: View {
 
     // MARK: - Water and weight
 
-    private var waterCard: some View {
+    private func waterCard(_ context: PartnerUserContext) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -251,11 +261,20 @@ struct TrackingView: View {
                         .accessibilityIdentifier("water-log-delete")
                 }
             }
+            Divider().overlay(AppPalette.divider)
+            WaterTrendChart(
+                client: client,
+                context: context,
+                unit: waterUnit,
+                unitTitle: unitTitle(waterUnit),
+                calendar: calendar,
+                revision: waterChartRevision
+            )
         }
         .appCard()
     }
 
-    private var weightCard: some View {
+    private func weightCard(_ context: PartnerUserContext) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
@@ -302,6 +321,14 @@ struct TrackingView: View {
                 Task { await logWeight() }
             }
             .accessibilityIdentifier("weight-log-create")
+            Divider().overlay(AppPalette.divider)
+            WeightTrendChart(
+                client: client,
+                context: context,
+                unit: weightUnit,
+                calendar: calendar,
+                revision: weightChartRevision
+            )
         }
         .appCard()
     }
@@ -367,6 +394,7 @@ struct TrackingView: View {
                 consumedAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
                 user: context
             ))
+            waterChartRevision += 1
             await load()
         } catch { waterError = error }
         isLoggingWater = false
@@ -378,6 +406,7 @@ struct TrackingView: View {
         do {
             try await client.waterLogs.delete(.init(id: lastWaterLog.id, user: context))
             self.lastWaterLog = nil
+            waterChartRevision += 1
             await load()
         } catch { waterError = error }
     }
@@ -391,6 +420,7 @@ struct TrackingView: View {
                 measuredAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
                 user: context
             ))
+            weightChartRevision += 1
             await load()
         } catch { weightError = error }
         isLoggingWeight = false

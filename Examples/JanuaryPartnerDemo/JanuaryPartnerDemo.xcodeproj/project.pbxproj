@@ -19,6 +19,10 @@
 		A10000000000000000000014 /* FoodLogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000014 /* FoodLogsView.swift */; };
 		A10000000000000000000015 /* GlucoseView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000015 /* GlucoseView.swift */; };
 		A10000000000000000000023 /* TrackingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000023 /* TrackingView.swift */; };
+		A10000000000000000000024 /* TrackingCharts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000024 /* TrackingCharts.swift */; };
+		A10000000000000000000025 /* TrackingChartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000025 /* TrackingChartData.swift */; };
+		A10000000000000000000026 /* TrackingChartData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000025 /* TrackingChartData.swift */; };
+		A10000000000000000000027 /* TrackingChartDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000027 /* TrackingChartDataTests.swift */; };
 		A10000000000000000000016 /* burger-and-fries.png in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000016 /* burger-and-fries.png */; };
 		A10000000000000000000017 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000017 /* LocationProvider.swift */; };
 		A10000000000000000000018 /* RestaurantDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000018 /* RestaurantDetailViewModel.swift */; };
@@ -84,6 +88,9 @@
 		A20000000000000000000014 /* FoodLogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLogsView.swift; sourceTree = "<group>"; };
 		A20000000000000000000015 /* GlucoseView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlucoseView.swift; sourceTree = "<group>"; };
 		A20000000000000000000023 /* TrackingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingView.swift; sourceTree = "<group>"; };
+		A20000000000000000000024 /* TrackingCharts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingCharts.swift; sourceTree = "<group>"; };
+		A20000000000000000000025 /* TrackingChartData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingChartData.swift; sourceTree = "<group>"; };
+		A20000000000000000000027 /* TrackingChartDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingChartDataTests.swift; sourceTree = "<group>"; };
 		A20000000000000000000016 /* burger-and-fries.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "burger-and-fries.png"; path = "../../../Tests/JanuarySDKTests/Fixtures/PhotoScanning/burger-and-fries.png"; sourceTree = "<group>"; };
 		A20000000000000000000017 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		A20000000000000000000018 /* RestaurantDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestaurantDetailViewModel.swift; sourceTree = "<group>"; };
@@ -155,6 +162,7 @@
 			isa = PBXGroup;
 			children = (
 				587698E8907CB85F0CC6C218 /* RestaurantMenuUITests.swift */,
+				A20000000000000000000027 /* TrackingChartDataTests.swift */,
 			);
 			name = JanuaryPartnerDemoUITests;
 			path = JanuaryPartnerDemoUITests;
@@ -280,6 +288,8 @@
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000023 /* TrackingView.swift */,
+				A20000000000000000000024 /* TrackingCharts.swift */,
+				A20000000000000000000025 /* TrackingChartData.swift */,
 			);
 			path = Tracking;
 			sourceTree = "<group>";
@@ -425,6 +435,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				D38633D94AD66C6767DEE93C /* RestaurantMenuUITests.swift in Sources */,
+				A10000000000000000000026 /* TrackingChartData.swift in Sources */,
+				A10000000000000000000027 /* TrackingChartDataTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -469,6 +481,8 @@
 				B10000000000000000000019 /* FoodLogUserCard.swift in Sources */,
 				A10000000000000000000015 /* GlucoseView.swift in Sources */,
 				A10000000000000000000023 /* TrackingView.swift in Sources */,
+				A10000000000000000000024 /* TrackingCharts.swift in Sources */,
+				A10000000000000000000025 /* TrackingChartData.swift in Sources */,
 				A10000000000000000000021 /* HeightInput.swift in Sources */,
 				A10000000000000000000022 /* WeightInput.swift in Sources */,
 				A10000000000000000000017 /* LocationProvider.swift in Sources */,

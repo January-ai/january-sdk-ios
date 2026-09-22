@@ -10,14 +10,20 @@ tags:
     timeout: 15000
 - tapOn:
     id: tab-tracking
+# Center the weight card's header; the log button sits just below it, above
+# the card's trend chart.
 - runFlow:
     file: ../scroll-to.yaml
     env:
-      TARGET_ID: weight-log-create
+      TARGET_ID: weight-entry
 - assertVisible: No weight logged
 # Segmented controls switch by their visible label on iOS.
 - tapOn:
     text: kg
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
 - tapOn:
     id: weight-log-create
 - extendedWaitUntil:

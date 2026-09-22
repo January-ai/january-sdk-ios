@@ -27,15 +27,19 @@ maestro test $(node Examples/JanuaryPartnerDemo/.maestro/shard.mjs 2 3)
 which points the client at `http://127.0.0.1:18768` with a stub token and turns
 animations off. Flows change the fixture server's behaviour through
 `scripts/control-fixture.js` (HTTP status, delay, empty collections per route),
-`seed-fixture.js` (one saved food log) and `reset-fixture.js`, which the
-bootstrap runs first so no flow inherits another's configuration.
+`seed-fixture.js` (one saved food log), `seed-history.js` (400 days of water
+and weight before today, for the Tracking charts; list requests still honour
+their dates and the 100-day limit) and `reset-fixture.js`, which the bootstrap
+runs first so no flow inherits another's configuration.
 
 ## Conventions
 
 - Select elements by accessibility identifier, never by position. The names
   are the React Native example's test IDs; the Tracking tab's `tracking-*`,
   `logs-day-*`, `water-*`, `weight-*`, and `food-logs-summary` identifiers
-  (flows 26–28) were defined here first. Segmented controls and tab items
+  (flows 26–28) were defined here first. The charts use `water-chart`,
+  `weight-chart`, their `-empty` states, and `-range-week|month|year` buttons
+  (flow 29); each chart's accessibility label summarizes what it shows. Segmented controls and tab items
   are matched by their visible labels where identifiers do not surface.
 - Controls at the end of a scrolling screen go through `scroll-to.yaml`, which
   lifts them clear of the tab bar.
