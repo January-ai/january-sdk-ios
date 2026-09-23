@@ -1,0 +1,123 @@
+appId: ai.january.partner.demo
+name: Food detail without full serving details, glucose and alternatives loading, and an unknown barcode
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+# Full serving details fail to load: the search result's serving is still shown.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/101
+      STATUS: "500"
+- tapOn:
+    id: food-result-0
+- extendedWaitUntil:
+    visible:
+      id: food-detail-screen
+    timeout: 15000
+- assertVisible:
+    id: food-macros
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-detail-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/101
+      STATUS: "200"
+# A slow glucose estimate shows its loading state.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      DELAY: "8"
+- scrollUntilVisible:
+    element:
+      id: food-check-glucose
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: food-check-glucose
+- extendedWaitUntil:
+    visible:
+      id: food-glucose-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: food-glucose-result
+    timeout: 20000
+- tapOn:
+    text: Close glucose response
+# Slow alternatives show theirs.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/101/alternatives
+      DELAY: "8"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-alternatives
+- tapOn:
+    id: food-alternatives
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: alternatives-refresh
+- tapOn:
+    id: alternatives-refresh
+- extendedWaitUntil:
+    visible:
+      id: alternatives-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: alternatives-results
+    timeout: 20000
+- tapOn:
+    text: Close alternatives
+# A slow barcode lookup shows the loading state; an unknown barcode reports that
+# nothing matched.
+- tapOn:
+    text: Search
+- extendedWaitUntil:
+    visible:
+      id: search-screen
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/barcode/000000000000
+      STATUS: "404"
+      DELAY: "8"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-mode-barcode
+- tapOn:
+    id: search-input
+- inputText: "000000000000"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: No matching result was found

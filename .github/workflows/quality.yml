@@ -73,6 +73,9 @@ jobs:
       - name: Validate README and GitBook
         run: node scripts/check-documentation.mjs
 
+      - name: Check that the UI suite reaches every accessibility identifier
+        run: node scripts/check-ui-coverage.mjs
+
       - name: Run package tests and enforce coverage
         run: node scripts/check-coverage.mjs
 

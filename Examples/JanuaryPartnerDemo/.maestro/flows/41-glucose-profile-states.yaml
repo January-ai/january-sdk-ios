@@ -1,0 +1,157 @@
+appId: ai.january.partner.demo
+name: Glucose profile entry, no meal yet, loading, the result, going back, and starting over
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- tapOn:
+    id: tab-glucose
+# The profile: sex, height in feet and inches, weight, and conditions.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-sex-male
+- tapOn:
+    id: glucose-sex-male
+- tapOn:
+    id: glucose-sex-female
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-height-inches
+- tapOn:
+    id: glucose-height-feet
+- eraseText: 3
+- inputText: "5"
+- tapOn:
+    text: Done
+- tapOn:
+    id: glucose-height-inches
+- eraseText: 3
+- inputText: "9"
+- tapOn:
+    text: Done
+- assertVisible:
+    id: glucose-height-feet
+    text: "5"
+- assertVisible:
+    id: glucose-height-inches
+    text: "9"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-weight
+- tapOn:
+    id: glucose-weight
+- eraseText: 6
+- inputText: "165"
+- tapOn:
+    text: Done
+- assertVisible:
+    id: glucose-weight
+    text: "165"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-health-conditions
+- tapOn:
+    id: glucose-health-conditions
+- extendedWaitUntil:
+    visible:
+      id: conditions-screen
+    timeout: 15000
+- tapOn:
+    id: condition-prediabetes
+- tapOn:
+    text: Glucose
+- assertVisible: 1 selected
+# With no meal, there is nothing to estimate yet.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- assertVisible:
+    id: glucose-predict
+    enabled: false
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- tapOn:
+    id: food-serving-add
+# A slow estimate shows the loading state, then the result.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      DELAY: "8"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- tapOn:
+    id: glucose-predict
+- extendedWaitUntil:
+    visible:
+      id: glucose-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: glucose-result
+    timeout: 20000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      DELAY: "0"
+# The estimate was requested with the profile entered above: 5 ft 9 in, 165 lb, prediabetes.
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      BODY_CONTAINS: '"health_conditions":["prediabetes"] && "value":69 && "unit":"in" && "value":165 && "unit":"lb"'
+# Back keeps the meal; start over clears it.
+- tapOn:
+    id: glucose-result-back
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-food-0
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- tapOn:
+    id: glucose-predict
+- extendedWaitUntil:
+    visible:
+      id: glucose-results-screen
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-start-over
+- tapOn:
+    id: glucose-start-over
+- extendedWaitUntil:
+    visible:
+      id: glucose-screen
+    timeout: 15000
+- assertNotVisible:
+    id: glucose-food-0

@@ -1,0 +1,97 @@
+appId: ai.january.partner.demo
+name: Scan camera without a camera, image URL, remove, and analysis and correction loading
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-scan
+    timeout: 15000
+- tapOn:
+    id: tab-scan
+- assertVisible:
+    id: scan-library
+# The simulator has no camera: the scanner explains it and closes.
+- tapOn:
+    id: scan-camera
+- extendedWaitUntil:
+    visible: Camera unavailable
+    timeout: 15000
+- tapOn:
+    text: Close
+- extendedWaitUntil:
+    visible:
+      id: scan-guide
+    timeout: 15000
+# A public image URL becomes the photo to analyze.
+- tapOn:
+    id: scan-image-url
+- tapOn:
+    id: image-url-input
+- inputText: https://example.com/meal.jpg
+# Return dismisses the keyboard, which can cover the button.
+- pressKey: Enter
+- tapOn:
+    id: image-url-use
+- extendedWaitUntil:
+    visible:
+      id: scan-preview
+    timeout: 15000
+- assertVisible:
+    id: scan-change
+- tapOn:
+    id: scan-remove
+- assertVisible:
+    id: scan-guide
+- assertNotVisible:
+    id: scan-preview
+# Analysis loading, then the result.
+- tapOn:
+    id: scan-sample
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/image
+      DELAY: "8"
+- tapOn:
+    id: scan-analyze
+- extendedWaitUntil:
+    visible:
+      id: scan-loading
+    timeout: 5000
+- assertVisible: Complex meals can take a little longer.*
+- extendedWaitUntil:
+    visible:
+      id: scan-results
+    timeout: 15000
+# Correction loading, then the corrected meal.
+- scrollUntilVisible:
+    element:
+      id: scan-correct
+    direction: DOWN
+- tapOn:
+    id: scan-correct
+- extendedWaitUntil:
+    visible:
+      id: correction-meal-name
+    timeout: 15000
+- tapOn:
+    id: scan-correction-input
+- inputText: This was lentils
+- tapOn:
+    text: Done
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/corrections
+      DELAY: "8"
+- tapOn:
+    id: scan-correction-submit
+- extendedWaitUntil:
+    visible:
+      id: scan-correction-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible: Corrected breakfast
+    timeout: 15000

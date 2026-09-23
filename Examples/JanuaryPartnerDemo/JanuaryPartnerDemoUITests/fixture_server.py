@@ -21,7 +21,7 @@ def food(identifier="101", name="Fixture oatmeal", full=True):
     return {
         "id": str(identifier), "type": "generic", "name": name, "brand_name": "January fixture",
         "nutrients": NUTRIENTS, "glycemic_index": 52, "glycemic_load": 12,
-        "image_url": None, "barcode": None, "servings": SERVINGS if full else SERVINGS[:1],
+        "image_url": None, "barcode": "012345678905", "servings": SERVINGS if full else SERVINGS[:1],
     }
 
 PREDICTION = {
@@ -35,20 +35,44 @@ def detected(identifier="101", name="Fixture oatmeal"):
         "quantity": 1, "serving": {"id": "11", "quantity": 1, "unit": "cup"},
     }
 
+def suggestions(query):
+    """Autocomplete suggests the fixture foods only for queries that start with "fix", so flows
+    that type other queries never see a suggestion list."""
+    if not query.lower().startswith("fix"): return []
+    return [{"id": "101", "type": "generic", "name": "Fixture oatmeal", "brand_name": "January fixture", "image_url": None, "nutrients": NUTRIENTS},
+            {"id": "102", "type": "generic", "name": "Fixture lentils", "brand_name": "January fixture", "image_url": None, "nutrients": NUTRIENTS}]
+
 def scan(name="Fixture breakfast"):
     return {"meal_name": name, "detections": [{"food": detected(), "confidence": "high"}], "total_nutrients": NUTRIENTS}
 
 def seeded_eaten_at():
-    """An hour ago, so the seeded log always falls in the demo's default date range."""
-    return (datetime.now(timezone.utc) - timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    """A minute after midnight today in this machine's timezone (the simulator's), so the seeded
+    log is always today's and its time differs from the time a flow runs."""
+    first_minute = datetime.now().astimezone().replace(hour=0, minute=1, second=0, microsecond=0)
+    return first_minute.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-def food_log(name="Fixture breakfast"):
-    logged = food()
-    logged.pop("servings"); logged.pop("type"); logged.pop("barcode")
-    logged.update({"food_id": logged.pop("id"), "quantity": 1, "serving": {"id": "11", "quantity": 1, "unit": "cup", "weight_grams": 100}})
-    return {"id": "opaque-log-1", "name": name, "eaten_at": seeded_eaten_at(), "foods": [logged]}
+def logged_on(log, query):
+    """Whether a log was eaten within the request's start_date..end_date in its timezone."""
+    start, end = query.get("start_date"), query.get("end_date")
+    if not start or not end: return True
+    try: zone = ZoneInfo(query.get("timezone", "UTC"))
+    except Exception: zone = timezone.utc
+    eaten = datetime.fromisoformat(log["eaten_at"].replace("Z", "+00:00")).astimezone(zone).date().isoformat()
+    return start <= eaten <= end
 
-STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": []}
+def food_log(name="Fixture breakfast", foods=None, eaten_at=None):
+    """One saved log with the foods a create or update sent (food 102 is the lentils), or the oatmeal."""
+    logged_foods = []
+    for selection in foods or [{"food_id": "101", "serving_id": "11", "quantity": 1}]:
+        identifier = str(selection.get("food_id", "101"))
+        logged = food(identifier, "Fixture lentils" if identifier == "102" else "Fixture oatmeal")
+        logged.pop("servings"); logged.pop("type"); logged.pop("barcode")
+        logged.update({"food_id": logged.pop("id"), "quantity": selection.get("quantity", 1),
+                       "serving": {"id": str(selection.get("serving_id", "11")), "quantity": 1, "unit": "cup", "weight_grams": 100}})
+        logged_foods.append(logged)
+    return {"id": "opaque-log-1", "name": name, "eaten_at": eaten_at or seeded_eaten_at(), "foods": logged_foods}
+
+STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_eaten_at": None}
 ML_PER_FL_OZ = 29.5735
 ML_PER_UNIT = {"fl_oz": ML_PER_FL_OZ, "cup": ML_PER_FL_OZ * 8, "ml": 1}
 LB_PER_KG = 1 / 0.45359237
@@ -66,8 +90,12 @@ def local_today(query):
 def scaled_nutrients(count):
     return {key: {"value": amount["value"] * count, "unit": amount["unit"]} for key, amount in NUTRIENTS.items()}
 
-def food_log_summary(query):
-    count = len(STATE["logs"]); days = 1 if count else 0
+def visible(entries, user):
+    """The logs a user sees: their own and the seeded ones, which belong to no user."""
+    return [entry for entry in entries if entry.get("user") in (None, user)]
+
+def food_log_summary(query, user=None):
+    count = len([log for log in visible(STATE["logs"], user) if logged_on(log, query)]); days = 1 if count else 0
     start = query.get("start_date", local_today(query)); end = query.get("end_date", start)
     bucket = {"start_date": start, "end_date": end, "logs_count": count, "days_with_logs": days, "nutrients": scaled_nutrients(count) if count else {}}
     return {"group_by": query.get("group_by", "day"), "week_start": None, "timezone": query.get("timezone", "UTC"), "start_date": start, "end_date": end,
@@ -118,13 +146,17 @@ class Handler(BaseHTTPRequestHandler):
         query = {key: values[0] for key, values in parse_qs(parsed.query).items()}
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         body = json.loads(raw) if raw and "application/json" in self.headers.get("Content-Type", "") else {}
-        if path == "/__reset": STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[]); return self.respond({})
+        if path == "/__reset": STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_eaten_at=None); return self.respond({})
         if path == "/__history": STATE["history"] = True; return self.respond({})
         if path == "/__control": STATE["rules"][query["route"]] = query; return self.respond({})
-        if path == "/__seed": STATE["logs"] = [food_log()]; return self.respond({})
+        if path == "/__seed": STATE["logs"] = [food_log()]; STATE["seeded_eaten_at"] = STATE["logs"][0]["eaten_at"]; return self.respond({})
+        if path == "/__seeded": return self.respond({"eaten_at": STATE["seeded_eaten_at"]})
         if path == "/__requests": return self.respond(STATE["requests"])
+        # Lets a flow wait out a delayed response: /__sleep?seconds=3
+        if path == "/__sleep": time.sleep(float(query.get("seconds", 1))); return self.respond({})
 
-        STATE["requests"].append({"method": self.command, "path": path, "query": query, "body": body})
+        STATE["requests"].append({"method": self.command, "path": path, "query": query, "body": body, "at": time.time(),
+                                  "authorization": self.headers.get("Authorization"), "end_user": self.headers.get("January-End-User-ID")})
         rule = STATE["rules"].get(path, {})
         if float(rule.get("delay", 0)): time.sleep(float(rule["delay"]))
         status = int(rule.get("status", 200)); empty = rule.get("empty") == "true"
@@ -132,7 +164,12 @@ class Handler(BaseHTTPRequestHandler):
             message = "No restaurant with id cafe. Use an id from a GET /v1.2/restaurants result." if status == 404 and "/restaurants/" in path else "The test request could not be completed."
             return self.respond({"code": "not_found" if status == 404 else "fixture_error", "message": message, "request_id": "ios-ui-test"}, status)
 
-        if path.endswith("/autocomplete"): result = {"items": []}
+        # A stand-in for the token relay, so a Debug build can rehearse the client-token flow here.
+        if path == "/api/january/client-token":
+            return self.respond({"token": f"fixture-relay-token.{self.headers.get('January-End-User-ID', '')}", "expiresIn": 1800})
+        # The fixture tokens end with the end-user ID, so logs are kept per user.
+        user = (self.headers.get("Authorization") or "").partition("-token.")[2] or None
+        if path.endswith("/autocomplete"): result = {"items": [] if empty else suggestions(query.get("query", ""))}
         elif path.endswith("/alternatives"): result = {"alternatives": [] if empty else [food("102", "Fixture lentils")]}
         elif path.endswith("/foods/101"): result = food()
         elif path.endswith("/foods/102"): result = food("102", "Fixture lentils")
@@ -149,37 +186,44 @@ class Handler(BaseHTTPRequestHandler):
         elif path.endswith("/food-analysis/image"): result = scan()
         elif path.endswith("/food-analysis/corrections"): result = scan("Corrected breakfast")
         elif path.endswith("/food-analysis/text"): result = {"meal_name": None, "detections": [] if empty else [{"food": detected(), "confidence": None}], "total_nutrients": NUTRIENTS}
-        elif path.endswith("/food-logs/summary"): result = food_log_summary(query)
+        elif path.endswith("/food-logs/summary"): result = food_log_summary(query, user)
         elif "/food-logs" in path:
-            if self.command == "GET": result = {"items": STATE["logs"]}
-            elif self.command == "DELETE": STATE["logs"] = []; return self.respond({}, 204)
-            else: result = food_log(body.get("name") or "Fixture breakfast"); STATE["logs"] = [result]
+            if self.command == "GET":
+                result = {"items": [{key: value for key, value in log.items() if key != "user"}
+                                    for log in visible(STATE["logs"], user) if logged_on(log, query)]}
+            elif self.command == "DELETE": STATE["logs"] = [log for log in STATE["logs"] if log not in visible(STATE["logs"], user)]; return self.respond({}, 204)
+            else:
+                result = food_log(body.get("name") or "Fixture breakfast", body.get("foods"), body.get("eaten_at"))
+                STATE["logs"] = [log for log in STATE["logs"] if log not in visible(STATE["logs"], user)] + [dict(result, user=user)]
         elif "/water-logs" in path:
             # Every log lands on today's local date; one daily total per day in the requested unit.
             if self.command == "GET":
                 unit = query.get("unit", "fl_oz")
                 def today_water(date):
-                    if not STATE["water"]: return None
-                    return {"date": date, "total": {"value": round(sum(volume(entry["amount"], unit) for entry in STATE["water"]), 1), "unit": unit}}
+                    mine = visible(STATE["water"], user)
+                    if not mine: return None
+                    return {"date": date, "total": {"value": round(sum(volume(entry["amount"], unit) for entry in mine), 1), "unit": unit}}
                 def past_water(date, days_ago):
                     milliliters = history_water(days_ago)
                     return None if milliliters is None else {"date": date, "total": {"value": round(volume({"value": milliliters, "unit": "ml"}, unit), 1), "unit": unit}}
                 result = {"items": [] if empty else daily_items(query, today_water, past_water)}
             elif self.command == "DELETE":
-                log_id = path.rsplit("/", 1)[1]; STATE["water"] = [entry for entry in STATE["water"] if entry["id"] != log_id]
+                log_id = path.rsplit("/", 1)[1]; STATE["water"] = [entry for entry in STATE["water"] if entry["id"] != log_id or entry.get("user") != user]
                 return self.respond({}, 204)
             else:
                 result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "consumed_at": now_iso()}
-                STATE["water"].append(result)
+                STATE["water"].append(dict(result, user=user))
         elif "/weight-logs" in path:
             # The latest measurement stands for today's local date, in the unit it was logged in.
             if self.command == "GET":
-                def today_weight(date): return {"date": date, "weight": STATE["weights"][-1]["weight"]} if STATE["weights"] else None
+                def today_weight(date):
+                    mine = visible(STATE["weights"], user)
+                    return {"date": date, "weight": mine[-1]["weight"]} if mine else None
                 def past_weight(date, days_ago): return {"date": date, "weight": weight} if (weight := history_weight(days_ago)) else None
                 result = {"items": [] if empty else daily_items(query, today_weight, past_weight)}
             else:
                 result = {"weight": body.get("weight"), "measured_at": now_iso()}
-                STATE["weights"].append(result)
+                STATE["weights"].append(dict(result, user=user))
         else: return self.respond({"code": "not_found", "message": f"Unmapped fixture route {path}"}, 404)
         created = self.command == "POST" and (path.endswith("/food-logs") or path.endswith("/water-logs") or path.endswith("/weight-logs"))
         return self.respond(result, 201 if created else 200)

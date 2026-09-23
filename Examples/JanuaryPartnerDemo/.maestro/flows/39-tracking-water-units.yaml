@@ -1,0 +1,99 @@
+appId: ai.january.partner.demo
+name: Tracking water in milliliters, cups, and fluid ounces, with a typed amount
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+- tapOn:
+    id: tab-tracking
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
+- assertVisible: No water logged
+- assertVisible:
+    id: water-unit-fl_oz
+# Milliliters: the 8 fl oz default becomes 237 ml, within the milliliter range.
+- tapOn:
+    id: water-unit-ml
+- assertVisible:
+    id: water-amount
+    text: "237"
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible: 237 ml
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      QUERY_KEY: unit
+      QUERY_VALUE: ml
+# A typed amount is logged as typed; the keyboard's Done button closes it.
+- tapOn:
+    id: water-amount
+- eraseText: 6
+- inputText: "250"
+- tapOn:
+    text: Done
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible: 487 ml
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: water-log-delete
+    direction: UP
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    visible: 237 ml
+    timeout: 15000
+- assertNotVisible:
+    id: water-log-delete
+# Cups: the same day's total, requested in cups; the 250 ml amount becomes 1.1 cup.
+- tapOn:
+    id: water-unit-cup
+- extendedWaitUntil:
+    visible: 1 cup
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      QUERY_KEY: unit
+      QUERY_VALUE: cup
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible: 2.1 cup
+    timeout: 15000
+- scrollUntilVisible:
+    element:
+      id: water-log-delete
+    direction: UP
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    visible: 1 cup
+    timeout: 15000
+# Back to fluid ounces.
+- tapOn:
+    id: water-unit-fl_oz
+- extendedWaitUntil:
+    visible: 8 fl oz
+    timeout: 15000

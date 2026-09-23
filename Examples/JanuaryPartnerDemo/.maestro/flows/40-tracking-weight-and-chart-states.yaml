@@ -1,0 +1,171 @@
+appId: ai.january.partner.demo
+name: Tracking weight typed in kilograms, day and chart failures with retries, and chart loading
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+- tapOn:
+    id: tab-tracking
+# A typed weight in kilograms.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible: No weight logged
+- tapOn:
+    id: weight-unit-kg
+- tapOn:
+    id: weight-value
+- eraseText: 6
+- inputText: "72.5"
+- tapOn:
+    text: Done
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible: 72.5 kg
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- assertVisible: "Weight, last 7 days: 1 entry, 72.5 kg"
+# In pounds, the chart converts the same entry.
+- scrollUntilVisible:
+    element:
+      id: weight-unit-lb
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: weight-unit-lb
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- assertVisible: "Weight, last 7 days: 1 entry, 159.8 lb"
+# The day's weight fails to load, then recovers on retry.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/weight-logs
+      STATUS: "500"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-refresh
+- tapOn:
+    id: tracking-refresh
+- scrollUntilVisible:
+    element:
+      id: weight-error
+    direction: UP
+    centerElement: true
+# The chart fails on its next request too.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart-range-month
+- tapOn:
+    id: weight-chart-range-month
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart-retry
+- assertVisible:
+    id: weight-chart-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/weight-logs
+      STATUS: "200"
+- tapOn:
+    id: weight-chart-retry
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- assertVisible: "Weight, last 30 days: 1 entry, .*"
+- scrollUntilVisible:
+    element:
+      id: weight-retry
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: weight-retry
+- extendedWaitUntil:
+    notVisible:
+      id: weight-error
+    timeout: 15000
+- assertVisible: 72.5 kg
+# The water chart fails and recovers the same way.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      STATUS: "500"
+- scrollUntilVisible:
+    element:
+      id: water-chart-range-month
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: water-chart-range-month
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-chart-retry
+- assertVisible:
+    id: water-chart-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      STATUS: "200"
+- tapOn:
+    id: water-chart-retry
+# The empty chart replaces the taller error card, so it starts above the retry button.
+- scrollUntilVisible:
+    element:
+      id: water-chart-empty
+    direction: UP
+# Slow chart requests show each chart's loading state.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      DELAY: "8"
+- scrollUntilVisible:
+    element:
+      id: water-chart-range-year
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: water-chart-range-year
+- extendedWaitUntil:
+    visible:
+      id: water-chart-loading
+    timeout: 5000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/weight-logs
+      DELAY: "8"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart-range-year
+- tapOn:
+    id: weight-chart-range-year
+- extendedWaitUntil:
+    visible:
+      id: weight-chart-loading
+    timeout: 5000

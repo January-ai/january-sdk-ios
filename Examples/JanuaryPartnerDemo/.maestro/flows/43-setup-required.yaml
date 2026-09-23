@@ -1,0 +1,20 @@
+appId: ai.january.partner.demo
+name: Without a token endpoint the demo explains how to connect it
+tags:
+  - fixture
+---
+# Launch without -ui-testing and without JANUARY_PARTNER_TOKEN_URL.
+- runScript:
+    file: ../scripts/reset-fixture.js
+- launchApp:
+    clearState: false
+    stopApp: true
+- extendedWaitUntil:
+    visible:
+      id: setup-screen
+    timeout: 60000
+- assertVisible: Welcome to January
+- assertVisible: Start the token relay
+- assertVisible: Connect this app
+- assertNotVisible:
+    id: tab-search

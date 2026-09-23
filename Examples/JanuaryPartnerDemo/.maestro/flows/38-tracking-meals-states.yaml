@@ -1,0 +1,120 @@
+appId: ai.january.partner.demo
+name: Tracking day loading, meals with totals, a failed refresh and retry, and the day picker
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-fixture.js
+# While the day first loads, the water and weight cards say so instead of
+# reporting nothing logged, and the meals show a loading row, in that order
+# down the screen.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      DELAY: "30"
+- tapOn:
+    id: tab-tracking
+- scrollUntilVisible:
+    element:
+      id: water-total
+    direction: DOWN
+- assertVisible:
+    id: water-total
+    text: Loading water…
+- scrollUntilVisible:
+    element:
+      id: weight-entry
+    direction: DOWN
+- assertVisible:
+    id: weight-entry
+    text: Loading weight…
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-loading
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      DELAY: "0"
+# The day's meal and its totals.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-food-log-0
+- assertVisible:
+    id: food-logs-summary
+- assertVisible: Day totals · 1 log
+- tapOn:
+    id: tracking-food-log-0
+- extendedWaitUntil:
+    visible:
+      id: food-log-detail
+    timeout: 15000
+- assertVisible: Fixture breakfast
+- tapOn:
+    text: Tracking
+- extendedWaitUntil:
+    visible:
+      id: tracking-screen
+    timeout: 15000
+# A failed refresh is reported with the meals and recovers on retry.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      STATUS: "500"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-refresh
+- tapOn:
+    id: tracking-refresh
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-food-logs-retry
+- assertVisible:
+    id: tracking-food-logs-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      STATUS: "200"
+- tapOn:
+    id: tracking-food-logs-retry
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-food-log-0
+- assertNotVisible:
+    id: tracking-food-logs-error
+# The day picker: back a day, forward again, and the label follows.
+- scrollUntilVisible:
+    element:
+      id: logs-day-label
+    direction: UP
+    centerElement: true
+- assertVisible:
+    id: logs-day-label
+    text: Today.*
+- tapOn:
+    id: logs-day-previous
+- assertVisible:
+    id: logs-day-today
+- assertNotVisible:
+    id: logs-day-label
+    text: Today.*
+- tapOn:
+    id: logs-day-next
+- assertVisible:
+    id: logs-day-label
+    text: Today.*
+- assertNotVisible:
+    id: logs-day-today

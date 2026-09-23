@@ -1,0 +1,81 @@
+appId: ai.january.partner.demo
+name: Food search loading, the Recipe category, and every scope and mode
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- assertVisible:
+    id: app-root
+- assertVisible:
+    id: search-voice
+# A delayed search shows the button's loading state until results arrive. The
+# delay outlasts the few seconds Maestro waits for the screen to settle.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      DELAY: "8"
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+# Return submits and dismisses the keyboard, uncovering the button.
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 15000
+- assertNotVisible:
+    id: search-loading
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      DELAY: "0"
+# The Recipe category reaches search too, submitted with the button.
+- tapOn:
+    id: category-recipe
+- tapOn:
+    id: search-submit
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/foods
+      QUERY_KEY: type
+      QUERY_VALUE: recipe
+- tapOn:
+    id: category-all
+- tapOn:
+    id: search-clear
+# Modes by identifier: each shows its own prompt.
+- tapOn:
+    id: search-mode-description
+- assertVisible: Describe a meal
+- tapOn:
+    id: search-mode-barcode
+- assertVisible:
+    id: scan-barcode-button
+- assertVisible: Enter or scan a barcode
+- tapOn:
+    id: search-mode-name
+- assertVisible: Find a food
+# Scopes by identifier.
+- tapOn:
+    id: search-scope-restaurants
+- assertVisible:
+    id: restaurants-initial
+- tapOn:
+    id: search-scope-foods
+- assertVisible:
+    id: search-prompt

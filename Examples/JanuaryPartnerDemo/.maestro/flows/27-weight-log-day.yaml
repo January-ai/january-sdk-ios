@@ -17,9 +17,9 @@ tags:
     env:
       TARGET_ID: weight-entry
 - assertVisible: No weight logged
-# Segmented controls switch by their visible label on iOS.
+# Switching to kilograms converts the 150 lb default to 68 kg.
 - tapOn:
-    text: kg
+    id: weight-unit-kg
 - scrollUntilVisible:
     element:
       id: weight-log-create
@@ -27,7 +27,7 @@ tags:
 - tapOn:
     id: weight-log-create
 - extendedWaitUntil:
-    visible: 150 kg
+    visible: 68 kg
     timeout: 15000
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-weight
 # The previous day has no weight, and the day label leaves "Today".
@@ -56,4 +56,4 @@ tags:
     file: ../scroll-to.yaml
     env:
       TARGET_ID: weight-entry
-- assertVisible: 150 kg
+- assertVisible: 68 kg

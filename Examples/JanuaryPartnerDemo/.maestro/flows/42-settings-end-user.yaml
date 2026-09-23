@@ -1,0 +1,62 @@
+appId: ai.january.partner.demo
+name: A Settings end-user ID applies to the tabs and to every request after Return
+tags:
+  - fixture
+# The new ID is saved on the device; clear it so later flows start from the default.
+onFlowComplete:
+  - stopApp
+  - clearState
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: settings-button
+    timeout: 15000
+- tapOn:
+    id: settings-button
+- extendedWaitUntil:
+    visible:
+      id: settings-sheet
+    timeout: 15000
+- tapOn:
+    id: settings-user-id
+- eraseText: 60
+- inputText: qa-settings-user
+- pressKey: Enter
+- tapOn:
+    id: settings-close
+- assertNotVisible:
+    id: settings-sheet
+# The Tracking tab shows the new user, and its requests are made for that user.
+- tapOn:
+    id: tab-tracking
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-user-card
+- assertVisible: qa-settings-user
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      END_USER: qa-settings-user
+# So is a search.
+- tapOn:
+    id: tab-search
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/foods
+      END_USER: qa-settings-user

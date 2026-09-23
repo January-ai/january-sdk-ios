@@ -1,0 +1,134 @@
+appId: ai.january.partner.demo
+name: Meal description with no recognized foods, then its glucose prediction loading, failure, and retry
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+- tapOn:
+    id: search-mode-description
+# A slow analysis shows the loading state; a failed one keeps the description.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/text
+      DELAY: "8"
+- tapOn:
+    id: search-input
+- inputText: a bowl of oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-loading
+    timeout: 5000
+- extendedWaitUntil:
+    visible:
+      id: description-results
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/text
+      STATUS: "500"
+- tapOn:
+    id: search-submit
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 15000
+- assertVisible: a bowl of oatmeal
+- tapOn:
+    id: search-clear
+# A description with no recognizable food.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/text
+      EMPTY: "true"
+- tapOn:
+    id: search-input
+- inputText: something to drink
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: description-empty
+    timeout: 15000
+- assertVisible: No foods recognized
+- assertNotVisible:
+    id: description-glucose
+- tapOn:
+    id: description-analyze-another
+- assertVisible:
+    id: search-prompt
+# A recognized meal, then its glucose prediction: loading, failure, retry.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/text
+      EMPTY: "false"
+- tapOn:
+    id: search-input
+- inputText: a bowl of oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: description-results
+    timeout: 15000
+- assertVisible: Fixture oatmeal
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      DELAY: "8"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: description-glucose
+- tapOn:
+    id: description-glucose
+- extendedWaitUntil:
+    visible:
+      id: description-glucose-loading
+    timeout: 5000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: description-glucose-result
+- assertVisible: LIKELY MEAL PEAK
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      STATUS: "500"
+# Center the button: scrolling up alone leaves it under the navigation bar.
+- scrollUntilVisible:
+    element:
+      id: description-glucose
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: description-glucose
+# The error card opens under the button; center its retry button above the tab bar.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: description-glucose-retry
+- assertVisible:
+    id: description-glucose-error
+- assertVisible: January couldn.t complete the request
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
+      STATUS: "200"
+- tapOn:
+    id: description-glucose-retry
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: description-glucose-result
+- assertNotVisible:
+    id: description-glucose-error

@@ -31,6 +31,49 @@ tags:
 - extendedWaitUntil:
     visible: 8 fl oz
     timeout: 15000
+# Another day never shows this day's total or offers to delete its log, even
+# when that day's water cannot be loaded.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      STATUS: "500"
+- scrollUntilVisible:
+    element:
+      id: logs-day-previous
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: logs-day-previous
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-error
+# The card's total is for the day shown; the week chart still includes today.
+- assertVisible:
+    id: water-total
+    text: Water total unavailable
+- assertNotVisible:
+    id: water-log-delete
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      STATUS: "200"
+- scrollUntilVisible:
+    element:
+      id: logs-day-today
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: logs-day-today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
+- extendedWaitUntil:
+    visible: 8 fl oz
+    timeout: 15000
 - scrollUntilVisible:
     element:
       id: water-log-delete

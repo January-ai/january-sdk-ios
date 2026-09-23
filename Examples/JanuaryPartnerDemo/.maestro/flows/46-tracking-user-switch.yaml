@@ -1,0 +1,135 @@
+appId: ai.january.partner.demo
+name: Switching the end user clears the Tracking tab and never offers the previous user's delete
+tags:
+  - fixture
+# The second user's ID is saved on the device; clear it so later flows start from the default.
+onFlowComplete:
+  - stopApp
+  - clearState
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+# The first user logs water and a weight.
+- tapOn:
+    id: tab-tracking
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: 8 fl oz
+    timeout: 15000
+- assertVisible:
+    id: water-log-delete
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible:
+      id: weight-entry
+      text: 150 lb
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+# Switch to a second user while that user's water is slow to load (the delay
+# outlasts the Settings steps).
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      DELAY: "40"
+- scrollUntilVisible:
+    element:
+      id: settings-button
+    direction: UP
+- tapOn:
+    id: settings-button
+- tapOn:
+    id: settings-user-id
+- eraseText: 60
+- inputText: qa-second-user
+- pressKey: Enter
+- tapOn:
+    id: settings-close
+# Nothing of the first user's stays: the cards and the chart load, and there is
+# nothing to delete. (The screen is still scrolled down to the weight chart.)
+- scrollUntilVisible:
+    element:
+      id: water-total
+    direction: UP
+- assertVisible:
+    id: water-total
+    text: Loading water…
+- assertNotVisible:
+    id: water-log-delete
+- scrollUntilVisible:
+    element:
+      id: water-chart-loading
+    direction: DOWN
+- assertNotVisible:
+    id: water-chart
+- assertNotVisible:
+    text: 8 fl oz
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      DELAY: "0"
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: No water logged
+    timeout: 60000
+- assertNotVisible:
+    id: water-log-delete
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible:
+    id: weight-entry
+    text: No weight logged
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart-empty
+# The second user's own log can be deleted, and it was logged for that user.
+- scrollUntilVisible:
+    element:
+      id: water-total
+    direction: UP
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-log-delete
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      END_USER: qa-second-user
