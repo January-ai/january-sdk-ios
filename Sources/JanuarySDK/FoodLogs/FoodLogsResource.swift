@@ -70,7 +70,7 @@ public struct FoodLogsResource: Sendable {
         return try await performTransportRequest {
             let body = Components.Schemas.CreateFoodLogBody(
                 foods: request.foods.map(mapSelection),
-                eatenAt: try parseTimestamp(request.timestampUTC),
+                createdAt: try parseTimestamp(request.timestampUTC),
                 name: request.name
             )
             let output = try await client.createFoodLog(
@@ -180,7 +180,7 @@ public struct FoodLogsResource: Sendable {
         return try await performTransportRequest {
             let body = Components.Schemas.UpdateFoodLogBody(
                 foods: request.foods?.map(mapSelection),
-                eatenAt: try parseTimestamp(request.timestampUTC),
+                createdAt: try parseTimestamp(request.timestampUTC),
                 name: request.name
             )
             let output = try await client.updateFoodLog(
@@ -263,7 +263,7 @@ public struct FoodLogsResource: Sendable {
                     )
                 )
             },
-            timestampUTC: formatTimestamp(value.eatenAt),
+            timestampUTC: formatTimestamp(value.createdAt),
             name: value.name
         )
     }

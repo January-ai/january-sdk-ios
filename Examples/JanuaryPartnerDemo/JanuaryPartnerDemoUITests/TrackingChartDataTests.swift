@@ -150,10 +150,12 @@ final class TrackingChartDataTests: XCTestCase {
     }
 
     func testConvertedWaterAmountsStayWithinTheNewUnitsRange() {
-        // The smallest amounts round below the cup minimum (0.125) at the field's precision.
-        XCTAssertEqual(TrackingChartData.convertVolumeEntry(1, from: "fl_oz", to: "cup"), 0.2)
-        XCTAssertEqual(TrackingChartData.convertVolumeEntry(30, from: "ml", to: "cup"), 0.2)
-        XCTAssertEqual(TrackingChartData.convertVolumeEntry(0.125, from: "cup", to: "ml"), 30)
+        // The smallest amounts: 1 fl oz and 30 ml are the 0.1 cup minimum at the field's precision,
+        // and 0.1 cup is below the fluid-ounce and milliliter minimums, so it becomes them.
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(1, from: "fl_oz", to: "cup"), 0.1)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(30, from: "ml", to: "cup"), 0.1)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(0.1, from: "cup", to: "ml"), 30)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(0.1, from: "cup", to: "fl_oz"), 1)
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(0.2, from: "cup", to: "fl_oz"), 1.6)
         // The largest ones stay at or below each maximum.
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(24_000, from: "ml", to: "fl_oz"), 811.5)

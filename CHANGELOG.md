@@ -5,6 +5,21 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-23
+
+The Partner API renamed the time on food, water, and weight logs to
+`created_at`, in requests and responses. 0.3.0's food, water, and weight logs
+don't work with the current API — upgrade to 0.3.1.
+
+- Food, water, and weight logs send and read `created_at`. The Swift names are
+  unchanged: `timestampUTC` on food logs, `consumedAtUTC` on water logs, and
+  `measuredAtUTC` on weight logs. `WaterLog` and `WeightLog` encode and decode
+  that time under the key `created_at`, as the API does.
+- Water logs accept 0.1–101.4 cups (was 0.125–101.4), matching the API. The
+  demo app's water amount goes down to 0.1 cup.
+- Regenerated the internal transport from contract release 1.2.0 (source
+  `10c9bff838b1`).
+
 ## [0.3.0] - 2026-09-23
 
 - Added `waterLogs` (`create`, `list`, `delete`) and `weightLogs` (`create`,

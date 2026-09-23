@@ -8,7 +8,7 @@ public enum VolumeUnit: String, Codable, Hashable, Sendable, CaseIterable {
     case cups = "cup"
 }
 
-/// An amount of water to log: 1–811.5 fluid ounces, 0.125–101.4 cups, or 30–24,000 milliliters.
+/// An amount of water to log: 1–811.5 fluid ounces, 0.1–101.4 cups, or 30–24,000 milliliters.
 public struct WaterAmount: Codable, Hashable, Sendable {
     public var value: Double
     public var unit: VolumeUnit
@@ -32,7 +32,7 @@ public struct WaterLog: Codable, Hashable, Sendable {
     public init(id: String, amount: WaterAmount, consumedAtUTC: String) {
         self.id = id; self.amount = amount; self.consumedAtUTC = consumedAtUTC
     }
-    enum CodingKeys: String, CodingKey { case id, amount; case consumedAtUTC = "consumed_at" }
+    enum CodingKeys: String, CodingKey { case id, amount; case consumedAtUTC = "created_at" }
 }
 
 /// Everything logged on one local calendar day, in the unit the request asked for.

@@ -58,7 +58,7 @@ private actor ContractProbeTransport: ClientTransport {
         case "suggestFoodAlternatives":
             #"{"alternatives":[]}"#
         case "createFoodLog", "updateFoodLog":
-            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z"}"#
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"created_at":"2026-08-23T12:00:00Z"}"#
         case "listFoodLogs":
             #"{"items":[]}"#
         case "deleteFoodLog":
@@ -195,7 +195,7 @@ func documentedEnumValuesRoundTripOnTheWire() throws {
 
 @Test
 func foodLogCreateSendsAuthenticationUserTimezoneAndDocumentedBody() async throws {
-    let response = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z","name":"Lunch"}"#
+    let response = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"created_at":"2026-08-23T12:00:00.000Z","name":"Lunch"}"#
     let transport = ContractProbeTransport(responses: ["createFoodLog": response])
     let client = try probeClient(transport)
     let user = FoodLogUserContext(
@@ -203,10 +203,10 @@ func foodLogCreateSendsAuthenticationUserTimezoneAndDocumentedBody() async throw
         timezone: TimeZone(identifier: "America/New_York")!
     )
 
-    _ = try await client.foodLogs.create(
+    let log = try await client.foodLogs.create(
         .init(
             foods: [.init(id: .init(rawValue: 42), serving: .init(id: .init(rawValue: 7), quantity: 1.5))],
-            timestampUTC: "2026-08-23T12:00:00Z",
+            timestampUTC: "2026-08-23T08:00:00-04:00",
             name: "Lunch",
             user: user
         )
@@ -219,8 +219,10 @@ func foodLogCreateSendsAuthenticationUserTimezoneAndDocumentedBody() async throw
     #expect(request.headers[HTTPField.Name("January-End-User-ID")!] == "fixture-user")
     let body = try #require(request.body)
     let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
-    #expect(json["eaten_at"] as? String == "2026-08-23T12:00:00Z")
+    #expect(json["created_at"] as? String == "2026-08-23T12:00:00Z")
+    #expect(json["eaten_at"] == nil)
     #expect(json["name"] as? String == "Lunch")
+    #expect(log.timestampUTC == "2026-08-23T12:00:00.000Z")
     let foods = try #require(json["foods"] as? [[String: Any]])
     #expect(foods.first?["food_id"] as? String == "42")
     #expect(foods.first?["serving_id"] as? String == "7")
@@ -584,7 +586,7 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
 
 @Test
 func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async throws {
-    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z","name":"Meal"}"#
+    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"created_at":"2026-08-23T12:00:00Z","name":"Meal"}"#
     let responses = [
         "searchFoodsByNaturalLanguage": #"{"meal_name":null,"total_nutrients":{},"detections":[]}"#,
         "suggestFoodAlternatives": #"{"alternatives":[]}"#,
@@ -676,6 +678,8 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
     let updateBody = try jsonObject(update)
     #expect(updateBody["name"] as? String == "Updated")
     #expect((updateBody["foods"] as? [[String: Any]])?.count == 1)
+    #expect(updateBody["created_at"] as? String == "2026-08-23T12:00:00Z")
+    #expect(updateBody["eaten_at"] == nil)
 
     let delete = try #require(requests.first { $0.operationID == "deleteFoodLog" })
     #expect(delete.path == "/v1.2/food-logs/00000000-0000-0000-0000-000000000001")
@@ -696,7 +700,7 @@ func everyMutationAndContextualRequestMatchesTheDocumentedWireShape() async thro
 
 @Test
 func configuredClientReusesIdentityAcrossFoodLogsAndGlucose() async throws {
-    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-23T12:00:00Z","name":"Meal"}"#
+    let logJSON = #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"created_at":"2026-08-23T12:00:00Z","name":"Meal"}"#
     let transport = ContractProbeTransport(responses: [
         "createFoodLog": logJSON,
         "listFoodLogs": #"{"items":[]}"#,

@@ -52,7 +52,7 @@ if (typeof BODY_CONTAINS === 'string' && BODY_CONTAINS) {
 if (typeof TIME_KEY === 'string' && TIME_KEY) {
   const value = (last.body || {})[TIME_KEY];
   const seeded = typeof TIME_EQUALS !== 'string' || !TIME_EQUALS || TIME_EQUALS === 'seeded';
-  const expected = seeded ? JSON.parse(http.get(control + '/__seeded').body).eaten_at : TIME_EQUALS;
+  const expected = seeded ? JSON.parse(http.get(control + '/__seeded').body).created_at : TIME_EQUALS;
   if (!(Math.abs(Date.parse(value) - Date.parse(expected)) < 1000)) {
     throw new Error('The last request on ' + ROUTE + ' sent ' + TIME_KEY + ' ' + value + ', expected ' + (seeded ? 'the seeded log\'s ' : '') + expected);
   }

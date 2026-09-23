@@ -49,19 +49,19 @@ private actor SurfaceTransport: ClientTransport {
         case "scanFoodPhoto", "correctPhotoScan":
             #"{"meal_name":"Fixture meal","total_nutrients":{},"detections":[]}"#
         case "createFoodLog", "updateFoodLog":
-            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"created_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
         case "getFoodLog":
-            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
+            #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"created_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
         case "listFoodLogs":
             #"{"items":[]}"#
         case "deleteFoodLog", "deleteWaterLog":
             ""
         case "createWaterLog":
-            #"{"id":"00000000-0000-0000-0000-000000000002","amount":{"value":8,"unit":"fl_oz"},"consumed_at":"2026-08-22T12:00:00.000Z"}"#
+            #"{"id":"00000000-0000-0000-0000-000000000002","amount":{"value":8,"unit":"fl_oz"},"created_at":"2026-08-22T12:00:00.000Z"}"#
         case "listWaterLogs", "listWeightLogs":
             #"{"items":[]}"#
         case "createWeightLog":
-            #"{"weight":{"value":150,"unit":"lb"},"measured_at":"2026-08-22T12:00:00.000Z"}"#
+            #"{"weight":{"value":150,"unit":"lb"},"created_at":"2026-08-22T12:00:00.000Z"}"#
         case "predictGlucose":
             #"{"points":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
         default:

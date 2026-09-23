@@ -46,7 +46,7 @@ def suggestions(query):
 def scan(name="Fixture breakfast"):
     return {"meal_name": name, "detections": [{"food": detected(), "confidence": "high"}], "total_nutrients": NUTRIENTS}
 
-def seeded_eaten_at():
+def seeded_created_at():
     """A minute after midnight today in this machine's timezone (the simulator's), so the seeded
     log is always today's and its time differs from the time a flow runs."""
     first_minute = datetime.now().astimezone().replace(hour=0, minute=1, second=0, microsecond=0)
@@ -56,9 +56,9 @@ def logged_on(log, query):
     """Whether a log was eaten within the request's start_date..end_date in its timezone."""
     start, end = query.get("start_date"), query.get("end_date")
     if not start or not end: return True
-    return start <= local_day(log["eaten_at"], query) <= end
+    return start <= local_day(log["created_at"], query) <= end
 
-def food_log(name="Fixture breakfast", foods=None, eaten_at=None, log_id="opaque-log-1"):
+def food_log(name="Fixture breakfast", foods=None, created_at=None, log_id="opaque-log-1"):
     """One saved log with the foods a create or update sent (food 102 is the lentils), or the oatmeal."""
     logged_foods = []
     for selection in foods or [{"food_id": "101", "serving_id": "11", "quantity": 1}]:
@@ -68,9 +68,9 @@ def food_log(name="Fixture breakfast", foods=None, eaten_at=None, log_id="opaque
         logged.update({"food_id": logged.pop("id"), "quantity": selection.get("quantity", 1),
                        "serving": {"id": str(selection.get("serving_id", "11")), "quantity": 1, "unit": "cup", "weight_grams": 100}})
         logged_foods.append(logged)
-    return {"id": log_id, "name": name, "eaten_at": eaten_at or seeded_eaten_at(), "foods": logged_foods}
+    return {"id": log_id, "name": name, "created_at": created_at or seeded_created_at(), "foods": logged_foods}
 
-STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_eaten_at": None, "next_log": 1}
+STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_created_at": None, "next_log": 1}
 # Routes whose responses wait until a flow releases them (/__control?...&hold=true, then
 # /__release?route=...), so a flow can assert a loading state however slow the device is.
 HOLDS = {}
@@ -163,7 +163,7 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         body = json.loads(raw) if raw and "application/json" in self.headers.get("Content-Type", "") else {}
         if path == "/__reset":
-            release_holds(); STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_eaten_at=None, next_log=1)
+            release_holds(); STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_created_at=None, next_log=1)
             return self.respond({})
         if path == "/__history": STATE["history"] = True; return self.respond({})
         if path == "/__control":
@@ -172,9 +172,9 @@ class Handler(BaseHTTPRequestHandler):
             return self.respond({})
         if path == "/__release": release_holds(query["route"]); STATE["rules"].get(query["route"], {})["hold"] = "false"; return self.respond({})
         if path == "/__seed":
-            STATE["logs"] = [food_log()]; STATE["seeded_eaten_at"] = STATE["logs"][0]["eaten_at"]; STATE["next_log"] = 2
+            STATE["logs"] = [food_log()]; STATE["seeded_created_at"] = STATE["logs"][0]["created_at"]; STATE["next_log"] = 2
             return self.respond({})
-        if path == "/__seeded": return self.respond({"eaten_at": STATE["seeded_eaten_at"]})
+        if path == "/__seeded": return self.respond({"created_at": STATE["seeded_created_at"]})
         if path == "/__requests": return self.respond(STATE["requests"])
         # Lets a flow wait out a delayed response: /__sleep?seconds=3
         if path == "/__sleep": time.sleep(float(query.get("seconds", 1))); return self.respond({})
@@ -226,11 +226,11 @@ class Handler(BaseHTTPRequestHandler):
                 existing = next((log for log in visible(STATE["logs"], user) if log["id"] == log_id), None)
                 if existing is None: return self.respond({"code": "not_found", "message": f"No food log {log_id}"}, 404)
                 foods = body.get("foods") or [{"food_id": food["food_id"], "serving_id": food["serving"]["id"], "quantity": food["quantity"]} for food in existing["foods"]]
-                result = food_log(body.get("name") or existing["name"], foods, body.get("eaten_at") or existing["eaten_at"], log_id)
+                result = food_log(body.get("name") or existing["name"], foods, body.get("created_at") or existing["created_at"], log_id)
                 STATE["logs"] = [dict(result, user=user) if log is existing else log for log in STATE["logs"]]
             else:
                 # A new log alongside the others.
-                result = food_log(body.get("name") or "Fixture breakfast", body.get("foods"), body.get("eaten_at"), f"opaque-log-{STATE['next_log']}")
+                result = food_log(body.get("name") or "Fixture breakfast", body.get("foods"), body.get("created_at"), f"opaque-log-{STATE['next_log']}")
                 STATE["next_log"] += 1
                 STATE["logs"].append(dict(result, user=user))
         elif "/water-logs" in path:
@@ -239,7 +239,7 @@ class Handler(BaseHTTPRequestHandler):
             if self.command == "GET":
                 unit = query.get("unit", "fl_oz")
                 def day_water(date, days_ago):
-                    amounts = [volume(entry["amount"], unit) for entry in visible(STATE["water"], user) if local_day(entry["consumed_at"], query) == date]
+                    amounts = [volume(entry["amount"], unit) for entry in visible(STATE["water"], user) if local_day(entry["created_at"], query) == date]
                     history = history_water(days_ago) if seeded(days_ago) else None
                     if history is not None: amounts.append(volume({"value": history, "unit": "ml"}, unit))
                     return {"date": date, "total": {"value": round(sum(amounts), 1), "unit": unit}} if amounts else None
@@ -248,20 +248,20 @@ class Handler(BaseHTTPRequestHandler):
                 log_id = path.rsplit("/", 1)[1]; STATE["water"] = [entry for entry in STATE["water"] if entry["id"] != log_id or entry.get("user") != user]
                 return self.respond({}, 204)
             else:
-                result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "consumed_at": body.get("consumed_at") or now_iso()}
+                result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "created_at": body.get("created_at") or now_iso()}
                 STATE["water"].append(dict(result, user=user))
         elif "/weight-logs" in path:
             # Each local date's latest measurement, in the unit it was logged in, or else the
             # seeded history's.
             if self.command == "GET":
                 def day_weight(date, days_ago):
-                    measured = sorted((entry["measured_at"], index, entry["weight"]) for index, entry in enumerate(visible(STATE["weights"], user))
-                                      if local_day(entry["measured_at"], query) == date)
+                    measured = sorted((entry["created_at"], index, entry["weight"]) for index, entry in enumerate(visible(STATE["weights"], user))
+                                      if local_day(entry["created_at"], query) == date)
                     weight = measured[-1][2] if measured else (history_weight(days_ago) if seeded(days_ago) else None)
                     return {"date": date, "weight": weight} if weight else None
                 result = {"items": [] if empty else daily_items(query, day_weight)}
             else:
-                result = {"weight": body.get("weight"), "measured_at": body.get("measured_at") or now_iso()}
+                result = {"weight": body.get("weight"), "created_at": body.get("created_at") or now_iso()}
                 STATE["weights"].append(dict(result, user=user))
         else: return self.respond({"code": "not_found", "message": f"Unmapped fixture route {path}"}, 404)
         created = self.command == "POST" and (path.endswith("/food-logs") or path.endswith("/water-logs") or path.endswith("/weight-logs"))

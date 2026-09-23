@@ -7,7 +7,7 @@ public struct WeightLog: Codable, Hashable, Sendable {
     /// When the weight was measured, in UTC with milliseconds.
     public var measuredAtUTC: String
     public init(weight: Weight, measuredAtUTC: String) { self.weight = weight; self.measuredAtUTC = measuredAtUTC }
-    enum CodingKeys: String, CodingKey { case weight; case measuredAtUTC = "measured_at" }
+    enum CodingKeys: String, CodingKey { case weight; case measuredAtUTC = "created_at" }
 }
 
 /// The latest weight measured on one local calendar day.

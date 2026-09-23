@@ -32,7 +32,7 @@ public struct WaterLogsResource: Sendable {
         return try await performTransportRequest {
             let body = Components.Schemas.CreateWaterLogBody(
                 amount: .init(value: request.amount.value, unit: request.amount.unit.rawValue),
-                consumedAt: try ISO8601Timestamp.parse(request.consumedAtUTC, field: "consumedAtUTC")
+                createdAt: try ISO8601Timestamp.parse(request.consumedAtUTC, field: "consumedAtUTC")
             )
             let output = try await client.createWaterLog(
                 .init(headers: .init(januaryEndUserID: request.user.endUserID?.rawValue), body: .json(body))
@@ -103,7 +103,7 @@ public struct WaterLogsResource: Sendable {
         let range: ClosedRange<Double> = switch amount.unit {
         case .fluidOunces: 1...811.5
         case .milliliters: 30...24_000
-        case .cups: 0.125...101.4
+        case .cups: 0.1...101.4
         }
         guard amount.value.isFinite, range.contains(amount.value) else {
             throw JanuaryError(
@@ -117,7 +117,7 @@ public struct WaterLogsResource: Sendable {
         WaterLog(
             id: value.id,
             amount: .init(value: value.amount.value, unit: try volumeUnit(value.amount.unit)),
-            consumedAtUTC: ISO8601Timestamp.format(value.consumedAt)
+            consumedAtUTC: ISO8601Timestamp.format(value.createdAt)
         )
     }
 

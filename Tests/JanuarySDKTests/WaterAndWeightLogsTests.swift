@@ -47,11 +47,11 @@ private actor LogTransport: ClientTransport {
     private static func defaultBody(for operationID: String) -> String {
         switch operationID {
         case "createWaterLog":
-            #"{"id":"9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607","amount":{"value":8,"unit":"fl_oz"},"consumed_at":"2026-09-10T14:30:15.123Z"}"#
+            #"{"id":"9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607","amount":{"value":8,"unit":"fl_oz"},"created_at":"2026-09-10T14:30:15.123Z"}"#
         case "listWaterLogs":
             #"{"items":[{"date":"2026-09-09","total":{"value":48.5,"unit":"fl_oz"}},{"date":"2026-09-10","total":{"value":64,"unit":"fl_oz"}}]}"#
         case "createWeightLog":
-            #"{"weight":{"value":150,"unit":"lb"},"measured_at":"2026-09-10T14:30:15.123Z"}"#
+            #"{"weight":{"value":150,"unit":"lb"},"created_at":"2026-09-10T14:30:15.123Z"}"#
         case "listWeightLogs":
             #"{"items":[{"date":"2026-09-08","weight":{"value":151.2,"unit":"lb"}},{"date":"2026-09-10","weight":{"value":68.2,"unit":"kg"}}]}"#
         default:
@@ -84,7 +84,8 @@ func waterLogCreateSendsTheDocumentedBodyAndMapsTheResponse() async throws {
     #expect(request.endUserID == "oren-sdk-test")
     #expect((request.body?["amount"] as? [String: Any])?["unit"] as? String == "fl_oz")
     #expect((request.body?["amount"] as? [String: Any])?["value"] as? Double == 8)
-    #expect(request.body?["consumed_at"] as? String == "2026-09-10T14:30:15Z")
+    #expect(request.body?["created_at"] as? String == "2026-09-10T14:30:15Z")
+    #expect(request.body?["consumed_at"] == nil)
     #expect(log == WaterLog(id: "9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607", amount: .init(value: 8, unit: .fluidOunces), consumedAtUTC: "2026-09-10T14:30:15.123Z"))
 }
 
@@ -94,7 +95,7 @@ func waterLogCreateOmitsTheTimestampWhenNotSupplied() async throws {
     _ = try await client(transport, userContext: user).waterLogs.create(amount: .init(value: 250, unit: .milliliters))
 
     let request = try #require(await transport.requests().first)
-    #expect(request.body?["consumed_at"] == nil)
+    #expect(request.body?["created_at"] == nil)
     #expect((request.body?["amount"] as? [String: Any])?["unit"] as? String == "ml")
     #expect(request.endUserID == "oren-sdk-test")
 }
@@ -102,7 +103,7 @@ func waterLogCreateOmitsTheTimestampWhenNotSupplied() async throws {
 @Test(arguments: [
     WaterAmount(value: 0.5, unit: .fluidOunces), WaterAmount(value: 812, unit: .fluidOunces),
     WaterAmount(value: 29, unit: .milliliters), WaterAmount(value: 24_001, unit: .milliliters),
-    WaterAmount(value: 0.1, unit: .cups), WaterAmount(value: 101.5, unit: .cups),
+    WaterAmount(value: 0.09, unit: .cups), WaterAmount(value: 101.5, unit: .cups),
     WaterAmount(value: .nan, unit: .milliliters),
 ])
 func waterLogCreateRejectsAmountsOutsideTheDocumentedRanges(_ amount: WaterAmount) async throws {
@@ -141,10 +142,10 @@ func waterLogListSendsRangeTimezoneAndUnitAndMapsDailyTotals() async throws {
     ])
 }
 
-@Test(arguments: [0.125, 2, 101.4])
+@Test(arguments: [0.1, 2, 101.4])
 func waterLogsAcceptCupsAcrossTheDocumentedRange(_ value: Double) async throws {
     let transport = LogTransport(bodies: [
-        "createWaterLog": #"{"id":"9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607","amount":{"value":2,"unit":"cup"},"consumed_at":"2026-09-10T14:30:15.123Z"}"#,
+        "createWaterLog": #"{"id":"9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607","amount":{"value":2,"unit":"cup"},"created_at":"2026-09-10T14:30:15.123Z"}"#,
         "listWaterLogs": #"{"items":[{"date":"2026-09-10","total":{"value":8,"unit":"cup"}}]}"#,
     ])
     let log = try await client(transport).waterLogs.create(.init(amount: .init(value: value, unit: .cups), user: user))
@@ -200,7 +201,8 @@ func weightLogCreateSendsTheDocumentedBodyAndMapsTheResponse() async throws {
     #expect(request.endUserID == "oren-sdk-test")
     #expect((request.body?["weight"] as? [String: Any])?["unit"] as? String == "lb")
     #expect((request.body?["weight"] as? [String: Any])?["value"] as? Double == 150)
-    #expect(request.body?["measured_at"] as? String == "2026-09-10T14:30:15Z")
+    #expect(request.body?["created_at"] as? String == "2026-09-10T14:30:15Z")
+    #expect(request.body?["measured_at"] == nil)
     #expect(log == WeightLog(weight: .init(value: 150, unit: .pounds), measuredAtUTC: "2026-09-10T14:30:15.123Z"))
 }
 
@@ -236,7 +238,7 @@ func weightLogListSendsRangeAndTimezoneAndMapsDailyWeights() async throws {
 
 @Test
 func unknownWeightUnitsAreReportedAsDecodingErrors() async throws {
-    let transport = LogTransport(bodies: ["createWeightLog": #"{"weight":{"value":10,"unit":"stone"},"measured_at":"2026-09-10T14:30:15.123Z"}"#])
+    let transport = LogTransport(bodies: ["createWeightLog": #"{"weight":{"value":10,"unit":"stone"},"created_at":"2026-09-10T14:30:15.123Z"}"#])
     let error = await #expect(throws: JanuaryError.self) {
         _ = try await client(transport).weightLogs.create(.init(weight: .init(value: 150, unit: .pounds), user: user))
     }
@@ -278,12 +280,12 @@ func configuredClientIdentityOverridesTheRequestUserForLogs() async throws {
 func logModelsRoundTripTheirCodingKeys() throws {
     let water = WaterLog(id: "id", amount: .init(value: 8, unit: .fluidOunces), consumedAtUTC: "2026-09-10T14:30:15.123Z")
     let waterJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(water)) as? [String: Any]
-    #expect(waterJSON?["consumed_at"] as? String == "2026-09-10T14:30:15.123Z")
+    #expect(waterJSON?["created_at"] as? String == "2026-09-10T14:30:15.123Z")
     #expect(try JSONDecoder().decode(WaterLog.self, from: JSONEncoder().encode(water)) == water)
 
     let weight = WeightLog(weight: .init(value: 70, unit: .kilograms), measuredAtUTC: "2026-09-10T14:30:15.123Z")
     let weightJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(weight)) as? [String: Any]
-    #expect(weightJSON?["measured_at"] as? String == "2026-09-10T14:30:15.123Z")
+    #expect(weightJSON?["created_at"] as? String == "2026-09-10T14:30:15.123Z")
     #expect(try JSONDecoder().decode(WeightLog.self, from: JSONEncoder().encode(weight)) == weight)
 
     let summary = ServingSummary(id: .init(rawValue: "1"), quantity: 1, unit: "cup", weightGrams: 81)
