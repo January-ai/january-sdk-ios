@@ -386,19 +386,25 @@ struct TrackingView: View {
         guard context != nil else { return }
         let key = loadTaskID
         isLoading = true
-        await loadMeals()
-        await loadWater()
-        await loadWeight()
+        // A load for a user or day no longer on screen stops between phases: this view's client
+        // and context belong to the key it started with.
+        await loadMeals(for: key)
+        guard key == loadTaskID else { return }
+        await loadWater(for: key)
+        guard key == loadTaskID else { return }
+        await loadWeight(for: key)
         if key == loadTaskID { isLoading = false }
     }
 
     /// Reloads the day's food logs and their totals, for example after a log is edited or deleted.
-    @MainActor private func loadMeals() async {
-        guard let context else { return }
-        let key = loadTaskID, day = dayQuery
+    @MainActor private func loadMeals(for requestedKey: String? = nil) async {
+        let key = requestedKey ?? loadTaskID
+        guard key == loadTaskID, let context else { return }
+        let day = dayQuery
         error = nil
         do {
             let dayLogs = try await client.foodLogs.list(.init(start: day, end: day, user: context)).items
+            guard key == loadTaskID else { return }
             let daySummary = try await client.foodLogs.getSummary(.init(start: day, end: day, user: context))
             guard key == loadTaskID else { return }
             logs = dayLogs
@@ -410,9 +416,10 @@ struct TrackingView: View {
     }
 
     /// Reloads only the day's water total, so logging water costs one list request, not four.
-    @MainActor private func loadWater() async {
-        guard let context else { return }
-        let key = loadTaskID, day = dayQuery, unit = waterUnit
+    @MainActor private func loadWater(for requestedKey: String? = nil) async {
+        let key = requestedKey ?? loadTaskID
+        guard key == loadTaskID, let context else { return }
+        let day = dayQuery, unit = waterUnit
         isLoadingWater = true
         defer { if key == loadTaskID, unit == waterUnit { isLoadingWater = false } }
         do {
@@ -427,9 +434,10 @@ struct TrackingView: View {
     }
 
     /// Reloads only the day's weight.
-    @MainActor private func loadWeight() async {
-        guard let context else { return }
-        let key = loadTaskID, day = dayQuery
+    @MainActor private func loadWeight(for requestedKey: String? = nil) async {
+        let key = requestedKey ?? loadTaskID
+        guard key == loadTaskID, let context else { return }
+        let day = dayQuery
         do {
             let weight = try await client.weightLogs.list(.init(start: day, end: day, user: context)).items.first?.weight
             guard key == loadTaskID else { return }
@@ -443,45 +451,60 @@ struct TrackingView: View {
 
     @MainActor private func logWater() async {
         guard let context else { return }
+        let key = loadTaskID
         isLoggingWater = true; waterError = nil
+        defer { isLoggingWater = false }
         do {
-            let key = loadTaskID
             let log = try await client.waterLogs.create(.init(
                 amount: .init(value: waterValue, unit: waterUnit),
                 consumedAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
                 user: context
             ))
+            // Logged for the user and day it was started on; nothing to show if they changed.
+            guard key == loadTaskID else { return }
             lastWaterLog = (log, key)
             waterChartRevision += 1
-            await loadWater()
-        } catch { waterError = error }
-        isLoggingWater = false
+            await loadWater(for: key)
+        } catch {
+            guard key == loadTaskID else { return }
+            waterError = error
+        }
     }
 
     @MainActor private func deleteLastWater() async {
-        guard let context, let lastWaterLog, lastWaterLog.key == loadTaskID else { return }
+        let key = loadTaskID
+        guard let context, let lastWaterLog, lastWaterLog.key == key else { return }
         waterError = nil
         do {
             try await client.waterLogs.delete(.init(id: lastWaterLog.log.id, user: context))
+            guard key == loadTaskID else { return }
             self.lastWaterLog = nil
             waterChartRevision += 1
-            await loadWater()
-        } catch { waterError = error }
+            await loadWater(for: key)
+        } catch {
+            guard key == loadTaskID else { return }
+            waterError = error
+        }
     }
 
     @MainActor private func logWeight() async {
         guard let context else { return }
+        let key = loadTaskID
         isLoggingWeight = true; weightError = nil
+        defer { isLoggingWeight = false }
         do {
             _ = try await client.weightLogs.create(.init(
                 weight: .init(value: weightValue, unit: weightUnit),
                 measuredAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
                 user: context
             ))
+            guard key == loadTaskID else { return }
             weightChartRevision += 1
-            await loadWeight()
-        } catch { weightError = error }
-        isLoggingWeight = false
+            await loadWeight(for: key)
+        } catch {
+            guard key == loadTaskID else { return }
+            weightError = error
+        }
     }
 
     private var waterHeadline: String {
