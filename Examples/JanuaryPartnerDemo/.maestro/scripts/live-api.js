@@ -190,9 +190,14 @@ switch (check) {
     break;
   }
   case 'cup-support': {
+    // Accepted (200) or refused as an invalid request (400); anything else is a failure, not
+    // an answer about cups.
     const response = request('GET', '/v1.2/water-logs?' + query({ start_date: requireDay(), end_date: day, timezone: timezone, unit: 'cup' }));
-    output.live.cupRejected = !response.ok;
-    console.log('live-api water totals in cups: ' + (response.ok ? 'accepted' : 'refused with HTTP ' + response.status + ' ' + response.body));
+    if (!response.ok && response.status !== 400) {
+      throw new Error('Asking for water totals in cups answered HTTP ' + response.status + ': ' + response.body);
+    }
+    output.live.cupRejected = response.status === 400;
+    console.log('live-api water totals in cups: ' + (response.ok ? 'accepted' : 'refused with HTTP 400 ' + response.body));
     break;
   }
   case 'weight': {
