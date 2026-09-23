@@ -140,7 +140,7 @@ jobs:
   # stays short. Failed flows are rerun once and named in a warning; Maestro's
   # failure screenshots and view hierarchies are uploaded with the JUnit report.
   ui-test-ios:
-    name: ui-test-ios (shard ${{ matrix.shard }} of 3)
+    name: ui-test-ios (shard ${{ matrix.shard }} of 4)
     needs: sdk-and-demo
     runs-on: macos-26
     timeout-minutes: 45
@@ -148,7 +148,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        shard: [1, 2, 3, 4]
 
     env:
       MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000'
@@ -178,7 +178,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/ios-demo-app"
           tar -xzf "$RUNNER_TEMP/ios-demo-app.tgz" -C "$RUNNER_TEMP/ios-demo-app"
-          .github/scripts/ios-ui-suite.sh "$RUNNER_TEMP/ios-demo-app/JanuaryPartnerDemo.app" ${{ matrix.shard }} 3
+          .github/scripts/ios-ui-suite.sh "$RUNNER_TEMP/ios-demo-app/JanuaryPartnerDemo.app" ${{ matrix.shard }} 4
 
       - name: Upload iOS UI artifacts
         if: always()

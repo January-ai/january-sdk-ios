@@ -100,6 +100,7 @@ tags:
     element:
       id: food-log-user-card
     direction: UP
+    timeout: 60000
 - assertVisible:
     id: logs-day-label
     text: Today.*

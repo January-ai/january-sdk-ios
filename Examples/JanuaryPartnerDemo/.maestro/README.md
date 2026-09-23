@@ -3,7 +3,7 @@
 Maestro flows that drive the demo app against the local fixture server, one
 flow per user journey, mirroring the React Native SDK's suite (same flow names,
 same kebab-case accessibility identifiers). They run on every pull request,
-split across three simulator shards, and locally against any booted simulator.
+split across four simulator shards, and locally against any booted simulator.
 Flows tagged `live` run the same app against the January API through a token
 relay; they never run in CI (see [Live flows](#live-flows)).
 
@@ -20,9 +20,9 @@ xcodebuild -project Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj \
 xcrun simctl install booted build/demo/Build/Products/Debug-iphonesimulator/JanuaryPartnerDemo.app
 maestro test Examples/JanuaryPartnerDemo/.maestro/flows --include-tags fixture,parity
 
-# One flow, or the shard CI would run as "2 of 3"
+# One flow, or the shard CI would run as "2 of 4"
 maestro test Examples/JanuaryPartnerDemo/.maestro/flows/09-glucose.yaml
-maestro test $(node Examples/JanuaryPartnerDemo/.maestro/shard.mjs 2 3) --include-tags fixture,parity
+maestro test $(node Examples/JanuaryPartnerDemo/.maestro/shard.mjs 2 4) --include-tags fixture,parity
 ```
 
 `bootstrap.yaml` launches the app with the Debug-only `-ui-testing` argument,
@@ -129,7 +129,7 @@ only) and prints how many requests each flow made.
 ## In CI
 
 `.github/workflows/quality.yml` checks UI coverage, builds a Debug simulator
-app once, then `ui-test-ios` runs three shards through
+app once, then `ui-test-ios` runs four shards through
 `.github/scripts/ios-ui-suite.sh`. Failed flows are rerun once and named in a
 workflow warning; each shard uploads its JUnit report and Maestro's failure
 screenshots and view hierarchies as `maestro-ios-N`. The `ui-tests` job

@@ -63,6 +63,7 @@ onFlowComplete:
     element:
       id: food-log-user-card
     direction: UP
+    timeout: 60000
 - tapOn:
     id: settings-button
 - tapOn:
