@@ -148,6 +148,13 @@ enum TrackingChartData {
         }
     }
 
+    /// When a log made for `day` is dated: now for today, and otherwise noon on that day on the
+    /// end user's clock (`calendar` is in their timezone), so the API files it under that day.
+    static func entryTime(forDay day: Date, now: Date = .now, calendar: Calendar) -> Date {
+        guard !calendar.isDate(day, inSameDayAs: now) else { return now }
+        return calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day
+    }
+
     // MARK: Units
 
     /// Converts a weight between `"kg"` and `"lb"` (the SDK's `WeightUnit` raw values).

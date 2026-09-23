@@ -148,7 +148,7 @@ struct FoodLogsView: View {
     private var foodLogCalendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(identifier: userSession.timezone) ?? .current
+        calendar.timeZone = userSession.timeZone
         calendar.firstWeekday = 1
         calendar.minimumDaysInFirstWeek = 1
         return calendar
@@ -183,6 +183,7 @@ struct FoodLogsView: View {
 
 struct FoodLogRow: View {
     let log: FoodLog
+    @EnvironmentObject private var userSession: UserSession
     var body: some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: "fork.knife.circle.fill").font(.largeTitle).foregroundStyle(AppPalette.green)
@@ -190,7 +191,7 @@ struct FoodLogRow: View {
                 Text(log.name?.isEmpty == false ? log.name! : "Meal").font(.headline)
                 Text(log.foods.map { $0.name ?? "Unnamed food" }.joined(separator: ", ")).lineLimit(2).foregroundStyle(AppPalette.body)
                 HStack {
-                    Text(localDate(log.timestampUTC))
+                    Text(AppFormatting.logTime(log.timestampUTC, in: userSession.timeZone))
                     Text("· \(log.foods.count) food\(log.foods.count == 1 ? "" : "s")")
                 }.font(.caption).foregroundStyle(AppPalette.muted)
             }
@@ -206,6 +207,7 @@ private struct FoodLogEditorView: View {
     let onSaved: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var userSession: UserSession
     @State private var name: String
     @State private var timestamp: Date
     @State private var foods: [SelectedFood]
@@ -258,6 +260,7 @@ private struct FoodLogEditorView: View {
                             Spacer(minLength: 12)
                             DatePicker("Date and time", selection: $timestamp)
                                 .labelsHidden()
+                                .environment(\.timeZone, userSession.timeZone)
                         }
                         .appCard()
 
@@ -405,6 +408,7 @@ struct FoodLogDetailView: View {
     let onChanged: () -> Void
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var userSession: UserSession
     @State private var isEditing = false
     @State private var isConfirmingDelete = false
     @State private var error: Error?
@@ -415,7 +419,7 @@ struct FoodLogDetailView: View {
             ScreenShell {
                 VStack(alignment: .leading, spacing: 18) {
                 Text(log.name?.isEmpty == false ? log.name! : "Meal").font(.system(.largeTitle, design: .serif, weight: .bold))
-                Text(localDate(log.timestampUTC)).foregroundStyle(AppPalette.muted)
+                Text(AppFormatting.logTime(log.timestampUTC, in: userSession.timeZone)).foregroundStyle(AppPalette.muted)
                 ForEach(log.foods, id: \.id) { food in
                     VStack(alignment: .leading, spacing: 10) {
                         Text(food.name ?? "Unnamed food").font(.headline)
@@ -876,7 +880,3 @@ private func nutritionRows(_ value: NutritionFacts) -> [NutrientRow] {
     ].compactMap { $0 }
 }
 
-private func localDate(_ value: String) -> String {
-    guard let date = AppFormatting.date(fromAPI: value) else { return value }
-    return date.formatted(date: .abbreviated, time: .shortened)
-}

@@ -167,6 +167,8 @@ struct TrackingView: View {
                 guard userID != nil else { return }
                 await load()
             }
+            // A new timezone starts the day picker on that timezone's today.
+            .onChange(of: userSession.timezone) { day = .now }
         }
     }
 
@@ -233,9 +235,9 @@ struct TrackingView: View {
                     // Keep the amount to log the same volume, so it stays within the new unit's range.
                     .onChange(of: waterUnit) { previous, unit in
                         waterValue = TrackingChartData.convertVolumeEntry(waterValue, from: previous.rawValue, to: unit.rawValue)
+                        waterEntryRevision += 1
                         // Only the water total depends on the unit.
                         waterTotal = nil; waterError = nil
-                        waterEntryRevision += 1
                         Task { await loadWater() }
                     }
             }
@@ -310,9 +312,9 @@ struct TrackingView: View {
                     .accessibilityLabel("Weight units")
                     .onChange(of: weightUnit) { previous, unit in
                         weightValue = TrackingChartData.convertWeightEntry(weightValue, from: previous.rawValue, to: unit.rawValue)
+                        weightEntryRevision += 1
                     }
             }
-                        weightEntryRevision += 1
             if let weightError {
                 ErrorNotice(
                     error: weightError,
@@ -357,7 +359,7 @@ struct TrackingView: View {
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(identifier: userSession.timezone) ?? .current
+        calendar.timeZone = userSession.timeZone
         return calendar
     }
     private var dayQuery: String { AppFormatting.apiDayString(from: day, calendar: calendar) }
@@ -370,10 +372,7 @@ struct TrackingView: View {
         formatter.timeStyle = .none
         return formatter.string(from: day)
     }
-    /// A meal created for a past day is dated noon on that day; today's meals default to now.
-    private var defaultMealTime: Date {
-        isToday ? .now : (calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day)
-    }
+    private var defaultMealTime: Date { TrackingChartData.entryTime(forDay: day, calendar: calendar) }
     private var loadTaskID: String {
         "\(userSession.endUserID)|\(userSession.timezone)|\(dayQuery)"
     }
@@ -511,11 +510,11 @@ struct TrackingView: View {
             weightError = error
         }
     }
+
     /// An amount as the water and weight fields show it; empty for no amount.
     private func entryText(_ value: Double?) -> String {
         value?.formatted(.number.precision(.fractionLength(0...1))) ?? ""
     }
-
 
     private var waterHeadline: String {
         if let waterTotal { return volumeText(waterTotal.value, waterTotal.unit) }

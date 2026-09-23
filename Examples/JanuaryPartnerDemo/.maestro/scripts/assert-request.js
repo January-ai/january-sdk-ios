@@ -4,7 +4,8 @@
 // requests send it in the January-End-User-ID header),
 // that the query parameter QUERY_KEY equals QUERY_VALUE, that the compact JSON
 // body contains every " && "-separated part of BODY_CONTAINS, and that the
-// body's TIME_KEY timestamp is the seeded food log's time (TIME_EQUALS: seeded).
+// body's TIME_KEY timestamp is TIME_EQUALS: an ISO 8601 instant, or `seeded` for
+// the seeded food log's time.
 // Each check runs only when its variable is set.
 //
 //   - runScript:
@@ -50,8 +51,9 @@ if (typeof BODY_CONTAINS === 'string' && BODY_CONTAINS) {
 }
 if (typeof TIME_KEY === 'string' && TIME_KEY) {
   const value = (last.body || {})[TIME_KEY];
-  const expected = JSON.parse(http.get(control + '/__seeded').body).eaten_at;
-  if (Math.abs(Date.parse(value) - Date.parse(expected)) >= 1000) {
-    throw new Error('The last request on ' + ROUTE + ' sent ' + TIME_KEY + ' ' + value + ', expected the seeded log\'s ' + expected);
+  const seeded = typeof TIME_EQUALS !== 'string' || !TIME_EQUALS || TIME_EQUALS === 'seeded';
+  const expected = seeded ? JSON.parse(http.get(control + '/__seeded').body).eaten_at : TIME_EQUALS;
+  if (!(Math.abs(Date.parse(value) - Date.parse(expected)) < 1000)) {
+    throw new Error('The last request on ' + ROUTE + ' sent ' + TIME_KEY + ' ' + value + ', expected ' + (seeded ? 'the seeded log\'s ' : '') + expected);
   }
 }

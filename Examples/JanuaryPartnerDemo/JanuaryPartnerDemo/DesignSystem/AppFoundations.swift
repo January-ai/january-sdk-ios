@@ -89,6 +89,14 @@ enum AppFormatting {
         return formatter
     }()
 
+    /// An API timestamp as a date and time on the end user's clock.
+    static func logTime(_ value: String, in timeZone: TimeZone) -> String {
+        guard let date = date(fromAPI: value) else { return value }
+        var style = Date.FormatStyle(date: .abbreviated, time: .shortened)
+        style.timeZone = timeZone
+        return date.formatted(style)
+    }
+
     static func apiDayString(from date: Date, calendar: Calendar) -> String {
         let formatter = DateFormatter()
         formatter.calendar = calendar

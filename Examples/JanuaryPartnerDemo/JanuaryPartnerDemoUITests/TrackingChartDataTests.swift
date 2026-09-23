@@ -15,6 +15,47 @@ final class TrackingChartDataTests: XCTestCase {
     /// Late evening local time, when the UTC date has already moved on.
     private var today: Date { calendar.date(bySettingHour: 23, minute: 30, second: 0, of: day("2026-09-22"))! }
 
+    // MARK: The end user's timezone
+
+    private func calendar(in identifier: String) -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.locale = Locale(identifier: "en_US_POSIX")
+        calendar.timeZone = TimeZone(identifier: identifier)!
+        return calendar
+    }
+
+    private func instant(_ value: String) -> Date { ISO8601DateFormatter().date(from: value)! }
+
+    /// 03:30 UTC on 23 September is still the 22nd in New York and already 17:30 on the 23rd in
+    /// Kiritimati (UTC+14); the day, the chart ranges, and a log's time follow the end user's zone.
+    func testDaysFollowTheEndUsersTimezoneWhateverTheDevicesIs() {
+        let now = instant("2026-09-23T03:30:00Z")
+        let newYork = calendar(in: "America/New_York"), kiritimati = calendar(in: "Pacific/Kiritimati")
+
+        XCTAssertEqual(TrackingChartData.dayString(now, calendar: newYork), "2026-09-22")
+        XCTAssertEqual(TrackingChartData.dayString(now, calendar: kiritimati), "2026-09-23")
+        XCTAssertEqual(TrackingChartData.requestSpans(for: .week, today: now, calendar: newYork),
+                       [TrackingDaySpan(start: "2026-09-16", end: "2026-09-22")])
+        XCTAssertEqual(TrackingChartData.requestSpans(for: .week, today: now, calendar: kiritimati),
+                       [TrackingDaySpan(start: "2026-09-17", end: "2026-09-23")])
+    }
+
+    func testALogForAnEarlierDayIsDatedNoonOnTheEndUsersClock() {
+        let now = instant("2026-09-23T03:30:00Z")
+        let newYork = calendar(in: "America/New_York"), kiritimati = calendar(in: "Pacific/Kiritimati")
+
+        // Today's log is dated now.
+        XCTAssertEqual(TrackingChartData.entryTime(forDay: now, now: now, calendar: kiritimati), now)
+        // The day before: noon on 22 September in UTC+14 is 22:00 UTC on the 21st, and noon on
+        // 21 September in New York (UTC-4) is 16:00 UTC.
+        let kiritimatiYesterday = kiritimati.date(byAdding: .day, value: -1, to: now)!
+        XCTAssertEqual(TrackingChartData.entryTime(forDay: kiritimatiYesterday, now: now, calendar: kiritimati),
+                       instant("2026-09-21T22:00:00Z"))
+        let newYorkYesterday = newYork.date(byAdding: .day, value: -1, to: now)!
+        XCTAssertEqual(TrackingChartData.entryTime(forDay: newYorkYesterday, now: now, calendar: newYork),
+                       instant("2026-09-21T16:00:00Z"))
+    }
+
     // MARK: Ranges and chunking
 
     func testWeekAndMonthEndTodayInOneRequest() {
@@ -102,6 +143,8 @@ final class TrackingChartDataTests: XCTestCase {
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(237, from: "ml", to: "fl_oz"), 8)
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(250, from: "ml", to: "cup"), 1.1)
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(1.5, from: "cup", to: "ml"), 355)
+        // 250 typed in milliliters is logged as 8.5 fl oz after a switch, not as 250 fl oz.
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(250, from: "ml", to: "fl_oz"), 8.5)
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(12.5, from: "fl_oz", to: "fl_oz"), 12.5)
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(12.5, from: "fl_oz", to: "gallon"), 12.5)
     }
@@ -122,6 +165,14 @@ final class TrackingChartDataTests: XCTestCase {
         XCTAssertEqual(TrackingChartData.convertWeightEntry(150, from: "lb", to: "kg"), 68)
         XCTAssertEqual(TrackingChartData.convertWeightEntry(72.5, from: "kg", to: "lb"), 159.8)
         XCTAssertEqual(TrackingChartData.convertWeightEntry(72.54, from: "kg", to: "kg"), 72.54)
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(70, from: "kg", to: "lb"), 154.3)
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(1, from: "lb", to: "kg"), 0.5)
+    }
+
+    func testSwitchingUnitsLeavesAnEmptyAmountEmpty() {
+        XCTAssertNil(TrackingChartData.convertVolumeEntry(nil, from: "ml", to: "fl_oz"))
+        XCTAssertNil(TrackingChartData.convertVolumeEntry(nil, from: "fl_oz", to: "cup"))
+        XCTAssertNil(TrackingChartData.convertWeightEntry(nil, from: "lb", to: "kg"))
     }
 
     func testWeightPointsConvertMixedUnitsAndSortByDay() {
@@ -143,8 +194,6 @@ final class TrackingChartDataTests: XCTestCase {
         XCTAssertEqual(TrackingChartData.weightSummary(points, range: .week, unit: "kg", locale: english),
                        "Weight, last 7 days: 3 entries, from 70.2 kg to 69.8 kg")
         XCTAssertEqual(TrackingChartData.weightSummary([], range: .month, unit: "kg", locale: english), "Weight, last 30 days: no entries")
-        // 250 typed in milliliters is logged as 8.5 fl oz after a switch, not as 250 fl oz.
-        XCTAssertEqual(TrackingChartData.convertVolumeEntry(250, from: "ml", to: "fl_oz"), 8.5)
 
         let bars = TrackingChartData.waterBars(totals: ["2026-09-21": 32, "2026-09-22": 16.5], range: .week, today: today, calendar: calendar)
         XCTAssertEqual(TrackingChartData.waterSummary(bars, range: .week, unit: "fl oz", locale: english),
@@ -154,11 +203,3 @@ final class TrackingChartDataTests: XCTestCase {
                        "Water, last 12 months: 1 month logged, 2 cup in total")
     }
 }
-        XCTAssertEqual(TrackingChartData.convertWeightEntry(70, from: "kg", to: "lb"), 154.3)
-        XCTAssertEqual(TrackingChartData.convertWeightEntry(1, from: "lb", to: "kg"), 0.5)
-    }
-
-    func testSwitchingUnitsLeavesAnEmptyAmountEmpty() {
-        XCTAssertNil(TrackingChartData.convertVolumeEntry(nil, from: "ml", to: "fl_oz"))
-        XCTAssertNil(TrackingChartData.convertVolumeEntry(nil, from: "fl_oz", to: "cup"))
-        XCTAssertNil(TrackingChartData.convertWeightEntry(nil, from: "lb", to: "kg"))
