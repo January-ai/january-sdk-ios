@@ -58,7 +58,7 @@ def logged_on(log, query):
     if not start or not end: return True
     return start <= local_day(log["eaten_at"], query) <= end
 
-def food_log(name="Fixture breakfast", foods=None, eaten_at=None):
+def food_log(name="Fixture breakfast", foods=None, eaten_at=None, log_id="opaque-log-1"):
     """One saved log with the foods a create or update sent (food 102 is the lentils), or the oatmeal."""
     logged_foods = []
     for selection in foods or [{"food_id": "101", "serving_id": "11", "quantity": 1}]:
@@ -68,9 +68,9 @@ def food_log(name="Fixture breakfast", foods=None, eaten_at=None):
         logged.update({"food_id": logged.pop("id"), "quantity": selection.get("quantity", 1),
                        "serving": {"id": str(selection.get("serving_id", "11")), "quantity": 1, "unit": "cup", "weight_grams": 100}})
         logged_foods.append(logged)
-    return {"id": "opaque-log-1", "name": name, "eaten_at": eaten_at or seeded_eaten_at(), "foods": logged_foods}
+    return {"id": log_id, "name": name, "eaten_at": eaten_at or seeded_eaten_at(), "foods": logged_foods}
 
-STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_eaten_at": None}
+STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_eaten_at": None, "next_log": 1}
 # Routes whose responses wait until a flow releases them (/__control?...&hold=true, then
 # /__release?route=...), so a flow can assert a loading state however slow the device is.
 HOLDS = {}
@@ -163,7 +163,7 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         body = json.loads(raw) if raw and "application/json" in self.headers.get("Content-Type", "") else {}
         if path == "/__reset":
-            release_holds(); STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_eaten_at=None)
+            release_holds(); STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_eaten_at=None, next_log=1)
             return self.respond({})
         if path == "/__history": STATE["history"] = True; return self.respond({})
         if path == "/__control":
@@ -171,7 +171,9 @@ class Handler(BaseHTTPRequestHandler):
             if query.get("hold") == "true": HOLDS[query["route"]] = threading.Event()
             return self.respond({})
         if path == "/__release": release_holds(query["route"]); STATE["rules"].get(query["route"], {})["hold"] = "false"; return self.respond({})
-        if path == "/__seed": STATE["logs"] = [food_log()]; STATE["seeded_eaten_at"] = STATE["logs"][0]["eaten_at"]; return self.respond({})
+        if path == "/__seed":
+            STATE["logs"] = [food_log()]; STATE["seeded_eaten_at"] = STATE["logs"][0]["eaten_at"]; STATE["next_log"] = 2
+            return self.respond({})
         if path == "/__seeded": return self.respond({"eaten_at": STATE["seeded_eaten_at"]})
         if path == "/__requests": return self.respond(STATE["requests"])
         # Lets a flow wait out a delayed response: /__sleep?seconds=3
@@ -218,9 +220,19 @@ class Handler(BaseHTTPRequestHandler):
                 log_id = path.rsplit("/", 1)[1]
                 STATE["logs"] = [log for log in STATE["logs"] if not (log["id"] == log_id and log in visible(STATE["logs"], user))]
                 return self.respond({}, 204)
+            elif self.command == "PATCH":
+                # Replaces the addressed log, keeping its ID and whatever the update leaves out.
+                log_id = path.rsplit("/", 1)[1]
+                existing = next((log for log in visible(STATE["logs"], user) if log["id"] == log_id), None)
+                if existing is None: return self.respond({"code": "not_found", "message": f"No food log {log_id}"}, 404)
+                foods = body.get("foods") or [{"food_id": food["food_id"], "serving_id": food["serving"]["id"], "quantity": food["quantity"]} for food in existing["foods"]]
+                result = food_log(body.get("name") or existing["name"], foods, body.get("eaten_at") or existing["eaten_at"], log_id)
+                STATE["logs"] = [dict(result, user=user) if log is existing else log for log in STATE["logs"]]
             else:
-                result = food_log(body.get("name") or "Fixture breakfast", body.get("foods"), body.get("eaten_at"))
-                STATE["logs"] = [log for log in STATE["logs"] if log not in visible(STATE["logs"], user)] + [dict(result, user=user)]
+                # A new log alongside the others.
+                result = food_log(body.get("name") or "Fixture breakfast", body.get("foods"), body.get("eaten_at"), f"opaque-log-{STATE['next_log']}")
+                STATE["next_log"] += 1
+                STATE["logs"].append(dict(result, user=user))
         elif "/water-logs" in path:
             # One daily total per local date (in the request's timezone), in the requested unit:
             # the logs consumed that day plus the seeded history.
