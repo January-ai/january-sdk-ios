@@ -17,8 +17,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   quantity, or quantity before transport.
 - `foodLogs.update` rejects an update that changes no field before transport,
   matching the API.
-- `glucose.predict` rejects a fractional `age` before transport; the API takes
-  whole years.
+- `glucose.predict` rejects a fractional or non-finite `age` before transport;
+  the API takes whole years.
 - A token provider that throws `JanuaryTokenProviderError` with
   `retryable: false` now fails the request with an authentication error
   (`client_token_provider_failed`) carrying the provider's message. It was

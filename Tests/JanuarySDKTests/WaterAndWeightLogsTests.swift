@@ -344,12 +344,12 @@ func foodLogUpdateRejectsAnEmptyPatchBeforeTransport() async throws {
     #expect(await transport.requests().isEmpty)
 }
 
-@Test
-func glucosePredictionRejectsAFractionalAgeBeforeTransport() async throws {
+@Test(arguments: [35.5, Double.infinity, -Double.infinity, Double.nan])
+func glucosePredictionRejectsAnAgeThatIsNotAWholeNumberBeforeTransport(_ age: Double) async throws {
     let transport = LogTransport()
     let food = FoodSelection(id: .init(rawValue: 1), serving: .init(id: .init(rawValue: 2), quantity: 1))
     let error = await #expect(throws: JanuaryError.self) {
-        _ = try await client(transport).glucose.predict(.init(userProfile: .init(age: 35.5, gender: .female, height: 65, weight: 140), foods: [food], startTime: Date()))
+        _ = try await client(transport).glucose.predict(.init(userProfile: .init(age: age, gender: .female, height: 65, weight: 140), foods: [food], startTime: Date()))
     }
     #expect(error?.category == .validation)
     #expect(await transport.requests().isEmpty)

@@ -10,7 +10,9 @@ public struct GlucoseResource: Sendable {
     }
 
     public func predict(_ request: PredictGlucoseRequest) async throws -> GlucosePrediction {
-        guard request.userProfile.age.rounded() == request.userProfile.age else {
+        // An infinite age equals its own rounded value, so it is refused explicitly.
+        guard request.userProfile.age.isFinite,
+              request.userProfile.age.rounded() == request.userProfile.age else {
             throw JanuaryError(category: .validation, message: "age must be a whole number of years.")
         }
         return try await performTransportRequest {
