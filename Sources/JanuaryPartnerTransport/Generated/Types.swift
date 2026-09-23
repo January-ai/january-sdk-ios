@@ -222,7 +222,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Replaces any subset of the log: `foods`, `eaten_at`, `name`. Omitted fields are left unchanged.
+    /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
     /// Callable with a client token carrying the `food_logs:write` scope.
     ///
@@ -255,7 +255,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.1–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `created_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
     ///
     /// Callable with a client token carrying the `water_logs:write` scope.
     ///
@@ -277,7 +277,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `created_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `weight_logs:read` scope.
     ///
@@ -288,7 +288,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `created_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
     ///
     /// Callable with a client token carrying the `weight_logs:write` scope.
     ///
@@ -664,7 +664,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Replaces any subset of the log: `foods`, `eaten_at`, `name`. Omitted fields are left unchanged.
+    /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
     /// Callable with a client token carrying the `food_logs:write` scope.
     ///
@@ -723,7 +723,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.1–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `created_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
     ///
     /// Callable with a client token carrying the `water_logs:write` scope.
     ///
@@ -761,7 +761,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `created_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `weight_logs:read` scope.
     ///
@@ -780,7 +780,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `created_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
     ///
     /// Callable with a client token carrying the `weight_logs:write` scope.
     ///
@@ -2291,28 +2291,28 @@ package enum Components {
             package var foods: [Components.Schemas.FoodLogInputFood]
             /// When the meal was eaten — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
             ///
-            /// - Remark: Generated from `#/components/schemas/CreateFoodLogBody/eaten_at`.
-            package var eatenAt: Foundation.Date?
+            /// - Remark: Generated from `#/components/schemas/CreateFoodLogBody/created_at`.
+            package var createdAt: Foundation.Date?
             /// - Remark: Generated from `#/components/schemas/CreateFoodLogBody/name`.
             package var name: Swift.String?
             /// Creates a new `CreateFoodLogBody`.
             ///
             /// - Parameters:
             ///   - foods:
-            ///   - eatenAt: When the meal was eaten — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
+            ///   - createdAt: When the meal was eaten — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
             ///   - name:
             package init(
                 foods: [Components.Schemas.FoodLogInputFood],
-                eatenAt: Foundation.Date? = nil,
+                createdAt: Foundation.Date? = nil,
                 name: Swift.String? = nil
             ) {
                 self.foods = foods
-                self.eatenAt = eatenAt
+                self.createdAt = createdAt
                 self.name = name
             }
             package enum CodingKeys: String, CodingKey {
                 case foods
-                case eatenAt = "eaten_at"
+                case createdAt = "created_at"
                 case name
             }
         }
@@ -2399,8 +2399,8 @@ package enum Components {
             package var foods: [Components.Schemas.LoggedFood]
             /// When the meal was eaten. UTC, with milliseconds.
             ///
-            /// - Remark: Generated from `#/components/schemas/FoodLog/eaten_at`.
-            package var eatenAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/FoodLog/created_at`.
+            package var createdAt: Foundation.Date
             /// Null when no name was given.
             ///
             /// - Remark: Generated from `#/components/schemas/FoodLog/name`.
@@ -2410,23 +2410,23 @@ package enum Components {
             /// - Parameters:
             ///   - id: Save this id to update or delete the log. Null only when the upstream sent a log with no id — such a log cannot be addressed.
             ///   - foods:
-            ///   - eatenAt: When the meal was eaten. UTC, with milliseconds.
+            ///   - createdAt: When the meal was eaten. UTC, with milliseconds.
             ///   - name: Null when no name was given.
             package init(
                 id: Swift.String? = nil,
                 foods: [Components.Schemas.LoggedFood],
-                eatenAt: Foundation.Date,
+                createdAt: Foundation.Date,
                 name: Swift.String? = nil
             ) {
                 self.id = id
                 self.foods = foods
-                self.eatenAt = eatenAt
+                self.createdAt = createdAt
                 self.name = name
             }
             package enum CodingKeys: String, CodingKey {
                 case id
                 case foods
-                case eatenAt = "eaten_at"
+                case createdAt = "created_at"
                 case name
             }
         }
@@ -2635,28 +2635,28 @@ package enum Components {
             package var foods: [Components.Schemas.FoodLogInputFood]?
             /// When the meal was eaten — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omit to leave it unchanged.
             ///
-            /// - Remark: Generated from `#/components/schemas/UpdateFoodLogBody/eaten_at`.
-            package var eatenAt: Foundation.Date?
+            /// - Remark: Generated from `#/components/schemas/UpdateFoodLogBody/created_at`.
+            package var createdAt: Foundation.Date?
             /// - Remark: Generated from `#/components/schemas/UpdateFoodLogBody/name`.
             package var name: Swift.String?
             /// Creates a new `UpdateFoodLogBody`.
             ///
             /// - Parameters:
             ///   - foods:
-            ///   - eatenAt: When the meal was eaten — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omit to leave it unchanged.
+            ///   - createdAt: When the meal was eaten — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omit to leave it unchanged.
             ///   - name:
             package init(
                 foods: [Components.Schemas.FoodLogInputFood]? = nil,
-                eatenAt: Foundation.Date? = nil,
+                createdAt: Foundation.Date? = nil,
                 name: Swift.String? = nil
             ) {
                 self.foods = foods
-                self.eatenAt = eatenAt
+                self.createdAt = createdAt
                 self.name = name
             }
             package enum CodingKeys: String, CodingKey {
                 case foods
-                case eatenAt = "eaten_at"
+                case createdAt = "created_at"
                 case name
             }
             package init(from decoder: any Swift.Decoder) throws {
@@ -2665,9 +2665,9 @@ package enum Components {
                     [Components.Schemas.FoodLogInputFood].self,
                     forKey: .foods
                 )
-                self.eatenAt = try container.decodeIfPresent(
+                self.createdAt = try container.decodeIfPresent(
                     Foundation.Date.self,
-                    forKey: .eatenAt
+                    forKey: .createdAt
                 )
                 self.name = try container.decodeIfPresent(
                     Swift.String.self,
@@ -2675,14 +2675,14 @@ package enum Components {
                 )
                 try decoder.ensureNoAdditionalProperties(knownKeys: [
                     "foods",
-                    "eaten_at",
+                    "created_at",
                     "name"
                 ])
             }
         }
         /// - Remark: Generated from `#/components/schemas/WaterAmount`.
         package struct WaterAmount: Codable, Hashable, Sendable {
-            /// Accepted range depends on unit: 1–811.5 fl_oz, 0.125–101.4 cup, 30–24000 ml.
+            /// Accepted range depends on unit: 1–811.5 fl_oz, 30–24000 ml, 0.1–101.4 cup.
             ///
             /// - Remark: Generated from `#/components/schemas/WaterAmount/value`.
             package var value: Swift.Double
@@ -2691,7 +2691,7 @@ package enum Components {
             /// Creates a new `WaterAmount`.
             ///
             /// - Parameters:
-            ///   - value: Accepted range depends on unit: 1–811.5 fl_oz, 0.125–101.4 cup, 30–24000 ml.
+            ///   - value: Accepted range depends on unit: 1–811.5 fl_oz, 30–24000 ml, 0.1–101.4 cup.
             ///   - unit:
             package init(
                 value: Swift.Double,
@@ -2711,23 +2711,23 @@ package enum Components {
             package var amount: Components.Schemas.WaterAmount
             /// When the water was consumed — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now. Its day is the one the daily cap counts it against.
             ///
-            /// - Remark: Generated from `#/components/schemas/CreateWaterLogBody/consumed_at`.
-            package var consumedAt: Foundation.Date?
+            /// - Remark: Generated from `#/components/schemas/CreateWaterLogBody/created_at`.
+            package var createdAt: Foundation.Date?
             /// Creates a new `CreateWaterLogBody`.
             ///
             /// - Parameters:
             ///   - amount:
-            ///   - consumedAt: When the water was consumed — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now. Its day is the one the daily cap counts it against.
+            ///   - createdAt: When the water was consumed — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now. Its day is the one the daily cap counts it against.
             package init(
                 amount: Components.Schemas.WaterAmount,
-                consumedAt: Foundation.Date? = nil
+                createdAt: Foundation.Date? = nil
             ) {
                 self.amount = amount
-                self.consumedAt = consumedAt
+                self.createdAt = createdAt
             }
             package enum CodingKeys: String, CodingKey {
                 case amount
-                case consumedAt = "consumed_at"
+                case createdAt = "created_at"
             }
         }
         /// - Remark: Generated from `#/components/schemas/WaterLog`.
@@ -2740,27 +2740,27 @@ package enum Components {
             package var amount: Components.Schemas.WaterAmount
             /// When the water was consumed. UTC, with milliseconds.
             ///
-            /// - Remark: Generated from `#/components/schemas/WaterLog/consumed_at`.
-            package var consumedAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/WaterLog/created_at`.
+            package var createdAt: Foundation.Date
             /// Creates a new `WaterLog`.
             ///
             /// - Parameters:
             ///   - id: Save this id to delete the log.
             ///   - amount:
-            ///   - consumedAt: When the water was consumed. UTC, with milliseconds.
+            ///   - createdAt: When the water was consumed. UTC, with milliseconds.
             package init(
                 id: Swift.String,
                 amount: Components.Schemas.WaterAmount,
-                consumedAt: Foundation.Date
+                createdAt: Foundation.Date
             ) {
                 self.id = id
                 self.amount = amount
-                self.consumedAt = consumedAt
+                self.createdAt = createdAt
             }
             package enum CodingKeys: String, CodingKey {
                 case id
                 case amount
-                case consumedAt = "consumed_at"
+                case createdAt = "created_at"
             }
         }
         /// - Remark: Generated from `#/components/schemas/Volume`.
@@ -2861,23 +2861,23 @@ package enum Components {
             package var weight: Components.Schemas.Weight
             /// When the weight was measured — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
             ///
-            /// - Remark: Generated from `#/components/schemas/CreateWeightLogBody/measured_at`.
-            package var measuredAt: Foundation.Date?
+            /// - Remark: Generated from `#/components/schemas/CreateWeightLogBody/created_at`.
+            package var createdAt: Foundation.Date?
             /// Creates a new `CreateWeightLogBody`.
             ///
             /// - Parameters:
             ///   - weight:
-            ///   - measuredAt: When the weight was measured — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
+            ///   - createdAt: When the weight was measured — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
             package init(
                 weight: Components.Schemas.Weight,
-                measuredAt: Foundation.Date? = nil
+                createdAt: Foundation.Date? = nil
             ) {
                 self.weight = weight
-                self.measuredAt = measuredAt
+                self.createdAt = createdAt
             }
             package enum CodingKeys: String, CodingKey {
                 case weight
-                case measuredAt = "measured_at"
+                case createdAt = "created_at"
             }
         }
         /// - Remark: Generated from `#/components/schemas/WeightLog`.
@@ -2886,23 +2886,23 @@ package enum Components {
             package var weight: Components.Schemas.Weight
             /// When the weight was measured. UTC, with milliseconds.
             ///
-            /// - Remark: Generated from `#/components/schemas/WeightLog/measured_at`.
-            package var measuredAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/WeightLog/created_at`.
+            package var createdAt: Foundation.Date
             /// Creates a new `WeightLog`.
             ///
             /// - Parameters:
             ///   - weight:
-            ///   - measuredAt: When the weight was measured. UTC, with milliseconds.
+            ///   - createdAt: When the weight was measured. UTC, with milliseconds.
             package init(
                 weight: Components.Schemas.Weight,
-                measuredAt: Foundation.Date
+                createdAt: Foundation.Date
             ) {
                 self.weight = weight
-                self.measuredAt = measuredAt
+                self.createdAt = createdAt
             }
             package enum CodingKeys: String, CodingKey {
                 case weight
-                case measuredAt = "measured_at"
+                case createdAt = "created_at"
             }
         }
         /// - Remark: Generated from `#/components/schemas/DailyWeight`.
@@ -11941,7 +11941,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Replaces any subset of the log: `foods`, `eaten_at`, `name`. Omitted fields are left unchanged.
+    /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
     /// Callable with a client token carrying the `food_logs:write` scope.
     ///
@@ -13394,7 +13394,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.1–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `created_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
     ///
     /// Callable with a client token carrying the `water_logs:write` scope.
     ///
@@ -13480,7 +13480,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The logged entry: its id, the amount in the unit it was sent in, and `consumed_at` in UTC.
+            /// The logged entry: its id, the amount in the unit it was sent in, and `created_at` in UTC.
             ///
             /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/201`.
             ///
@@ -13531,7 +13531,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// amount is missing, malformed or out of range, or consumed_at is malformed (`invalid_request`); or the log would take the end user's total for its day past the daily cap (`daily_water_limit_exceeded`).
+            /// amount is missing, malformed or out of range, or created_at is malformed (`invalid_request`); or the log would take the end user's total for its day past the daily cap (`daily_water_limit_exceeded`).
             ///
             /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/400`.
             ///
@@ -14293,7 +14293,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `created_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `weight_logs:read` scope.
     ///
@@ -14771,7 +14771,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `created_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
     ///
     /// Callable with a client token carrying the `weight_logs:write` scope.
     ///
@@ -14857,7 +14857,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The logged weight, as stored: the unit it was sent in, and `measured_at` in UTC.
+            /// The logged weight, as stored: the unit it was sent in, and `created_at` in UTC.
             ///
             /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/201`.
             ///
@@ -14908,7 +14908,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// weight is missing, malformed or out of range, or measured_at is malformed.
+            /// weight is missing, malformed or out of range, or created_at is malformed.
             ///
             /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/400`.
             ///

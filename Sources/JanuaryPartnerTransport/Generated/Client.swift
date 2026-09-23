@@ -3879,7 +3879,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Replaces any subset of the log: `foods`, `eaten_at`, `name`. Omitted fields are left unchanged.
+    /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
     /// Callable with a client token carrying the `food_logs:write` scope.
     ///
@@ -4498,7 +4498,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.1–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `created_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
     ///
     /// Callable with a client token carrying the `water_logs:write` scope.
     ///
@@ -4873,7 +4873,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `created_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `weight_logs:read` scope.
     ///
@@ -5086,7 +5086,7 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `created_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
     ///
     /// Callable with a client token carrying the `weight_logs:write` scope.
     ///
