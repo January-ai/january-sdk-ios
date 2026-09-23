@@ -14,10 +14,16 @@ const simulatorListing = JSON.parse(
     encoding: "utf8",
   }),
 );
+// IOS_SIMULATOR_UDID pins the run to one simulator, for example when others are in use.
+const pinnedUDID = process.env.IOS_SIMULATOR_UDID;
 const simulator = Object.entries(simulatorListing.devices)
   .filter(([runtime]) => runtime.includes("iOS"))
   .flatMap(([, devices]) => devices)
-  .find((device) => device.isAvailable && device.name.startsWith("iPhone"));
+  .find((device) =>
+    pinnedUDID
+      ? device.udid === pinnedUDID
+      : device.isAvailable && device.name.startsWith("iPhone"),
+  );
 
 if (!simulator) {
   throw new Error("No available iPhone Simulator was found for JanuarySDK tests.");
