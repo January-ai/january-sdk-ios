@@ -32,7 +32,7 @@ public struct WaterLog: Codable, Hashable, Sendable {
     public init(id: String, amount: WaterAmount, consumedAtUTC: String) {
         self.id = id; self.amount = amount; self.consumedAtUTC = consumedAtUTC
     }
-    enum CodingKeys: String, CodingKey { case id, amount; case consumedAtUTC = "consumed_at" }
+    enum CodingKeys: String, CodingKey { case id, amount; case consumedAtUTC = "created_at" }
 }
 
 /// Everything logged on one local calendar day, in the unit the request asked for.

@@ -77,7 +77,7 @@ onFlowComplete:
     env:
       ROUTE: /v1.2/water-logs
       METHOD: POST
-      TIME_KEY: consumed_at
+      TIME_KEY: created_at
       TIME_EQUALS: ${output.yesterdayNoon}
 # Logs' Today is the end user's today too.
 - tapOn:

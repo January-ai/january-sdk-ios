@@ -27,7 +27,7 @@ public struct WeightLogsResource: Sendable {
         return try await performTransportRequest {
             let body = Components.Schemas.CreateWeightLogBody(
                 weight: .init(value: request.weight.value, unit: request.weight.unit.rawValue),
-                measuredAt: try ISO8601Timestamp.parse(request.measuredAtUTC, field: "measuredAtUTC")
+                createdAt: try ISO8601Timestamp.parse(request.measuredAtUTC, field: "measuredAtUTC")
             )
             let output = try await client.createWeightLog(
                 .init(headers: .init(januaryEndUserID: request.user.endUserID?.rawValue), body: .json(body))
@@ -35,7 +35,7 @@ public struct WeightLogsResource: Sendable {
             switch output {
             case .created(let response):
                 let value = try response.body.json
-                return WeightLog(weight: try mapWeight(value.weight), measuredAtUTC: ISO8601Timestamp.format(value.measuredAt))
+                return WeightLog(weight: try mapWeight(value.weight), measuredAtUTC: ISO8601Timestamp.format(value.createdAt))
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)

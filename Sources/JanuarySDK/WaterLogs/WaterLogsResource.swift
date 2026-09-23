@@ -32,7 +32,7 @@ public struct WaterLogsResource: Sendable {
         return try await performTransportRequest {
             let body = Components.Schemas.CreateWaterLogBody(
                 amount: .init(value: request.amount.value, unit: request.amount.unit.rawValue),
-                consumedAt: try ISO8601Timestamp.parse(request.consumedAtUTC, field: "consumedAtUTC")
+                createdAt: try ISO8601Timestamp.parse(request.consumedAtUTC, field: "consumedAtUTC")
             )
             let output = try await client.createWaterLog(
                 .init(headers: .init(januaryEndUserID: request.user.endUserID?.rawValue), body: .json(body))
@@ -117,7 +117,7 @@ public struct WaterLogsResource: Sendable {
         WaterLog(
             id: value.id,
             amount: .init(value: value.amount.value, unit: try volumeUnit(value.amount.unit)),
-            consumedAtUTC: ISO8601Timestamp.format(value.consumedAt)
+            consumedAtUTC: ISO8601Timestamp.format(value.createdAt)
         )
     }
 

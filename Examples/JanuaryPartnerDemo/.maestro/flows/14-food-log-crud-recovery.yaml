@@ -47,7 +47,7 @@ tags:
     file: ../scripts/assert-request.js
     env:
       ROUTE: /v1.2/food-logs/opaque-log-1
-      TIME_KEY: eaten_at
+      TIME_KEY: created_at
       TIME_EQUALS: seeded
 - tapOn:
     id: food-log-0
