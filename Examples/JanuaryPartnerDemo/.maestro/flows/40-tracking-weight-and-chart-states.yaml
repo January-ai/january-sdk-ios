@@ -119,10 +119,12 @@ tags:
     centerElement: true
 - tapOn:
     id: water-chart-range-month
-- runFlow:
-    file: ../scroll-to.yaml
-    env:
-      TARGET_ID: water-chart-retry
+# The error card appears just below the centered range picker, clear of the
+# navigation bar; scrolling to its retry can leave it under the bar.
+- extendedWaitUntil:
+    visible:
+      id: water-chart-retry
+    timeout: 15000
 - assertVisible:
     id: water-chart-error
 - runScript:

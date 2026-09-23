@@ -29,6 +29,10 @@ onFlowComplete:
 # Tracking opens on the end user's today and asks for it in their timezone.
 - tapOn:
     id: tab-tracking
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: logs-day-picker
 - extendedWaitUntil:
     visible: ${output.today}
     timeout: 15000
@@ -78,16 +82,16 @@ onFlowComplete:
 # Logs' Today is the end user's today too.
 - tapOn:
     id: tab-food-logs
-- extendedWaitUntil:
-    visible:
-      id: logs-range-today
-    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: logs-range-today
 - tapOn:
     id: logs-range-today
-- extendedWaitUntil:
-    visible:
-      id: food-logs-empty
-    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-empty
 - runScript:
     file: ../scripts/wait.js
 - runScript:
