@@ -92,8 +92,8 @@ func exercisesEveryClientOperationLive() async throws {
         let start = calendar.date(byAdding: .day, value: -1, to: Date())!
         let end = calendar.date(byAdding: .day, value: 1, to: Date())!
         let listed = try await client.foodLogs.list(
-            start: SelfDateFormatter.string(from: start),
-            end: SelfDateFormatter.string(from: end)
+            start: dayString(start, in: timezone),
+            end: dayString(end, in: timezone)
         )
         #expect(listed.items.contains { $0.id == logID })
         pass("foodLogs.list")
@@ -133,7 +133,8 @@ func exercisesEveryClientOperationLive() async throws {
     #expect(!prediction.prediction.isEmpty)
     pass("glucose.predict")
 
-    let today = SelfDateFormatter.string(from: Date())
+    // Today in the client's timezone, the calendar the API groups logs by.
+    let today = dayString(Date(), in: timezone)
     var createdWaterLogID: String?
     do {
         let water = try await client.waterLogs.create(amount: .init(value: 8, unit: .fluidOunces))
@@ -164,14 +165,14 @@ func exercisesEveryClientOperationLive() async throws {
 
 private let burgerImageURL = "https://friendlysrestaurants.com/assets/live/img/production/detail/menu/lunch-dinner_999-combohs_all-american-burger-fries.jpg"
 
-private let SelfDateFormatter: DateFormatter = {
+private func dayString(_ date: Date, in timezone: TimeZone) -> String {
     let formatter = DateFormatter()
     formatter.calendar = Calendar(identifier: .gregorian)
     formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.timeZone = timezone
     formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-}()
+    return formatter.string(from: date)
+}
 
 private func pass(_ operation: String) {
     print("PASS \(operation)")
