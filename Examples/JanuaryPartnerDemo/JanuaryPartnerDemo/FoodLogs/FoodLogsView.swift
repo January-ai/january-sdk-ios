@@ -218,7 +218,7 @@ private struct FoodLogEditorView: View {
         _name = State(initialValue: existing?.name ?? "")
         // Editing keeps the log's time; only a new log starts at now.
         _timestamp = State(initialValue: existing.flatMap { AppFormatting.date(fromAPI: $0.timestampUTC) } ?? .now)
-        _foods = State(initialValue: existing?.foods.map(selectedFood) ?? [])
+        _foods = State(initialValue: existing?.foods.compactMap(selectedFood) ?? [])
     }
 
     var body: some View {
@@ -824,9 +824,11 @@ private struct ServingSelectionSheet: View {
     }
 }
 
-private func selectedFood(_ logged: LoggedFood) -> SelectedFood {
+/// The editor's copy of a logged food; nil when the log does not identify its serving.
+private func selectedFood(_ logged: LoggedFood) -> SelectedFood? {
+    guard let servingID = logged.servingDetails.id else { return nil }
     let serving = ServingOption(
-        id: logged.servingDetails.id,
+        id: servingID,
         quantity: logged.servingDetails.quantity,
         unit: logged.servingDetails.unit,
         scalingFactor: 1,
@@ -834,7 +836,7 @@ private func selectedFood(_ logged: LoggedFood) -> SelectedFood {
         isPrimary: true
     )
     let food = FoodSearchItem(
-        id: logged.id ?? .init(rawValue: "missing-food-id"),
+        id: logged.id,
         name: logged.name,
         brandName: logged.brandName,
         calories: logged.nutrients.calories?.value,

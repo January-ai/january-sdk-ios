@@ -78,7 +78,7 @@ public struct ServingDetails: Codable, Hashable, Sendable {
 }
 
 public struct LoggedFood: Codable, Hashable, Sendable {
-    public var id: FoodID?; public var name: String?; public var brandName: String?; public var imageURL: String?
+    public var id: FoodID; public var name: String?; public var brandName: String?; public var imageURL: String?
     public var glycemicIndex: Double?; public var glycemicLoad: Double?; public var nutrients: NutritionFacts
     public var consumedServing: ConsumedServing; public var servingDetails: ServingDetails
     enum CodingKeys: String, CodingKey {

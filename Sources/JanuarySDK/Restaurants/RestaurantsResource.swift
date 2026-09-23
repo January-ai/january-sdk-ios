@@ -30,7 +30,7 @@ public struct RestaurantsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }
@@ -56,7 +56,7 @@ public struct RestaurantsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }
@@ -96,7 +96,7 @@ public struct RestaurantsResource: Sendable {
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .notFound(let response): throw apiError(.notFound, status: 404, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }
@@ -175,7 +175,7 @@ public struct RestaurantsResource: Sendable {
 
     private func mapServing(_ serving: Components.Schemas.ServingOption) -> ServingOption {
         ServingOption(
-            id: serving.id.map { ServingID(rawValue: $0) },
+            id: ServingID(rawValue: serving.id),
             quantity: serving.quantity,
             unit: serving.unit,
             scalingFactor: serving.scalingFactor ?? 1,

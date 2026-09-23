@@ -25,7 +25,19 @@ private let textAnalysis = #"{"meal_name": null, "total_nutrients": {"calories":
 
 private let summary = #"{"group_by": "day", "week_start": null, "timezone": "America/Chicago", "start_date": "2026-09-14", "end_date": "2026-09-14", "buckets": [{"start_date": "2026-09-14", "end_date": "2026-09-14", "logs_count": 1, "days_with_logs": 1, "nutrients": {"calories": {"value": 1853.06, "unit": "kcal"}, "protein": {"value": 79.8822, "unit": "g"}, "carbohydrates": {"value": 199.5376, "unit": "g"}, "total_fat": {"value": 83.5442, "unit": "g"}}}], "totals": {"logs_count": 3, "days_with_logs": 2, "nutrients": {"calories": {"value": 3656.4883824999997, "unit": "kcal"}, "protein": {"value": 160.916828855, "unit": "g"}, "carbohydrates": {"value": 315.50554525, "unit": "g"}, "total_fat": {"value": 192.22509300000002, "unit": "g"}}}, "average_per_logged_day": {"nutrients": {"calories": {"value": 1828.2441912499999, "unit": "kcal"}, "protein": {"value": 80.4584144275, "unit": "g"}, "carbohydrates": {"value": 157.752772625, "unit": "g"}, "total_fat": {"value": 96.11254650000001, "unit": "g"}}}}"#
 
-private func makeClient(_ transport: ShapeTransport) throws -> JanuaryClient {
+/// Answers every request with one status and JSON body.
+private struct StatusTransport: ClientTransport {
+    let status: Int
+    let body: String
+
+    func send(_ request: HTTPRequest, body: HTTPBody?, baseURL: URL, operationID: String) async throws -> (HTTPResponse, HTTPBody?) {
+        var response = HTTPResponse(status: .init(code: status))
+        response.headerFields[.contentType] = "application/json"
+        return (response, HTTPBody(self.body))
+    }
+}
+
+private func makeClient(_ transport: some ClientTransport) throws -> JanuaryClient {
     try JanuaryClient(
         developmentAPIKey: "fixture-api-key",
         userContext: PartnerUserContext(
@@ -89,10 +101,49 @@ func photoScanSendsReasoningEffortOnlyWhenAsked() async throws {
 
     _ = try await client.foodAnalysis.analyzePhoto(.init(image: "https://example.com/meal.jpg"))
     _ = try await client.foodAnalysis.analyzePhoto(.init(image: "https://example.com/meal.jpg", reasoningEffort: .xhigh))
+    _ = try await client.foodAnalysis.analyzePhoto(.init(image: "https://example.com/meal.jpg", reasoningEffort: AnalysisEffort.none))
 
+    // Without a choice the request leaves `reasoning` out, and the API uses its default,
+    // the reasoning-based analyzer; the SDK never fills in an effort of its own.
     let requests = await transport.requests()
     #expect(try json(requests[0].1)["reasoning"] == nil)
     #expect((try json(requests[1].1)["reasoning"] as? [String: Any])?["effort"] as? String == "xhigh")
+    #expect((try json(requests[2].1)["reasoning"] as? [String: Any])?["effort"] as? String == "none")
+}
+
+@Test
+func aConflictKeepsTheAPIsCodeAndMessageAsAValidationError() async throws {
+    let body = #"{"code":"conflict","message":"This Idempotency-Key was already used with different files."}"#
+    let client = try makeClient(StatusTransport(status: 409, body: body))
+
+    let error = await #expect(throws: JanuaryError.self) {
+        _ = try await client.foodAnalysis.analyzePhoto(.init(image: "https://example.com/meal.jpg"))
+    }
+
+    #expect(error?.category == .validation)
+    #expect(error?.code == "conflict")
+    #expect(error?.httpStatus == 409)
+    #expect(error?.message == "This Idempotency-Key was already used with different files.")
+    // A status the operation does not list, without an error body, still reports the status.
+    let bare = apiError(errorCategory(for: 409), status: 409, response: nil)
+    #expect(bare.category == .validation)
+    #expect(bare.code == nil)
+    #expect(bare.message == "The January API returned HTTP 409.")
+}
+
+@Test
+func servingsAndAlternativesRequireTheirIDs() throws {
+    let decoder = JSONDecoder()
+    let serving = #"{"id":"34113801","quantity":0.5,"unit":"cup"}"#
+    #expect(try decoder.decode(ServingOption.self, from: Data(serving.utf8)).id == ServingID(rawValue: "34113801"))
+    #expect(throws: DecodingError.self) {
+        try decoder.decode(ServingOption.self, from: Data(serving.replacingOccurrences(of: #""id":"34113801","#, with: "").utf8))
+    }
+    let alternative = #"{"id":"70372230","name":"brown rice","nutrients":{"calories":{"value":108,"unit":"kcal"}},"servings":[]}"#
+    #expect(try decoder.decode(AlternativeFood.self, from: Data(alternative.utf8)).id == FoodID(rawValue: "70372230"))
+    #expect(throws: DecodingError.self) {
+        try decoder.decode(AlternativeFood.self, from: Data(alternative.replacingOccurrences(of: #""id":"70372230","#, with: "").utf8))
+    }
 }
 
 @Test

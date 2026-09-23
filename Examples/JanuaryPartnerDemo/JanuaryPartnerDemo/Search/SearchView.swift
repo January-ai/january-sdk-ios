@@ -802,7 +802,7 @@ struct FoodDetailView: View {
                         Menu {
                             ForEach(detailFood.servings, id: \.id) { serving in
                                 Button {
-                                    if let servingID = serving.id { selectedServingID = servingID }
+                                    selectedServingID = serving.id
                                     quantity = serving.quantity ?? 1
                                 } label: {
                                     if serving.id == selectedServingID {
@@ -936,8 +936,8 @@ struct FoodDetailView: View {
             let fullFood = try await client.foods.get(id: food.id, endUserID: endUserID)
             detailFood = fullFood
             let initialServing = fullFood.servings.first(where: { $0.isPrimary == true }) ?? fullFood.servings.first
-            if let initialServing, let servingID = initialServing.id {
-                selectedServingID = servingID
+            if let initialServing {
+                selectedServingID = initialServing.id
                 quantity = initialServing.quantity ?? 1
             }
             detailLoadError = nil
@@ -1122,7 +1122,7 @@ private struct FoodGlucoseSheet: View {
 
     @MainActor
     private func predict() async {
-        guard let servingID = serving.id else { return }
+        let servingID = serving.id
         isLoading = true
         error = nil
         do {
@@ -1218,7 +1218,7 @@ private struct AlternativesView: View {
                                 VStack(alignment: .leading, spacing: AppSpacing.section) {
                                     SectionLabel("Suggestions · \(result.alternatives.count)")
                                     ForEach(Array(result.alternatives.enumerated()), id: \.offset) { _, alternative in
-                                        let loadedFood = alternative.id.flatMap { alternativeDetails[$0] }
+                                        let loadedFood = alternativeDetails[alternative.id]
                                         let detailFood = loadedFood ?? alternativeDetailFood(alternative)
                                         Group {
                                             if let detailFood {
@@ -1286,7 +1286,7 @@ private struct AlternativesView: View {
 
     @MainActor
     private func loadAlternativeDetails(_ response: SuggestFoodAlternativesResponse) async {
-        let ids = Set(response.alternatives.compactMap(\.id))
+        let ids = Set(response.alternatives.map(\.id))
         await withTaskGroup(of: (FoodID, FoodSearchItem)?.self) { group in
             for id in ids {
                 group.addTask {
@@ -1377,20 +1377,19 @@ private struct AlternativeFoodRow: View {
 }
 
 private func alternativeDetailFood(_ food: AlternativeFood) -> FoodSearchItem? {
-    guard let id = food.id, !food.servings.isEmpty else {
-        return nil
-    }
-    let servings = food.servings.enumerated().map { index, serving in
-        ServingOption(
-            id: serving.id,
+    // A serving summary may lack an ID; only servings with one can be logged.
+    let servings = food.servings.enumerated().compactMap { index, serving in
+        serving.id.map { id in ServingOption(
+            id: id,
             quantity: serving.quantity ?? 1,
             unit: serving.unit,
             scalingFactor: 1,
             isPrimary: index == 0
-        )
+        ) }
     }
+    guard !servings.isEmpty else { return nil }
     return FoodSearchItem(
-        id: id,
+        id: food.id,
         name: food.name,
         brandName: food.brandName,
         calories: food.nutrients.calories?.value,

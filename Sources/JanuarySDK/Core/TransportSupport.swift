@@ -77,9 +77,22 @@ internal func apiError(
     )
 }
 
+/// A status the operation does not list, with the API's error body when it sent one: the
+/// error keeps the API's `code` and message (for example `conflict` with a 409).
+internal func apiError(
+    _ category: ErrorCategory,
+    status: Int,
+    response: Components.Schemas.ErrorResponse?
+) -> JanuaryError {
+    guard let response else { return apiError(category, status: status) }
+    return apiError(category, status: status, response: response)
+}
+
 internal func errorCategory(for status: Int) -> ErrorCategory {
     switch status {
-    case 400, 422: .validation
+    // 409 is `conflict`: the request conflicts with an existing resource, and sending it
+    // again unchanged fails the same way.
+    case 400, 409, 422: .validation
     case 401: .authentication
     case 403: .authorization
     case 404: .notFound

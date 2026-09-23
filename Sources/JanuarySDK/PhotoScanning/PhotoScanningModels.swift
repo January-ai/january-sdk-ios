@@ -4,14 +4,15 @@ import Foundation
 public enum AnalysisEffort: String, Codable, Hashable, Sendable, CaseIterable {
     /// The standard analyzer.
     case none
-    /// The reasoning-based analyzer.
+    /// The reasoning-based analyzer, which the API uses when a request does not choose.
     case xhigh
 }
 
 public struct ScanFoodPhotoRequest: Hashable, Sendable {
     public var image: String
     public var endUserID: PartnerUserID?
-    /// `nil` or `.none` uses the standard analyzer; `.xhigh` uses the reasoning-based one.
+    /// `nil` sends no choice, and the API uses its default, the reasoning-based analyzer; `.none`
+    /// uses the standard analyzer; `.xhigh` asks for the reasoning-based one explicitly.
     public var reasoningEffort: AnalysisEffort?
     public init(image: String, endUserID: PartnerUserID? = nil, reasoningEffort: AnalysisEffort? = nil) {
         self.image = image; self.endUserID = endUserID; self.reasoningEffort = reasoningEffort

@@ -57,7 +57,7 @@ public struct GlucoseResource: Sendable {
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
             case .gatewayTimeout(let response): throw apiError(.timeout, status: 504, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }

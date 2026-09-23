@@ -233,6 +233,7 @@ func documentedHTTPStatusesMapToPublicErrorCategories() {
     #expect(errorCategory(for: 401) == .authentication)
     #expect(errorCategory(for: 403) == .authorization)
     #expect(errorCategory(for: 404) == .notFound)
+    #expect(errorCategory(for: 409) == .validation)
     #expect(errorCategory(for: 429) == .rateLimited)
     #expect(errorCategory(for: 500) == .server)
     #expect(errorCategory(for: 504) == .timeout)
@@ -572,7 +573,10 @@ func publicModelsRoundTripEveryCustomCodingKeyAndInitializer() throws {
 
     let loggedFoodJSON = #"{"id":"42","name":"Food","brand_name":"Brand","image_url":"https://example.com","glycemic_index":50,"glycemic_load":10,"nutrients":{},"consumed_serving":{"id":"7","quantity":1},"serving_details":{"id":"7","quantity":1,"unit":"cup","weight_grams":100}}"#
     let logged = try decoder.decode(LoggedFood.self, from: Data(loggedFoodJSON.utf8))
-    #expect(logged.id?.rawValue == "42")
+    #expect(logged.id.rawValue == "42")
+    #expect(throws: DecodingError.self) {
+        try decoder.decode(LoggedFood.self, from: Data(loggedFoodJSON.replacingOccurrences(of: #""id":"42","#, with: "").utf8))
+    }
     let menuJSON = #"{"type":"menu_item","id":"m1","name":"Burger","restaurant_name":"Cafe","is_chain":true,"energy":500,"carbs":40,"net_carbs":35,"fat":20,"protein":25,"fiber":5,"sugars":4,"added_sugars":1,"gi":50,"gl":20,"photo_url":"https://example.com","distance":1,"servings":[]}"#
     let menu = try decoder.decode(RestaurantMenuItem.self, from: Data(menuJSON.utf8))
     #expect(menu.restaurantName == "Cafe")

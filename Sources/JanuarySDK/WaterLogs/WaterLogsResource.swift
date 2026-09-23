@@ -43,7 +43,7 @@ public struct WaterLogsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }
@@ -73,7 +73,7 @@ public struct WaterLogsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }
@@ -94,7 +94,7 @@ public struct WaterLogsResource: Sendable {
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
             case .tooManyRequests(let response): throw apiError(.rateLimited, status: 429, response: try response.body.json)
-            case .default(let status, _): throw apiError(errorCategory(for: status), status: status)
+            case .default(let status, let response): throw apiError(errorCategory(for: status), status: status, response: try? response.body.json)
             }
         }
     }
