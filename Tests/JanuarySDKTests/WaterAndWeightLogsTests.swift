@@ -103,7 +103,7 @@ func waterLogCreateOmitsTheTimestampWhenNotSupplied() async throws {
 @Test(arguments: [
     WaterAmount(value: 0.5, unit: .fluidOunces), WaterAmount(value: 812, unit: .fluidOunces),
     WaterAmount(value: 29, unit: .milliliters), WaterAmount(value: 24_001, unit: .milliliters),
-    WaterAmount(value: 0.1, unit: .cups), WaterAmount(value: 101.5, unit: .cups),
+    WaterAmount(value: 0.09, unit: .cups), WaterAmount(value: 101.5, unit: .cups),
     WaterAmount(value: .nan, unit: .milliliters),
 ])
 func waterLogCreateRejectsAmountsOutsideTheDocumentedRanges(_ amount: WaterAmount) async throws {
@@ -142,7 +142,7 @@ func waterLogListSendsRangeTimezoneAndUnitAndMapsDailyTotals() async throws {
     ])
 }
 
-@Test(arguments: [0.125, 2, 101.4])
+@Test(arguments: [0.1, 2, 101.4])
 func waterLogsAcceptCupsAcrossTheDocumentedRange(_ value: Double) async throws {
     let transport = LogTransport(bodies: [
         "createWaterLog": #"{"id":"9c1f2a3b-4d5e-4f60-8a71-b2c3d4e5f607","amount":{"value":2,"unit":"cup"},"created_at":"2026-09-10T14:30:15.123Z"}"#,

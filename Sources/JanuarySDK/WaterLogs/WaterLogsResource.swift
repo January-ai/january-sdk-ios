@@ -103,7 +103,7 @@ public struct WaterLogsResource: Sendable {
         let range: ClosedRange<Double> = switch amount.unit {
         case .fluidOunces: 1...811.5
         case .milliliters: 30...24_000
-        case .cups: 0.125...101.4
+        case .cups: 0.1...101.4
         }
         guard amount.value.isFinite, range.contains(amount.value) else {
             throw JanuaryError(

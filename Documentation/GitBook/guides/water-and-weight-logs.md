@@ -17,7 +17,7 @@ let client = try JanuaryClient(
 
 ## Log water
 
-An amount is 1–811.5 fluid ounces (`.fluidOunces`), 0.125–101.4 US cups
+An amount is 1–811.5 fluid ounces (`.fluidOunces`), 0.1–101.4 US cups
 (`.cups`, 8 fluid ounces each), or 30–24,000 milliliters (`.milliliters`). The
 API caps an end user at 24 liters per local day and refuses a log that would
 exceed it with the `daily_water_limit_exceeded` error code (a `.validation`
