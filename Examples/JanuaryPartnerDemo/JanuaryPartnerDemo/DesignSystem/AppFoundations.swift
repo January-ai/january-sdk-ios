@@ -71,6 +71,18 @@ enum AppFormatting {
         return formatter
     }()
 
+    private static let apiDateWithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    /// Parses an API timestamp. The SDK returns log times in UTC with milliseconds
+    /// (`2026-09-22T18:30:00.000Z`); times without fractional seconds are accepted too.
+    static func date(fromAPI value: String) -> Date? {
+        apiDateWithFractionalSeconds.date(from: value) ?? apiDate.date(from: value)
+    }
+
     static let apiDay: DateFormatter = {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)

@@ -162,14 +162,21 @@ struct FoodLogsView: View {
 
     @MainActor private func load() async {
         guard userSession.partnerUserID != nil else { return }
+        // A list for a user or range no longer selected is dropped when it arrives.
+        let key = loadTaskID
         isLoading = true; error = nil
         do {
             let query = selectedDateRange.apiQuery(calendar: foodLogCalendar)
-            logs = try await client.foodLogs.list(
+            let items = try await client.foodLogs.list(
                 start: query.start,
                 end: query.end
             ).items
-        } catch { self.error = error }
+            guard key == loadTaskID else { return }
+            logs = items
+        } catch {
+            guard key == loadTaskID, !(error is CancellationError) else { return }
+            self.error = error
+        }
         isLoading = false
     }
 }
@@ -209,7 +216,8 @@ private struct FoodLogEditorView: View {
     init(client: JanuaryClient, context: FoodLogUserContext, existing: FoodLog?, onSaved: @escaping () -> Void) {
         self.client = client; self.context = context; self.existing = existing; self.onSaved = onSaved
         _name = State(initialValue: existing?.name ?? "")
-        _timestamp = State(initialValue: existing.flatMap { AppFormatting.apiDate.date(from: $0.timestampUTC) } ?? .now)
+        // Editing keeps the log's time; only a new log starts at now.
+        _timestamp = State(initialValue: existing.flatMap { AppFormatting.date(fromAPI: $0.timestampUTC) } ?? .now)
         _foods = State(initialValue: existing?.foods.map(selectedFood) ?? [])
     }
 
@@ -545,6 +553,17 @@ struct FoodPickerView: View {
                                 )
                                 .accessibilityElement(children: .contain)
                                 .accessibilityIdentifier("food-picker-empty")
+                            } else if isLoading && results.isEmpty {
+                                HStack(spacing: 12) {
+                                    LoadingSpinner(color: AppPalette.green)
+                                    Text("Searching foods…")
+                                        .font(.headline)
+                                        .foregroundStyle(AppPalette.muted)
+                                    Spacer(minLength: 0)
+                                }
+                                .appCard()
+                                .accessibilityElement(children: .contain)
+                                .accessibilityIdentifier("food-picker-loading")
                             } else if !results.isEmpty {
                                 VStack(alignment: .leading, spacing: 10) {
                                     SectionLabel("Results · January food database")
@@ -655,11 +674,14 @@ struct FoodPickerView: View {
         do {
             try await Task.sleep(nanoseconds: 300_000_000)
             try Task.checkCancellation()
+            guard value != autocompleteSuppressedQuery else { return }
             let response = try await client.foods.autocomplete(
                 .init(query: value, limit: 8, endUserID: endUserID)
             )
             try Task.checkCancellation()
-            guard query.trimmingCharacters(in: .whitespacesAndNewlines) == value else { return }
+            // The query may have been searched, or a suggestion chosen, while the request ran.
+            guard query.trimmingCharacters(in: .whitespacesAndNewlines) == value,
+                  value != autocompleteSuppressedQuery else { return }
             suggestions = response.items
         } catch is CancellationError {
             return
@@ -853,6 +875,6 @@ private func nutritionRows(_ value: NutritionFacts) -> [NutrientRow] {
 }
 
 private func localDate(_ value: String) -> String {
-    guard let date = AppFormatting.apiDate.date(from: value) else { return value }
+    guard let date = AppFormatting.date(fromAPI: value) else { return value }
     return date.formatted(date: .abbreviated, time: .shortened)
 }

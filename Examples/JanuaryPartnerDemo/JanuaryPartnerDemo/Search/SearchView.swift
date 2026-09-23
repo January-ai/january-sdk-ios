@@ -393,7 +393,7 @@ struct SearchView: View {
 
     private var submitIdentifier: String {
         if scope == .restaurants { return isLoading ? "restaurants-loading" : "restaurant-search-submit" }
-        return "search-submit"
+        return isLoading ? "search-loading" : "search-submit"
     }
 
     private var buttonTitle: String {
@@ -434,6 +434,8 @@ struct SearchView: View {
     private func submit() async {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return }
+        // A suggestion request still in flight for this query must not reopen the list over the results.
+        autocompleteSuppressedQuery = query
         foodSuggestions = []
         isLoading = true
         error = nil
@@ -472,6 +474,7 @@ struct SearchView: View {
         do {
             try await Task.sleep(nanoseconds: 300_000_000)
             try Task.checkCancellation()
+            guard query != autocompleteSuppressedQuery else { return }
             let response = try await client.foods.autocomplete(
                 .init(
                     query: value,
@@ -481,7 +484,9 @@ struct SearchView: View {
                 )
             )
             try Task.checkCancellation()
-            guard query.trimmingCharacters(in: .whitespacesAndNewlines) == value else { return }
+            // The query may have been submitted, or a suggestion chosen, while the request ran.
+            guard query.trimmingCharacters(in: .whitespacesAndNewlines) == value,
+                  query != autocompleteSuppressedQuery else { return }
             foodSuggestions = response.items
         } catch is CancellationError {
             return
@@ -612,50 +617,74 @@ private struct NaturalMealResultView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Meal nutrition").font(.system(.title2, design: .serif, weight: .semibold))
-            let nutrients = result.totalNutrients
-            MacroGrid(
-                calories: nutrients.calories?.value,
-                protein: nutrients.protein?.value,
-                carbohydrates: nutrients.carbohydrates?.value,
-                fat: nutrients.totalFat?.value
-            )
-            .appCard()
-            ForEach(Array(result.detections.enumerated()), id: \.offset) { _, detection in
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(detection.food.name ?? "Unnamed food").font(.headline)
-                    if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
-                    MacroGrid(
-                        calories: detection.food.nutrients.calories?.value,
-                        protein: detection.food.nutrients.protein?.value,
-                        carbohydrates: detection.food.nutrients.carbohydrates?.value,
-                        fat: detection.food.nutrients.totalFat?.value
-                    )
-                }
-                .appCard()
-            }
-
-            PrimaryButton(
-                title: prediction == nil ? "Show glucose prediction" : "Refresh glucose prediction",
-                systemImage: "waveform.path.ecg",
-                isLoading: isPredicting,
-                isDisabled: foods.isEmpty
-            ) {
-                Task { await predict() }
-            }
-
-            if let predictionError {
-                ErrorNotice(error: predictionError) {
-                    Task { await predict() }
-                }
-            }
-
-            if let prediction {
-                mealPrediction(prediction)
+            if result.detections.isEmpty {
+                EmptyStateCard(
+                    title: "No foods recognized",
+                    message: "Name the foods and amounts, for example “two eggs and a slice of toast.”",
+                    symbol: "text.magnifyingglass"
+                )
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("description-empty")
+            } else {
+                mealContent
             }
 
             Button("Analyze another meal", action: onAnalyzeAnother)
                 .buttonStyle(OutlinedButtonStyle())
+                .accessibilityIdentifier("description-analyze-another")
+        }
+    }
+
+    @ViewBuilder
+    private var mealContent: some View {
+        Text("Meal nutrition").font(.system(.title2, design: .serif, weight: .semibold))
+        let nutrients = result.totalNutrients
+        MacroGrid(
+            calories: nutrients.calories?.value,
+            protein: nutrients.protein?.value,
+            carbohydrates: nutrients.carbohydrates?.value,
+            fat: nutrients.totalFat?.value
+        )
+        .appCard()
+        ForEach(Array(result.detections.enumerated()), id: \.offset) { _, detection in
+            VStack(alignment: .leading, spacing: 10) {
+                Text(detection.food.name ?? "Unnamed food").font(.headline)
+                if let brand = detection.food.brandName { Text(brand).foregroundStyle(AppPalette.muted) }
+                MacroGrid(
+                    calories: detection.food.nutrients.calories?.value,
+                    protein: detection.food.nutrients.protein?.value,
+                    carbohydrates: detection.food.nutrients.carbohydrates?.value,
+                    fat: detection.food.nutrients.totalFat?.value
+                )
+            }
+            .appCard()
+        }
+
+        PrimaryButton(
+            title: prediction == nil ? "Show glucose prediction" : "Refresh glucose prediction",
+            systemImage: "waveform.path.ecg",
+            isLoading: isPredicting,
+            isDisabled: foods.isEmpty
+        ) {
+            Task { await predict() }
+        }
+        .accessibilityIdentifier(isPredicting ? "description-glucose-loading" : "description-glucose")
+
+        if let predictionError {
+            ErrorNotice(
+                error: predictionError,
+                retry: { Task { await predict() } },
+                identifier: "description-glucose-error",
+                retryIdentifier: "description-glucose-retry"
+            )
+        }
+
+        if let prediction {
+            VStack(alignment: .leading, spacing: 16) {
+                mealPrediction(prediction)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("description-glucose-result")
         }
     }
 
@@ -854,6 +883,7 @@ struct FoodDetailView: View {
                     Text("Complete serving details could not be loaded. Showing the serving returned by search.")
                         .font(.footnote)
                         .foregroundStyle(AppPalette.muted)
+                        .accessibilityIdentifier("food-detail-error")
                 }
                 }
             }
