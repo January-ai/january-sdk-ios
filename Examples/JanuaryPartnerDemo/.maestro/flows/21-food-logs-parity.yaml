@@ -31,6 +31,13 @@ tags:
       id: food-log-0
     timeout: 15000
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-list
+# The meal's time reads as a local date and time (in the device's format), not
+# the API's UTC timestamp.
+- assertVisible:
+    id: food-log-0
+    text: ".*Fixture breakfast.*20[0-9]{2}.*"
+- assertNotVisible:
+    text: ".*[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}.*"
 - tapOn:
     id: food-log-0
 - assertVisible:

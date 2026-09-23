@@ -145,7 +145,7 @@ struct ScanView: View {
                 ) {
                     Task { await analyze() }
                 }
-                .accessibilityIdentifier("scan-analyze")
+                .accessibilityIdentifier(isLoading ? "scan-loading" : "scan-analyze")
             }
 
             if isLoading {
@@ -501,7 +501,7 @@ private struct CorrectScanView: View {
                     ) {
                         Task { await submit() }
                         }
-                        .accessibilityIdentifier("scan-correction-submit")
+                        .accessibilityIdentifier(isLoading ? "scan-correction-loading" : "scan-correction-submit")
                     }
                 }
                 .padding(.vertical, AppSpacing.sheetTop)

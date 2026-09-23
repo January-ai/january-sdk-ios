@@ -32,7 +32,9 @@ struct ErrorNotice: View {
                 .foregroundStyle(AppPalette.body)
             if let januaryError = error as? JanuaryError,
                januaryError.requestID != nil || januaryError.httpStatus != nil {
-                DisclosureGroup("Technical details") {
+                // The toggle's identifier goes on its label: on the whole group it would also
+                // replace the details body's identifier.
+                DisclosureGroup {
                     VStack(alignment: .leading) {
                         if let status = januaryError.httpStatus { LabeledContent("HTTP status", value: "\(status)") }
                         if let code = januaryError.code { LabeledContent("Error code", value: code) }
@@ -40,9 +42,11 @@ struct ErrorNotice: View {
                     }
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier(detailsBodyIdentifier ?? "")
+                } label: {
+                    Text("Technical details")
+                        .accessibilityIdentifier(detailsIdentifier ?? "")
                 }
                 .font(.footnote)
-                .accessibilityIdentifier(detailsIdentifier ?? "")
             }
             if let retry {
                 Button("Try again", action: retry)

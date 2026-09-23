@@ -1,0 +1,48 @@
+appId: ai.january.partner.demo
+name: Tracking day view water error and retry recover
+tags:
+  - fixture
+  - recovery
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      STATUS: "500"
+- tapOn:
+    id: tab-tracking
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-error
+- assertVisible:
+    id: water-error
+# The meals and weight load independently of the failed water request.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: tracking-food-logs-empty
+- assertNotVisible:
+    id: tracking-food-logs-error
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-water-error
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      STATUS: "200"
+- scrollUntilVisible:
+    element:
+      id: water-retry
+    direction: UP
+- tapOn:
+    id: water-retry
+- extendedWaitUntil:
+    visible: No water logged
+    timeout: 15000
+- assertNotVisible:
+    id: water-error

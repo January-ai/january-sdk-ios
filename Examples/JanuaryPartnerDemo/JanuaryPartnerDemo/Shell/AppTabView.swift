@@ -21,8 +21,14 @@ struct AppTabView: View {
 
             FoodLogsView(client: client, settingsAction: showSettings)
                 .tabItem {
-                    Label("Food Logs", systemImage: "list.bullet.rectangle")
+                    Label("Logs", systemImage: "book.closed")
                         .accessibilityIdentifier("tab-food-logs")
+                }
+
+            TrackingView(client: client, settingsAction: showSettings)
+                .tabItem {
+                    Label("Tracking", systemImage: "chart.bar.xaxis")
+                        .accessibilityIdentifier("tab-tracking")
                 }
 
             GlucoseView(client: client, settingsAction: showSettings)

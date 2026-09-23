@@ -1,0 +1,188 @@
+appId: ai.january.partner.demo
+name: Live - create, list, edit, summarize, and delete a food log, checked against the API
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+# The API checks use today in the simulator's timezone (TIMEZONE).
+# Remove anything an interrupted run left behind.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: cleanup
+      NAME_PREFIX: E2E iOS
+# Create a log with one food.
+- tapOn:
+    id: tab-food-logs
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-create
+- tapOn:
+    id: food-log-create
+- extendedWaitUntil:
+    visible:
+      id: food-log-editor
+    timeout: 15000
+- tapOn:
+    id: food-log-name
+- inputText: E2E iOS meal
+- pressKey: Enter
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-add-food
+- tapOn:
+    id: food-log-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: banana
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 30000
+- tapOn:
+    id: food-picker-result-0
+- extendedWaitUntil:
+    visible:
+      id: food-serving-sheet
+    timeout: 30000
+- tapOn:
+    id: food-serving-add
+- takeScreenshot: live-94-01-new-log
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-save
+- tapOn:
+    id: food-log-save
+- extendedWaitUntil:
+    notVisible:
+      id: food-log-editor
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: food-log
+      NAME: E2E iOS meal
+      EXPECT_COUNT: "1"
+      EXPECT_FOODS: "1"
+- scrollUntilVisible:
+    element:
+      text: .*E2E iOS meal.*
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: live-94-02-logs-list
+- runFlow: ../live-pause.yaml
+# Rename it and add a second food.
+- tapOn:
+    text: .*E2E iOS meal.*
+- extendedWaitUntil:
+    visible:
+      id: food-log-detail
+    timeout: 15000
+- tapOn:
+    id: food-log-edit
+- tapOn:
+    id: food-log-name
+- eraseText: 40
+- inputText: E2E iOS meal edited
+- pressKey: Enter
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-add-food
+- tapOn:
+    id: food-log-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: apple
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 30000
+- tapOn:
+    id: food-picker-result-0
+- extendedWaitUntil:
+    visible:
+      id: food-serving-sheet
+    timeout: 30000
+- tapOn:
+    id: food-serving-add
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-save
+- tapOn:
+    id: food-log-save
+- extendedWaitUntil:
+    notVisible:
+      id: food-log-editor
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: food-log
+      NAME: E2E iOS meal edited
+      EXPECT_COUNT: "1"
+      EXPECT_FOODS: "2"
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: food-log
+      NAME: E2E iOS meal
+      EXPECT_COUNT: "0"
+- scrollUntilVisible:
+    element:
+      text: .*E2E iOS meal edited.*
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: live-94-03-edited-log
+# Tracking, opened for the first time, lists it for today with the API's day totals.
+- tapOn:
+    id: tab-tracking
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: summary
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-summary
+- assertVisible: ${output.live.dayTotalsText}
+- scrollUntilVisible:
+    element:
+      text: .*E2E iOS meal edited.*
+    direction: DOWN
+    timeout: 30000
+- takeScreenshot: live-94-04-tracking-day
+# Delete it from its detail.
+- tapOn:
+    text: .*E2E iOS meal edited.*
+- extendedWaitUntil:
+    visible:
+      id: food-log-detail
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-delete
+- tapOn:
+    id: food-log-delete
+- tapOn:
+    text: Delete food log
+- extendedWaitUntil:
+    visible:
+      id: tracking-screen
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: food-log
+      NAME: E2E iOS meal edited
+      EXPECT_COUNT: "0"
+- assertNotVisible:
+    text: .*E2E iOS meal edited.*
+- takeScreenshot: live-94-05-deleted

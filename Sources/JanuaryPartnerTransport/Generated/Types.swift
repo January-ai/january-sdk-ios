@@ -240,6 +240,61 @@ package protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1.2/food-logs/{log_id}`.
     /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/delete(deleteFoodLog)`.
     func deleteFoodLog(_ input: Operations.DeleteFoodLog.Input) async throws -> Operations.DeleteFoodLog.Output
+    /// List a user's daily water totals in a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Returns one total per local calendar day between `start_date` and `end_date` (both inclusive, in `timezone`), oldest first, in the `unit` you ask for, rounded to one decimal place. Days with nothing logged are absent. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    ///
+    /// Callable with a client token carrying the `water_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/water-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)`.
+    func listWaterLogs(_ input: Operations.ListWaterLogs.Input) async throws -> Operations.ListWaterLogs.Output
+    /// Log water for a user
+    ///
+    /// **API key or client token.**
+    ///
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    ///
+    /// Callable with a client token carrying the `water_logs:write` scope.
+    ///
+    /// - Remark: HTTP `POST /v1.2/water-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)`.
+    func createWaterLog(_ input: Operations.CreateWaterLog.Input) async throws -> Operations.CreateWaterLog.Output
+    /// Delete a water log
+    ///
+    /// **API key or client token.**
+    ///
+    /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry. The amount no longer counts toward its day's cap.
+    ///
+    /// Callable with a client token carrying the `water_logs:write` scope.
+    ///
+    /// - Remark: HTTP `DELETE /v1.2/water-logs/{log_id}`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)`.
+    func deleteWaterLog(_ input: Operations.DeleteWaterLog.Input) async throws -> Operations.DeleteWaterLog.Output
+    /// List a user's daily weights in a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    ///
+    /// Callable with a client token carrying the `weight_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/weight-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)`.
+    func listWeightLogs(_ input: Operations.ListWeightLogs.Input) async throws -> Operations.ListWeightLogs.Output
+    /// Log a weight for a user
+    ///
+    /// **API key or client token.**
+    ///
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    ///
+    /// Callable with a client token carrying the `weight_logs:write` scope.
+    ///
+    /// - Remark: HTTP `POST /v1.2/weight-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)`.
+    func createWeightLog(_ input: Operations.CreateWeightLog.Input) async throws -> Operations.CreateWeightLog.Output
     /// Predict the glucose response to a meal
     ///
     /// **API key or client token.**
@@ -645,6 +700,101 @@ extension APIProtocol {
             headers: headers
         ))
     }
+    /// List a user's daily water totals in a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Returns one total per local calendar day between `start_date` and `end_date` (both inclusive, in `timezone`), oldest first, in the `unit` you ask for, rounded to one decimal place. Days with nothing logged are absent. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    ///
+    /// Callable with a client token carrying the `water_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/water-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)`.
+    package func listWaterLogs(
+        query: Operations.ListWaterLogs.Input.Query,
+        headers: Operations.ListWaterLogs.Input.Headers = .init()
+    ) async throws -> Operations.ListWaterLogs.Output {
+        try await listWaterLogs(Operations.ListWaterLogs.Input(
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Log water for a user
+    ///
+    /// **API key or client token.**
+    ///
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    ///
+    /// Callable with a client token carrying the `water_logs:write` scope.
+    ///
+    /// - Remark: HTTP `POST /v1.2/water-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)`.
+    package func createWaterLog(
+        headers: Operations.CreateWaterLog.Input.Headers = .init(),
+        body: Operations.CreateWaterLog.Input.Body
+    ) async throws -> Operations.CreateWaterLog.Output {
+        try await createWaterLog(Operations.CreateWaterLog.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Delete a water log
+    ///
+    /// **API key or client token.**
+    ///
+    /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry. The amount no longer counts toward its day's cap.
+    ///
+    /// Callable with a client token carrying the `water_logs:write` scope.
+    ///
+    /// - Remark: HTTP `DELETE /v1.2/water-logs/{log_id}`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)`.
+    package func deleteWaterLog(
+        path: Operations.DeleteWaterLog.Input.Path,
+        headers: Operations.DeleteWaterLog.Input.Headers = .init()
+    ) async throws -> Operations.DeleteWaterLog.Output {
+        try await deleteWaterLog(Operations.DeleteWaterLog.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// List a user's daily weights in a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    ///
+    /// Callable with a client token carrying the `weight_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/weight-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)`.
+    package func listWeightLogs(
+        query: Operations.ListWeightLogs.Input.Query,
+        headers: Operations.ListWeightLogs.Input.Headers = .init()
+    ) async throws -> Operations.ListWeightLogs.Output {
+        try await listWeightLogs(Operations.ListWeightLogs.Input(
+            query: query,
+            headers: headers
+        ))
+    }
+    /// Log a weight for a user
+    ///
+    /// **API key or client token.**
+    ///
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    ///
+    /// Callable with a client token carrying the `weight_logs:write` scope.
+    ///
+    /// - Remark: HTTP `POST /v1.2/weight-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)`.
+    package func createWeightLog(
+        headers: Operations.CreateWeightLog.Input.Headers = .init(),
+        body: Operations.CreateWeightLog.Input.Body
+    ) async throws -> Operations.CreateWeightLog.Output {
+        try await createWeightLog(Operations.CreateWeightLog.Input(
+            headers: headers,
+            body: body
+        ))
+    }
     /// Predict the glucose response to a meal
     ///
     /// **API key or client token.**
@@ -706,7 +856,7 @@ package enum Components {
             ///
             /// Client tokens add six an API key never produces: `token_expired`, `token_invalid`, `token_revoked` (401), and `client_token_not_allowed`, `scope_insufficient`, `end_user_id_mismatch` (403). Each response documents its own.
             ///
-            /// Three more are specific to individual endpoints: `end_user_id_required` (400 — an sk- key called a food-log operation with no January-End-User-ID header), `date_range_too_large` (400 — a food-log date range past the documented maximum), and `client_token_revocation_incomplete` (503 — a revocation call that only stopped part of its batch; the same request is safe to repeat).
+            /// Four more are specific to individual endpoints: `end_user_id_required` (400 — an sk- key called an operation that documents the January-End-User-ID header without sending it), `date_range_too_large` (400 — a date range past the operation's documented maximum or lookback), `daily_water_limit_exceeded` (400 — a water log that would take the end user's total for its day past 24 L; not retryable), and `client_token_revocation_incomplete` (503 — a revocation call that only stopped part of its batch; the same request is safe to repeat).
             ///
             /// `POST /v1.2/food-analysis/image` adds four 400s about the image itself: `image_unreachable` (the URL could not be fetched), `image_corrupt` (the file could not be decoded), `image_format_unsupported` and `image_invalid_base64`. Each is fixed by the caller; the same image fails the same way again.
             ///
@@ -747,12 +897,16 @@ package enum Components {
                 case foodLogs_colon_write = "food_logs:write"
                 case glucose_colon_read = "glucose:read"
                 case restaurants_colon_read = "restaurants:read"
+                case waterLogs_colon_read = "water_logs:read"
+                case waterLogs_colon_write = "water_logs:write"
+                case weightLogs_colon_read = "weight_logs:read"
+                case weightLogs_colon_write = "weight_logs:write"
             }
-            /// What the token may do. **Required** — name only the scopes this token needs (least privilege), never the full set out of convenience. A read-only food-lookup screen asks for `["foods:read"]`; a logging screen adds `food_logs:write`. Valid scopes: foods:read, food_analysis:write, food_logs:read, food_logs:write, glucose:read, restaurants:read.
+            /// What the token may do. **Required** — name only the scopes this token needs (least privilege), never the full set out of convenience. A read-only food-lookup screen asks for `["foods:read"]`; a logging screen adds `food_logs:write`. Valid scopes: foods:read, food_analysis:write, food_logs:read, food_logs:write, glucose:read, restaurants:read, water_logs:read, water_logs:write, weight_logs:read, weight_logs:write.
             ///
             /// - Remark: Generated from `#/components/schemas/CreateClientTokenBody/scopes`.
             package typealias ScopesPayload = [Components.Schemas.CreateClientTokenBody.ScopesPayloadPayload]
-            /// What the token may do. **Required** — name only the scopes this token needs (least privilege), never the full set out of convenience. A read-only food-lookup screen asks for `["foods:read"]`; a logging screen adds `food_logs:write`. Valid scopes: foods:read, food_analysis:write, food_logs:read, food_logs:write, glucose:read, restaurants:read.
+            /// What the token may do. **Required** — name only the scopes this token needs (least privilege), never the full set out of convenience. A read-only food-lookup screen asks for `["foods:read"]`; a logging screen adds `food_logs:write`. Valid scopes: foods:read, food_analysis:write, food_logs:read, food_logs:write, glucose:read, restaurants:read, water_logs:read, water_logs:write, weight_logs:read, weight_logs:write.
             ///
             /// - Remark: Generated from `#/components/schemas/CreateClientTokenBody/scopes`.
             package var scopes: Components.Schemas.CreateClientTokenBody.ScopesPayload
@@ -764,7 +918,7 @@ package enum Components {
             ///
             /// - Parameters:
             ///   - endUserId: Your stable ID for the end user this token acts as. The token is bound to it; requests made with the token act only on this user.
-            ///   - scopes: What the token may do. **Required** — name only the scopes this token needs (least privilege), never the full set out of convenience. A read-only food-lookup screen asks for `["foods:read"]`; a logging screen adds `food_logs:write`. Valid scopes: foods:read, food_analysis:write, food_logs:read, food_logs:write, glucose:read, restaurants:read.
+            ///   - scopes: What the token may do. **Required** — name only the scopes this token needs (least privilege), never the full set out of convenience. A read-only food-lookup screen asks for `["foods:read"]`; a logging screen adds `food_logs:write`. Valid scopes: foods:read, food_analysis:write, food_logs:read, food_logs:write, glucose:read, restaurants:read, water_logs:read, water_logs:write, weight_logs:read, weight_logs:write.
             ///   - ttlSeconds: How long the token stays valid, in seconds. Between 300 and 7200; defaults to 1800.
             package init(
                 endUserId: Swift.String,
@@ -807,6 +961,10 @@ package enum Components {
                 case foodLogs_colon_write = "food_logs:write"
                 case glucose_colon_read = "glucose:read"
                 case restaurants_colon_read = "restaurants:read"
+                case waterLogs_colon_read = "water_logs:read"
+                case waterLogs_colon_write = "water_logs:write"
+                case weightLogs_colon_read = "weight_logs:read"
+                case weightLogs_colon_write = "weight_logs:write"
             }
             /// What this token may do — the exact scopes it was granted, echoed back so a caller can assert it minted what it meant to.
             ///
@@ -881,10 +1039,8 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/CreditBalance`.
         package struct CreditBalance: Codable, Hashable, Sendable {
-            /// The plan this allowance comes from.
-            ///
             /// - Remark: Generated from `#/components/schemas/CreditBalance/plan`.
-            package var plan: Swift.String
+            package var plan: Components.Schemas.CreditPlan
             /// First day of the current billing period (UTC), inclusive.
             ///
             /// - Remark: Generated from `#/components/schemas/CreditBalance/period_start`.
@@ -912,7 +1068,7 @@ package enum Components {
             /// Creates a new `CreditBalance`.
             ///
             /// - Parameters:
-            ///   - plan: The plan this allowance comes from.
+            ///   - plan:
             ///   - periodStart: First day of the current billing period (UTC), inclusive.
             ///   - periodEnd: Last day of the current billing period (UTC), inclusive.
             ///   - resetsAt: When the allowance resets and `used_credits` returns to 0.
@@ -920,7 +1076,7 @@ package enum Components {
             ///   - usedCredits: Credits used so far this period. Billable operations consume credits — how many depends on the operation and your plan — while failed calls cost nothing.
             ///   - remainingCredits: Credits left in this period, or `null` when the plan has no ceiling.
             package init(
-                plan: Swift.String,
+                plan: Components.Schemas.CreditPlan,
                 periodStart: Swift.String,
                 periodEnd: Swift.String,
                 resetsAt: Foundation.Date,
@@ -950,18 +1106,16 @@ package enum Components {
         package struct NutrientAmount: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/NutrientAmount/value`.
             package var value: Swift.Double
-            /// Canonical across the API: g, mg, kcal, IU.
-            ///
             /// - Remark: Generated from `#/components/schemas/NutrientAmount/unit`.
-            package var unit: Swift.String
+            package var unit: Components.Schemas.NutrientUnit
             /// Creates a new `NutrientAmount`.
             ///
             /// - Parameters:
             ///   - value:
-            ///   - unit: Canonical across the API: g, mg, kcal, IU.
+            ///   - unit:
             package init(
                 value: Swift.Double,
-                unit: Swift.String
+                unit: Components.Schemas.NutrientUnit
             ) {
                 self.value = value
                 self.unit = unit
@@ -1355,37 +1509,45 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/ServingSummary`.
         package struct ServingSummary: Codable, Hashable, Sendable {
-            /// Null only when the producer sent a serving with no id.
+            /// Catalog serving id. Pass it back as serving_id when logging this food.
             ///
             /// - Remark: Generated from `#/components/schemas/ServingSummary/id`.
-            package var id: Swift.String?
-            /// How much of `unit` this serving is; null when the producer reported none.
+            package var id: Swift.String
+            /// Positive amount of unit represented by this serving definition. In food analysis and food logs this is one catalog serving: consumed amount = food.quantity × food.serving.quantity (4 × 0.5 cup = 2 cups). Food alternatives instead report their recommended portion amount here.
             ///
             /// - Remark: Generated from `#/components/schemas/ServingSummary/quantity`.
-            package var quantity: Swift.Double?
+            package var quantity: Swift.Double
             /// Null only when the producer sent a serving with no unit.
             ///
             /// - Remark: Generated from `#/components/schemas/ServingSummary/unit`.
             package var unit: Swift.String?
+            /// Weight in grams of this serving definition. For food analysis and food logs this is one catalog serving, not the consumed portion: consumed grams = food.quantity × food.serving.weight_grams. Null when unknown.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ServingSummary/weight_grams`.
+            package var weightGrams: Swift.Double?
             /// Creates a new `ServingSummary`.
             ///
             /// - Parameters:
-            ///   - id: Null only when the producer sent a serving with no id.
-            ///   - quantity: How much of `unit` this serving is; null when the producer reported none.
+            ///   - id: Catalog serving id. Pass it back as serving_id when logging this food.
+            ///   - quantity: Positive amount of unit represented by this serving definition. In food analysis and food logs this is one catalog serving: consumed amount = food.quantity × food.serving.quantity (4 × 0.5 cup = 2 cups). Food alternatives instead report their recommended portion amount here.
             ///   - unit: Null only when the producer sent a serving with no unit.
+            ///   - weightGrams: Weight in grams of this serving definition. For food analysis and food logs this is one catalog serving, not the consumed portion: consumed grams = food.quantity × food.serving.weight_grams. Null when unknown.
             package init(
-                id: Swift.String? = nil,
-                quantity: Swift.Double? = nil,
-                unit: Swift.String? = nil
+                id: Swift.String,
+                quantity: Swift.Double,
+                unit: Swift.String? = nil,
+                weightGrams: Swift.Double? = nil
             ) {
                 self.id = id
                 self.quantity = quantity
                 self.unit = unit
+                self.weightGrams = weightGrams
             }
             package enum CodingKeys: String, CodingKey {
                 case id
                 case quantity
                 case unit
+                case weightGrams = "weight_grams"
             }
         }
         /// - Remark: Generated from `#/components/schemas/AlternativeFood`.
@@ -1787,10 +1949,6 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/DetectedFood`.
         package struct DetectedFood: Codable, Hashable, Sendable {
-            /// Catalog food id, or null when the producer matched none.
-            ///
-            /// - Remark: Generated from `#/components/schemas/DetectedFood/id`.
-            package var id: Swift.String?
             /// Null only when the producer sent a food with no name.
             ///
             /// - Remark: Generated from `#/components/schemas/DetectedFood/name`.
@@ -1799,10 +1957,14 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/DetectedFood/brand_name`.
             package var brandName: Swift.String?
-            /// Number of catalog servings consumed, ready to use as food-log quantity. For 40 g from a 100 g serving this is 0.4. Null when the producer supplied no usable portion.
+            /// Matched catalog food id. Pass it back as food_id when logging this food.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DetectedFood/id`.
+            package var id: Swift.String
+            /// Positive number of selected catalog servings consumed. Use it unchanged as food-log quantity. Display the consumed amount as food.quantity × food.serving.quantity, followed by food.serving.unit: 4 × 0.5 cup = 2 cups; 0.4 × 100 g = 40 g. Nutrients already describe this consumed portion; do not multiply them again.
             ///
             /// - Remark: Generated from `#/components/schemas/DetectedFood/quantity`.
-            package var quantity: Swift.Double?
+            package var quantity: Swift.Double
             /// - Remark: Generated from `#/components/schemas/DetectedFood/serving`.
             package var serving: Components.Schemas.ServingSummary
             /// - Remark: Generated from `#/components/schemas/DetectedFood/nutrients`.
@@ -1810,31 +1972,31 @@ package enum Components {
             /// Creates a new `DetectedFood`.
             ///
             /// - Parameters:
-            ///   - id: Catalog food id, or null when the producer matched none.
             ///   - name: Null only when the producer sent a food with no name.
             ///   - brandName: Null for generic (non-branded) foods.
-            ///   - quantity: Number of catalog servings consumed, ready to use as food-log quantity. For 40 g from a 100 g serving this is 0.4. Null when the producer supplied no usable portion.
+            ///   - id: Matched catalog food id. Pass it back as food_id when logging this food.
+            ///   - quantity: Positive number of selected catalog servings consumed. Use it unchanged as food-log quantity. Display the consumed amount as food.quantity × food.serving.quantity, followed by food.serving.unit: 4 × 0.5 cup = 2 cups; 0.4 × 100 g = 40 g. Nutrients already describe this consumed portion; do not multiply them again.
             ///   - serving:
             ///   - nutrients:
             package init(
-                id: Swift.String? = nil,
                 name: Swift.String? = nil,
                 brandName: Swift.String? = nil,
-                quantity: Swift.Double? = nil,
+                id: Swift.String,
+                quantity: Swift.Double,
                 serving: Components.Schemas.ServingSummary,
                 nutrients: Components.Schemas.NutritionFacts
             ) {
-                self.id = id
                 self.name = name
                 self.brandName = brandName
+                self.id = id
                 self.quantity = quantity
                 self.serving = serving
                 self.nutrients = nutrients
             }
             package enum CodingKeys: String, CodingKey {
-                case id
                 case name
                 case brandName = "brand_name"
+                case id
                 case quantity
                 case serving
                 case nutrients
@@ -1865,7 +2027,7 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/FoodScan`.
         package struct FoodScan: Codable, Hashable, Sendable {
-            /// A name for the meal as a whole. Null on text analyses — the caller already has the words.
+            /// A name for the meal as a whole. Null on text analyses — the caller already has the words. Corrections preserve a null meal name.
             ///
             /// - Remark: Generated from `#/components/schemas/FoodScan/meal_name`.
             package var mealName: Swift.String?
@@ -1878,7 +2040,7 @@ package enum Components {
             /// Creates a new `FoodScan`.
             ///
             /// - Parameters:
-            ///   - mealName: A name for the meal as a whole. Null on text analyses — the caller already has the words.
+            ///   - mealName: A name for the meal as a whole. Null on text analyses — the caller already has the words. Corrections preserve a null meal name.
             ///   - totalNutrients:
             ///   - detections: Detected foods. Always present — an empty array means nothing was recognized.
             package init(
@@ -1913,10 +2075,162 @@ package enum Components {
                 case text
             }
         }
+        /// - Remark: Generated from `#/components/schemas/CorrectionServing`.
+        package struct CorrectionServing: Codable, Hashable, Sendable {
+            /// Catalog serving id. Pass it back as serving_id when logging this food.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionServing/id`.
+            package var id: Swift.String
+            /// Positive amount of unit represented by this serving definition. In food analysis and food logs this is one catalog serving: consumed amount = food.quantity × food.serving.quantity (4 × 0.5 cup = 2 cups). Food alternatives instead report their recommended portion amount here.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionServing/quantity`.
+            package var quantity: Swift.Double
+            /// Null only when the producer sent a serving with no unit.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionServing/unit`.
+            package var unit: Swift.String?
+            /// Weight in grams of this serving definition. For food analysis and food logs this is one catalog serving, not the consumed portion: consumed grams = food.quantity × food.serving.weight_grams. Null when unknown.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionServing/weight_grams`.
+            package var weightGrams: Swift.Double?
+            /// Creates a new `CorrectionServing`.
+            ///
+            /// - Parameters:
+            ///   - id: Catalog serving id. Pass it back as serving_id when logging this food.
+            ///   - quantity: Positive amount of unit represented by this serving definition. In food analysis and food logs this is one catalog serving: consumed amount = food.quantity × food.serving.quantity (4 × 0.5 cup = 2 cups). Food alternatives instead report their recommended portion amount here.
+            ///   - unit: Null only when the producer sent a serving with no unit.
+            ///   - weightGrams: Weight in grams of this serving definition. For food analysis and food logs this is one catalog serving, not the consumed portion: consumed grams = food.quantity × food.serving.weight_grams. Null when unknown.
+            package init(
+                id: Swift.String,
+                quantity: Swift.Double,
+                unit: Swift.String? = nil,
+                weightGrams: Swift.Double? = nil
+            ) {
+                self.id = id
+                self.quantity = quantity
+                self.unit = unit
+                self.weightGrams = weightGrams
+            }
+            package enum CodingKeys: String, CodingKey {
+                case id
+                case quantity
+                case unit
+                case weightGrams = "weight_grams"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/CorrectionFood`.
+        package struct CorrectionFood: Codable, Hashable, Sendable {
+            /// Null only when the producer sent a food with no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionFood/name`.
+            package var name: Swift.String?
+            /// Null for generic (non-branded) foods.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionFood/brand_name`.
+            package var brandName: Swift.String?
+            /// Matched catalog food id. Pass it back as food_id when logging this food.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionFood/id`.
+            package var id: Swift.String
+            /// Positive number of selected catalog servings consumed. Use it unchanged as food-log quantity. Display the consumed amount as food.quantity × food.serving.quantity, followed by food.serving.unit: 4 × 0.5 cup = 2 cups; 0.4 × 100 g = 40 g. Nutrients already describe this consumed portion; do not multiply them again.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionFood/quantity`.
+            package var quantity: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/CorrectionFood/nutrients`.
+            package var nutrients: Components.Schemas.NutritionFacts
+            /// - Remark: Generated from `#/components/schemas/CorrectionFood/serving`.
+            package var serving: Components.Schemas.CorrectionServing
+            /// Creates a new `CorrectionFood`.
+            ///
+            /// - Parameters:
+            ///   - name: Null only when the producer sent a food with no name.
+            ///   - brandName: Null for generic (non-branded) foods.
+            ///   - id: Matched catalog food id. Pass it back as food_id when logging this food.
+            ///   - quantity: Positive number of selected catalog servings consumed. Use it unchanged as food-log quantity. Display the consumed amount as food.quantity × food.serving.quantity, followed by food.serving.unit: 4 × 0.5 cup = 2 cups; 0.4 × 100 g = 40 g. Nutrients already describe this consumed portion; do not multiply them again.
+            ///   - nutrients:
+            ///   - serving:
+            package init(
+                name: Swift.String? = nil,
+                brandName: Swift.String? = nil,
+                id: Swift.String,
+                quantity: Swift.Double,
+                nutrients: Components.Schemas.NutritionFacts,
+                serving: Components.Schemas.CorrectionServing
+            ) {
+                self.name = name
+                self.brandName = brandName
+                self.id = id
+                self.quantity = quantity
+                self.nutrients = nutrients
+                self.serving = serving
+            }
+            package enum CodingKeys: String, CodingKey {
+                case name
+                case brandName = "brand_name"
+                case id
+                case quantity
+                case nutrients
+                case serving
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/CorrectionDetection`.
+        package struct CorrectionDetection: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CorrectionDetection/confidence`.
+            package var confidence: Components.Schemas.ConfidenceScore?
+            /// - Remark: Generated from `#/components/schemas/CorrectionDetection/food`.
+            package var food: Components.Schemas.CorrectionFood
+            /// Creates a new `CorrectionDetection`.
+            ///
+            /// - Parameters:
+            ///   - confidence:
+            ///   - food:
+            package init(
+                confidence: Components.Schemas.ConfidenceScore? = nil,
+                food: Components.Schemas.CorrectionFood
+            ) {
+                self.confidence = confidence
+                self.food = food
+            }
+            package enum CodingKeys: String, CodingKey {
+                case confidence
+                case food
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/CorrectionAnalysis`.
+        package struct CorrectionAnalysis: Codable, Hashable, Sendable {
+            /// A name for the meal as a whole. Null on text analyses — the caller already has the words. Corrections preserve a null meal name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CorrectionAnalysis/meal_name`.
+            package var mealName: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/CorrectionAnalysis/total_nutrients`.
+            package var totalNutrients: Components.Schemas.NutritionFacts?
+            /// - Remark: Generated from `#/components/schemas/CorrectionAnalysis/detections`.
+            package var detections: [Components.Schemas.CorrectionDetection]
+            /// Creates a new `CorrectionAnalysis`.
+            ///
+            /// - Parameters:
+            ///   - mealName: A name for the meal as a whole. Null on text analyses — the caller already has the words. Corrections preserve a null meal name.
+            ///   - totalNutrients:
+            ///   - detections:
+            package init(
+                mealName: Swift.String? = nil,
+                totalNutrients: Components.Schemas.NutritionFacts? = nil,
+                detections: [Components.Schemas.CorrectionDetection]
+            ) {
+                self.mealName = mealName
+                self.totalNutrients = totalNutrients
+                self.detections = detections
+            }
+            package enum CodingKeys: String, CodingKey {
+                case mealName = "meal_name"
+                case totalNutrients = "total_nutrients"
+                case detections
+            }
+        }
         /// - Remark: Generated from `#/components/schemas/CorrectPhotoScanBody`.
         package struct CorrectPhotoScanBody: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/CorrectPhotoScanBody/analysis`.
-            package var analysis: Components.Schemas.FoodScan
+            package var analysis: Components.Schemas.CorrectionAnalysis
             /// Plain-English description of what to correct.
             ///
             /// - Remark: Generated from `#/components/schemas/CorrectPhotoScanBody/instruction`.
@@ -1927,7 +2241,7 @@ package enum Components {
             ///   - analysis:
             ///   - instruction: Plain-English description of what to correct.
             package init(
-                analysis: Components.Schemas.FoodScan,
+                analysis: Components.Schemas.CorrectionAnalysis,
                 instruction: Swift.String
             ) {
                 self.analysis = analysis
@@ -2000,49 +2314,6 @@ package enum Components {
                 case name
             }
         }
-        /// - Remark: Generated from `#/components/schemas/ServingDetails`.
-        package struct ServingDetails: Codable, Hashable, Sendable {
-            /// Null only when the upstream sent a serving with no id.
-            ///
-            /// - Remark: Generated from `#/components/schemas/ServingDetails/id`.
-            package var id: Swift.String?
-            /// How many units make up one of this serving, e.g. 1 for "1 cup". Null when the upstream reported none.
-            ///
-            /// - Remark: Generated from `#/components/schemas/ServingDetails/quantity`.
-            package var quantity: Swift.Double?
-            /// Null only when the upstream sent a serving with no unit.
-            ///
-            /// - Remark: Generated from `#/components/schemas/ServingDetails/unit`.
-            package var unit: Swift.String?
-            /// Null when the upstream has no gram weight for this serving.
-            ///
-            /// - Remark: Generated from `#/components/schemas/ServingDetails/weight_grams`.
-            package var weightGrams: Swift.Double?
-            /// Creates a new `ServingDetails`.
-            ///
-            /// - Parameters:
-            ///   - id: Null only when the upstream sent a serving with no id.
-            ///   - quantity: How many units make up one of this serving, e.g. 1 for "1 cup". Null when the upstream reported none.
-            ///   - unit: Null only when the upstream sent a serving with no unit.
-            ///   - weightGrams: Null when the upstream has no gram weight for this serving.
-            package init(
-                id: Swift.String? = nil,
-                quantity: Swift.Double? = nil,
-                unit: Swift.String? = nil,
-                weightGrams: Swift.Double? = nil
-            ) {
-                self.id = id
-                self.quantity = quantity
-                self.unit = unit
-                self.weightGrams = weightGrams
-            }
-            package enum CodingKeys: String, CodingKey {
-                case id
-                case quantity
-                case unit
-                case weightGrams = "weight_grams"
-            }
-        }
         /// - Remark: Generated from `#/components/schemas/LoggedFood`.
         package struct LoggedFood: Codable, Hashable, Sendable {
             /// Food id from a search or food-analysis result. Null only when the upstream sent a food with no id.
@@ -2065,12 +2336,12 @@ package enum Components {
             package var glycemicLoad: Swift.Double?
             /// - Remark: Generated from `#/components/schemas/LoggedFood/nutrients`.
             package var nutrients: Components.Schemas.NutritionFacts
-            /// How many of the serving below were consumed. Null only when the upstream sent no consumed quantity.
+            /// Number of selected servings consumed. Consumed amount = food.quantity × food.serving.quantity, in food.serving.unit (4 × 0.5 cup = 2 cups). Nutrients are already scaled to this portion. Null when unavailable.
             ///
             /// - Remark: Generated from `#/components/schemas/LoggedFood/quantity`.
             package var quantity: Swift.Double?
             /// - Remark: Generated from `#/components/schemas/LoggedFood/serving`.
-            package var serving: Components.Schemas.ServingDetails
+            package var serving: Components.Schemas.ServingSummary
             /// Creates a new `LoggedFood`.
             ///
             /// - Parameters:
@@ -2081,7 +2352,7 @@ package enum Components {
             ///   - glycemicIndex:
             ///   - glycemicLoad:
             ///   - nutrients:
-            ///   - quantity: How many of the serving below were consumed. Null only when the upstream sent no consumed quantity.
+            ///   - quantity: Number of selected servings consumed. Consumed amount = food.quantity × food.serving.quantity, in food.serving.unit (4 × 0.5 cup = 2 cups). Nutrients are already scaled to this portion. Null when unavailable.
             ///   - serving:
             package init(
                 foodId: Swift.String? = nil,
@@ -2092,7 +2363,7 @@ package enum Components {
                 glycemicLoad: Swift.Double? = nil,
                 nutrients: Components.Schemas.NutritionFacts,
                 quantity: Swift.Double? = nil,
-                serving: Components.Schemas.ServingDetails
+                serving: Components.Schemas.ServingSummary
             ) {
                 self.foodId = foodId
                 self.name = name
@@ -2386,21 +2657,43 @@ package enum Components {
                 case eatenAt = "eaten_at"
                 case name
             }
+            package init(from decoder: any Swift.Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                self.foods = try container.decodeIfPresent(
+                    [Components.Schemas.FoodLogInputFood].self,
+                    forKey: .foods
+                )
+                self.eatenAt = try container.decodeIfPresent(
+                    Foundation.Date.self,
+                    forKey: .eatenAt
+                )
+                self.name = try container.decodeIfPresent(
+                    Swift.String.self,
+                    forKey: .name
+                )
+                try decoder.ensureNoAdditionalProperties(knownKeys: [
+                    "foods",
+                    "eaten_at",
+                    "name"
+                ])
+            }
         }
-        /// - Remark: Generated from `#/components/schemas/Height`.
-        package struct Height: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/Height/value`.
+        /// - Remark: Generated from `#/components/schemas/WaterAmount`.
+        package struct WaterAmount: Codable, Hashable, Sendable {
+            /// Accepted range depends on unit: 1–811.5 fl_oz, 0.125–101.4 cup, 30–24000 ml.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WaterAmount/value`.
             package var value: Swift.Double
-            /// - Remark: Generated from `#/components/schemas/Height/unit`.
-            package var unit: Components.Schemas.HeightUnit
-            /// Creates a new `Height`.
+            /// - Remark: Generated from `#/components/schemas/WaterAmount/unit`.
+            package var unit: Components.Schemas.VolumeUnit
+            /// Creates a new `WaterAmount`.
             ///
             /// - Parameters:
-            ///   - value:
+            ///   - value: Accepted range depends on unit: 1–811.5 fl_oz, 0.125–101.4 cup, 30–24000 ml.
             ///   - unit:
             package init(
                 value: Swift.Double,
-                unit: Components.Schemas.HeightUnit
+                unit: Components.Schemas.VolumeUnit
             ) {
                 self.value = value
                 self.unit = unit
@@ -2410,8 +2703,135 @@ package enum Components {
                 case unit
             }
         }
+        /// - Remark: Generated from `#/components/schemas/CreateWaterLogBody`.
+        package struct CreateWaterLogBody: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreateWaterLogBody/amount`.
+            package var amount: Components.Schemas.WaterAmount
+            /// When the water was consumed — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now. Its day is the one the daily cap counts it against.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateWaterLogBody/consumed_at`.
+            package var consumedAt: Foundation.Date?
+            /// Creates a new `CreateWaterLogBody`.
+            ///
+            /// - Parameters:
+            ///   - amount:
+            ///   - consumedAt: When the water was consumed — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now. Its day is the one the daily cap counts it against.
+            package init(
+                amount: Components.Schemas.WaterAmount,
+                consumedAt: Foundation.Date? = nil
+            ) {
+                self.amount = amount
+                self.consumedAt = consumedAt
+            }
+            package enum CodingKeys: String, CodingKey {
+                case amount
+                case consumedAt = "consumed_at"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/WaterLog`.
+        package struct WaterLog: Codable, Hashable, Sendable {
+            /// Save this id to delete the log.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WaterLog/id`.
+            package var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/WaterLog/amount`.
+            package var amount: Components.Schemas.WaterAmount
+            /// When the water was consumed. UTC, with milliseconds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WaterLog/consumed_at`.
+            package var consumedAt: Foundation.Date
+            /// Creates a new `WaterLog`.
+            ///
+            /// - Parameters:
+            ///   - id: Save this id to delete the log.
+            ///   - amount:
+            ///   - consumedAt: When the water was consumed. UTC, with milliseconds.
+            package init(
+                id: Swift.String,
+                amount: Components.Schemas.WaterAmount,
+                consumedAt: Foundation.Date
+            ) {
+                self.id = id
+                self.amount = amount
+                self.consumedAt = consumedAt
+            }
+            package enum CodingKeys: String, CodingKey {
+                case id
+                case amount
+                case consumedAt = "consumed_at"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/Volume`.
+        package struct Volume: Codable, Hashable, Sendable {
+            /// Rounded to one decimal place.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Volume/value`.
+            package var value: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/Volume/unit`.
+            package var unit: Components.Schemas.VolumeUnit
+            /// Creates a new `Volume`.
+            ///
+            /// - Parameters:
+            ///   - value: Rounded to one decimal place.
+            ///   - unit:
+            package init(
+                value: Swift.Double,
+                unit: Components.Schemas.VolumeUnit
+            ) {
+                self.value = value
+                self.unit = unit
+            }
+            package enum CodingKeys: String, CodingKey {
+                case value
+                case unit
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/DailyWaterTotal`.
+        package struct DailyWaterTotal: Codable, Hashable, Sendable {
+            /// Local calendar date in the request’s `timezone`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DailyWaterTotal/date`.
+            package var date: Swift.String
+            /// - Remark: Generated from `#/components/schemas/DailyWaterTotal/total`.
+            package var total: Components.Schemas.Volume
+            /// Creates a new `DailyWaterTotal`.
+            ///
+            /// - Parameters:
+            ///   - date: Local calendar date in the request’s `timezone`.
+            ///   - total:
+            package init(
+                date: Swift.String,
+                total: Components.Schemas.Volume
+            ) {
+                self.date = date
+                self.total = total
+            }
+            package enum CodingKeys: String, CodingKey {
+                case date
+                case total
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/ListWaterLogsResponse`.
+        package struct ListWaterLogsResponse: Codable, Hashable, Sendable {
+            /// One entry per local day with water logged, oldest first. Days with nothing logged are absent. An empty list is a valid result.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ListWaterLogsResponse/items`.
+            package var items: [Components.Schemas.DailyWaterTotal]
+            /// Creates a new `ListWaterLogsResponse`.
+            ///
+            /// - Parameters:
+            ///   - items: One entry per local day with water logged, oldest first. Days with nothing logged are absent. An empty list is a valid result.
+            package init(items: [Components.Schemas.DailyWaterTotal]) {
+                self.items = items
+            }
+            package enum CodingKeys: String, CodingKey {
+                case items
+            }
+        }
         /// - Remark: Generated from `#/components/schemas/Weight`.
         package struct Weight: Codable, Hashable, Sendable {
+            /// Accepted range depends on unit: 2–1500 lb, 1–700 kg.
+            ///
             /// - Remark: Generated from `#/components/schemas/Weight/value`.
             package var value: Swift.Double
             /// - Remark: Generated from `#/components/schemas/Weight/unit`.
@@ -2419,7 +2839,7 @@ package enum Components {
             /// Creates a new `Weight`.
             ///
             /// - Parameters:
-            ///   - value:
+            ///   - value: Accepted range depends on unit: 2–1500 lb, 1–700 kg.
             ///   - unit:
             package init(
                 value: Swift.Double,
@@ -2433,10 +2853,127 @@ package enum Components {
                 case unit
             }
         }
+        /// - Remark: Generated from `#/components/schemas/CreateWeightLogBody`.
+        package struct CreateWeightLogBody: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreateWeightLogBody/weight`.
+            package var weight: Components.Schemas.Weight
+            /// When the weight was measured — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateWeightLogBody/measured_at`.
+            package var measuredAt: Foundation.Date?
+            /// Creates a new `CreateWeightLogBody`.
+            ///
+            /// - Parameters:
+            ///   - weight:
+            ///   - measuredAt: When the weight was measured — any ISO-8601 offset; stored and returned in UTC with milliseconds. Omitted = now.
+            package init(
+                weight: Components.Schemas.Weight,
+                measuredAt: Foundation.Date? = nil
+            ) {
+                self.weight = weight
+                self.measuredAt = measuredAt
+            }
+            package enum CodingKeys: String, CodingKey {
+                case weight
+                case measuredAt = "measured_at"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/WeightLog`.
+        package struct WeightLog: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/WeightLog/weight`.
+            package var weight: Components.Schemas.Weight
+            /// When the weight was measured. UTC, with milliseconds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/WeightLog/measured_at`.
+            package var measuredAt: Foundation.Date
+            /// Creates a new `WeightLog`.
+            ///
+            /// - Parameters:
+            ///   - weight:
+            ///   - measuredAt: When the weight was measured. UTC, with milliseconds.
+            package init(
+                weight: Components.Schemas.Weight,
+                measuredAt: Foundation.Date
+            ) {
+                self.weight = weight
+                self.measuredAt = measuredAt
+            }
+            package enum CodingKeys: String, CodingKey {
+                case weight
+                case measuredAt = "measured_at"
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/DailyWeight`.
+        package struct DailyWeight: Codable, Hashable, Sendable {
+            /// Local calendar date in the request’s `timezone`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DailyWeight/date`.
+            package var date: Swift.String
+            /// - Remark: Generated from `#/components/schemas/DailyWeight/weight`.
+            package var weight: Components.Schemas.Weight
+            /// Creates a new `DailyWeight`.
+            ///
+            /// - Parameters:
+            ///   - date: Local calendar date in the request’s `timezone`.
+            ///   - weight:
+            package init(
+                date: Swift.String,
+                weight: Components.Schemas.Weight
+            ) {
+                self.date = date
+                self.weight = weight
+            }
+            package enum CodingKeys: String, CodingKey {
+                case date
+                case weight
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/ListWeightLogsResponse`.
+        package struct ListWeightLogsResponse: Codable, Hashable, Sendable {
+            /// One entry per day that has a weight, oldest first. Days with no weight are absent. An empty list is a valid result.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ListWeightLogsResponse/items`.
+            package var items: [Components.Schemas.DailyWeight]
+            /// Creates a new `ListWeightLogsResponse`.
+            ///
+            /// - Parameters:
+            ///   - items: One entry per day that has a weight, oldest first. Days with no weight are absent. An empty list is a valid result.
+            package init(items: [Components.Schemas.DailyWeight]) {
+                self.items = items
+            }
+            package enum CodingKeys: String, CodingKey {
+                case items
+            }
+        }
+        /// - Remark: Generated from `#/components/schemas/Height`.
+        package struct Height: Codable, Hashable, Sendable {
+            /// Accepted range depends on unit: 20–108 in, 50–275 cm.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Height/value`.
+            package var value: Swift.Double
+            /// - Remark: Generated from `#/components/schemas/Height/unit`.
+            package var unit: Components.Schemas.HeightUnit
+            /// Creates a new `Height`.
+            ///
+            /// - Parameters:
+            ///   - value: Accepted range depends on unit: 20–108 in, 50–275 cm.
+            ///   - unit:
+            package init(
+                value: Swift.Double,
+                unit: Components.Schemas.HeightUnit
+            ) {
+                self.value = value
+                self.unit = unit
+            }
+            package enum CodingKeys: String, CodingKey {
+                case value
+                case unit
+            }
+        }
         /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile`.
         package struct GlucosePredictionProfile: Codable, Hashable, Sendable {
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/age`.
-            package var age: Swift.Double
+            package var age: Swift.Int
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/sex`.
             package var sex: Components.Schemas.Sex
             /// - Remark: Generated from `#/components/schemas/GlucosePredictionProfile/height`.
@@ -2459,7 +2996,7 @@ package enum Components {
             ///   - activityLevel:
             ///   - healthConditions: Omit it (or send []) if none apply. Type 1 diabetes is not supported by the prediction model.
             package init(
-                age: Swift.Double,
+                age: Swift.Int,
                 sex: Components.Schemas.Sex,
                 height: Components.Schemas.Height,
                 weight: Components.Schemas.Weight,
@@ -2706,6 +3243,10 @@ package enum Components {
         ///
         /// - Remark: Generated from `#/components/schemas/FoodLogId`.
         package typealias FoodLogId = Swift.String
+        /// Stable water-log identifier.
+        ///
+        /// - Remark: Generated from `#/components/schemas/WaterLogId`.
+        package typealias WaterLogId = Swift.String
         /// Stable partner-owned identifier of the end user for whom a request is made.
         ///
         /// - Remark: Generated from `#/components/schemas/PartnerUserId`.
@@ -2792,14 +3333,21 @@ package enum Components {
             case cm = "cm"
         }
         /// - Remark: Generated from `#/components/schemas/WeightUnit`.
-        @frozen package enum WeightUnit: String, Codable, Hashable, Sendable, CaseIterable {
-            case lb = "lb"
-            case kg = "kg"
-        }
+        package typealias WeightUnit = Swift.String
+        /// - Remark: Generated from `#/components/schemas/VolumeUnit`.
+        package typealias VolumeUnit = Swift.String
+        /// Canonical across the API: g, mg, kcal, IU, mcg. Read it from each amount rather than assuming a unit per nutrient.
+        ///
+        /// - Remark: Generated from `#/components/schemas/NutrientUnit`.
+        package typealias NutrientUnit = Swift.String
+        /// The plan this allowance comes from. `unlimited` is a partner with no ceiling, for whom both ceiling fields are `null`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreditPlan`.
+        package typealias CreditPlan = Swift.String
     }
     /// Types generated from the `#/components/parameters` section of the OpenAPI document.
     package enum Parameters {
-        /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+        /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
         ///
         /// | Credential | Header | Result |
         /// | --- | --- | --- |
@@ -9057,7 +9605,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// A field is missing or a detection is incomplete; the message names the exact detection index and problem.
+            /// A field is missing or malformed; the message names the exact detection index and problem.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/corrections/post(correctPhotoScan)/responses/400`.
             ///
@@ -9443,7 +9991,7 @@ package enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/query/end_date`.
                 package var endDate: Swift.String
-                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
+                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/query/timezone`.
                 package var timezone: Swift.String
@@ -9452,7 +10000,7 @@ package enum Operations {
                 /// - Parameters:
                 ///   - startDate: First local calendar date in `timezone`, inclusive.
                 ///   - endDate: Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. The inclusive range may not exceed 60 calendar days.
-                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
+                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
                 package init(
                     startDate: Swift.String,
                     endDate: Swift.String,
@@ -9466,7 +10014,7 @@ package enum Operations {
             package var query: Operations.ListFoodLogs.Input.Query
             /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/header`.
             package struct Headers: Sendable, Hashable {
-                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///
                 /// | Credential | Header | Result |
                 /// | --- | --- | --- |
@@ -9482,7 +10030,7 @@ package enum Operations {
                 /// Creates a new `Headers`.
                 ///
                 /// - Parameters:
-                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///   - accept:
                 package init(
                     januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
@@ -9913,7 +10461,7 @@ package enum Operations {
         package struct Input: Sendable, Hashable {
             /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/header`.
             package struct Headers: Sendable, Hashable {
-                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///
                 /// | Credential | Header | Result |
                 /// | --- | --- | --- |
@@ -9929,7 +10477,7 @@ package enum Operations {
                 /// Creates a new `Headers`.
                 ///
                 /// - Parameters:
-                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///   - accept:
                 package init(
                     januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
@@ -10395,7 +10943,7 @@ package enum Operations {
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/end_date`.
                 package var endDate: Swift.String
-                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
+                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
                 ///
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/query/timezone`.
                 package var timezone: Swift.String
@@ -10422,7 +10970,7 @@ package enum Operations {
                 /// - Parameters:
                 ///   - startDate: First local calendar date in `timezone`, inclusive.
                 ///   - endDate: Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. The inclusive range may not exceed 366 calendar days.
-                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts a meal near midnight into the wrong day for anyone not on UTC.
+                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
                 ///   - groupBy: Bucket size. `day` is one bucket per local calendar date; `week` is one per week, with the first and last clipped to the range.
                 ///   - weekStart: Which weekday a week bucket begins on. Ignored when `group_by=day`, where the response reports `week_start: null`.
                 package init(
@@ -10442,7 +10990,7 @@ package enum Operations {
             package var query: Operations.GetFoodLogSummary.Input.Query
             /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/header`.
             package struct Headers: Sendable, Hashable {
-                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///
                 /// | Credential | Header | Result |
                 /// | --- | --- | --- |
@@ -10458,7 +11006,7 @@ package enum Operations {
                 /// Creates a new `Headers`.
                 ///
                 /// - Parameters:
-                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///   - accept:
                 package init(
                     januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
@@ -10904,7 +11452,7 @@ package enum Operations {
             package var path: Operations.GetFoodLog.Input.Path
             /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/GET/header`.
             package struct Headers: Sendable, Hashable {
-                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///
                 /// | Credential | Header | Result |
                 /// | --- | --- | --- |
@@ -10920,7 +11468,7 @@ package enum Operations {
                 /// Creates a new `Headers`.
                 ///
                 /// - Parameters:
-                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///   - accept:
                 package init(
                     januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
@@ -11417,7 +11965,7 @@ package enum Operations {
             package var path: Operations.UpdateFoodLog.Input.Path
             /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/header`.
             package struct Headers: Sendable, Hashable {
-                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///
                 /// | Credential | Header | Result |
                 /// | --- | --- | --- |
@@ -11433,7 +11981,7 @@ package enum Operations {
                 /// Creates a new `Headers`.
                 ///
                 /// - Parameters:
-                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///   - accept:
                 package init(
                     januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
@@ -11939,7 +12487,7 @@ package enum Operations {
             package var path: Operations.DeleteFoodLog.Input.Path
             /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/header`.
             package struct Headers: Sendable, Hashable {
-                /// Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///
                 /// | Credential | Header | Result |
                 /// | --- | --- | --- |
@@ -11955,7 +12503,7 @@ package enum Operations {
                 /// Creates a new `Headers`.
                 ///
                 /// - Parameters:
-                ///   - januaryEndUserID: Your stable ID for the end user whose food logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
                 ///   - accept:
                 package init(
                     januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
@@ -12316,6 +12864,2321 @@ package enum Operations {
             /// - Throws: An error if `self` is not `.`default``.
             /// - SeeAlso: `.`default``.
             package var `default`: Operations.DeleteFoodLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// List a user's daily water totals in a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Returns one total per local calendar day between `start_date` and `end_date` (both inclusive, in `timezone`), oldest first, in the `unit` you ask for, rounded to one decimal place. Days with nothing logged are absent. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    ///
+    /// Callable with a client token carrying the `water_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/water-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)`.
+    package enum ListWaterLogs {
+        package static let id: Swift.String = "listWaterLogs"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/query`.
+            package struct Query: Sendable, Hashable {
+                /// First local calendar date in `timezone`, inclusive. May be at most 5 years before today in `timezone`.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/query/start_date`.
+                package var startDate: Swift.String
+                /// Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. When more than 100 days in the range have water logged, the most recent 100 are returned.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/query/end_date`.
+                package var endDate: Swift.String
+                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/query/timezone`.
+                package var timezone: Swift.String
+                /// The unit every daily total is returned in.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/query/unit`.
+                package var unit: Components.Schemas.VolumeUnit
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - startDate: First local calendar date in `timezone`, inclusive. May be at most 5 years before today in `timezone`.
+                ///   - endDate: Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. When more than 100 days in the range have water logged, the most recent 100 are returned.
+                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
+                ///   - unit: The unit every daily total is returned in.
+                package init(
+                    startDate: Swift.String,
+                    endDate: Swift.String,
+                    timezone: Swift.String,
+                    unit: Components.Schemas.VolumeUnit
+                ) {
+                    self.startDate = startDate
+                    self.endDate = endDate
+                    self.timezone = timezone
+                    self.unit = unit
+                }
+            }
+            package var query: Operations.ListWaterLogs.Input.Query
+            /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///
+                /// | Credential | Header | Result |
+                /// | --- | --- | --- |
+                /// | API key (`sk-…`) | absent | `400 end_user_id_required` |
+                /// | API key (`sk-…`) | present | the request acts on that end user |
+                /// | Client token (`ct-…`) | absent | filled in from the token |
+                /// | Client token (`ct-…`) | the end user the token is bound to | accepted |
+                /// | Client token (`ct-…`) | any other end user | `403 end_user_id_mismatch` |
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/header/January-End-User-ID`.
+                package var januaryEndUserID: Components.Parameters.JanuaryEndUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListWaterLogs.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - accept:
+                package init(
+                    januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListWaterLogs.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.januaryEndUserID = januaryEndUserID
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.ListWaterLogs.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - query:
+            ///   - headers:
+            package init(
+                query: Operations.ListWaterLogs.Input.Query,
+                headers: Operations.ListWaterLogs.Input.Headers = .init()
+            ) {
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.ListWaterLogsResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ListWaterLogsResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWaterLogs.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWaterLogs.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// One total per local day with water logged, oldest first; an empty array is a valid result.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ListWaterLogs.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.ListWaterLogs.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWaterLogs.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWaterLogs.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// A date is missing, malformed, or the range is inverted; `start_date` is more than 5 years before today in `timezone` (`date_range_too_large`); timezone is missing or not a valid IANA name; or unit is missing or not `fl_oz`/`ml`/`cup`.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.ListWaterLogs.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.ListWaterLogs.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/401/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/401/headers/WWW-Authenticate`.
+                    package var wwwAuthenticate: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - wwwAuthenticate: RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    package init(wwwAuthenticate: Swift.String? = nil) {
+                        self.wwwAuthenticate = wwwAuthenticate
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.ListWaterLogs.Output.Unauthorized.Headers
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWaterLogs.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.ListWaterLogs.Output.Unauthorized.Headers = .init(),
+                    body: Operations.ListWaterLogs.Output.Unauthorized.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The request carried no `Authorization` header, or the credential in it was rejected.
+            ///
+            /// `unauthorized` — the header is missing or malformed, or the key is not one we recognise. A valid key belonging to the other API version is `403 forbidden` instead.
+            ///
+            /// A client token is rejected in one of three ways, and only the first should be handled automatically:
+            ///
+            /// - `token_expired` — the token is past its TTL. Mint a fresh one from your backend and retry the request once. This is routine and expected once per TTL window.
+            /// - `token_invalid` — no such token: it was never issued, or it has been purged, which happens shortly after it expires. This code is not an automatic token-refresh signal.
+            /// - `token_revoked` — the token was revoked, by `POST /v1.2/auth/client-token-revocations` or from the dashboard. The end user signs in again in your app, and your backend decides whether to mint another; a device that just re-mints defeats the revocation.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.ListWaterLogs.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.ListWaterLogs.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/403/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWaterLogs.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWaterLogs.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            ///
+            /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.ListWaterLogs.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            package var forbidden: Operations.ListWaterLogs.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.ListWaterLogs.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWaterLogs.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.ListWaterLogs.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.ListWaterLogs.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.ListWaterLogs.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.ListWaterLogs.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWaterLogs.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWaterLogs.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { code, message }. Retry only rate_limited and the transient 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.ListWaterLogs.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.ListWaterLogs.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// Log water for a user
+    ///
+    /// **API key or client token.**
+    ///
+    /// Records one amount of water, in `fl_oz`, `ml` or `cup` (1–811.5 fl_oz, 30–24000 ml, 0.125–101.4 cup). An end user's total is capped at 24 L (about 811 fl oz) per day: a log that would take the day of its `consumed_at` past it is refused with `daily_water_limit_exceeded`. Save the returned `id` to delete the log. Not idempotent: verify with the list endpoint before retrying a timed-out create, since a retry records the water twice and counts twice toward the cap.
+    ///
+    /// Callable with a client token carrying the `water_logs:write` scope.
+    ///
+    /// - Remark: HTTP `POST /v1.2/water-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)`.
+    package enum CreateWaterLog {
+        package static let id: Swift.String = "createWaterLog"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///
+                /// | Credential | Header | Result |
+                /// | --- | --- | --- |
+                /// | API key (`sk-…`) | absent | `400 end_user_id_required` |
+                /// | API key (`sk-…`) | present | the request acts on that end user |
+                /// | Client token (`ct-…`) | absent | filled in from the token |
+                /// | Client token (`ct-…`) | the end user the token is bound to | accepted |
+                /// | Client token (`ct-…`) | any other end user | `403 end_user_id_mismatch` |
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/header/January-End-User-ID`.
+                package var januaryEndUserID: Components.Parameters.JanuaryEndUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CreateWaterLog.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - accept:
+                package init(
+                    januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CreateWaterLog.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.januaryEndUserID = januaryEndUserID
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.CreateWaterLog.Input.Headers
+            /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/requestBody`.
+            @frozen package enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.CreateWaterLogBody)
+            }
+            package var body: Operations.CreateWaterLog.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            ///   - body:
+            package init(
+                headers: Operations.CreateWaterLog.Input.Headers = .init(),
+                body: Operations.CreateWaterLog.Input.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Created: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/201/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/201/content/application\/json`.
+                    case json(Components.Schemas.WaterLog)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.WaterLog {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWaterLog.Output.Created.Body
+                /// Creates a new `Created`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWaterLog.Output.Created.Body) {
+                    self.body = body
+                }
+            }
+            /// The logged entry: its id, the amount in the unit it was sent in, and `consumed_at` in UTC.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/201`.
+            ///
+            /// HTTP response code: `201 created`.
+            case created(Operations.CreateWaterLog.Output.Created)
+            /// The associated value of the enum case if `self` is `.created`.
+            ///
+            /// - Throws: An error if `self` is not `.created`.
+            /// - SeeAlso: `.created`.
+            package var created: Operations.CreateWaterLog.Output.Created {
+                get throws {
+                    switch self {
+                    case let .created(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "created",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWaterLog.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWaterLog.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// amount is missing, malformed or out of range, or consumed_at is malformed (`invalid_request`); or the log would take the end user's total for its day past the daily cap (`daily_water_limit_exceeded`).
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.CreateWaterLog.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.CreateWaterLog.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/401/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/401/headers/WWW-Authenticate`.
+                    package var wwwAuthenticate: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - wwwAuthenticate: RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    package init(wwwAuthenticate: Swift.String? = nil) {
+                        self.wwwAuthenticate = wwwAuthenticate
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.CreateWaterLog.Output.Unauthorized.Headers
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWaterLog.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.CreateWaterLog.Output.Unauthorized.Headers = .init(),
+                    body: Operations.CreateWaterLog.Output.Unauthorized.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The request carried no `Authorization` header, or the credential in it was rejected.
+            ///
+            /// `unauthorized` — the header is missing or malformed, or the key is not one we recognise. A valid key belonging to the other API version is `403 forbidden` instead.
+            ///
+            /// A client token is rejected in one of three ways, and only the first should be handled automatically:
+            ///
+            /// - `token_expired` — the token is past its TTL. Mint a fresh one from your backend and retry the request once. This is routine and expected once per TTL window.
+            /// - `token_invalid` — no such token: it was never issued, or it has been purged, which happens shortly after it expires. This code is not an automatic token-refresh signal.
+            /// - `token_revoked` — the token was revoked, by `POST /v1.2/auth/client-token-revocations` or from the dashboard. The end user signs in again in your app, and your backend decides whether to mint another; a device that just re-mints defeats the revocation.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.CreateWaterLog.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.CreateWaterLog.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/403/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/403/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWaterLog.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWaterLog.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            ///
+            /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.CreateWaterLog.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            package var forbidden: Operations.CreateWaterLog.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.CreateWaterLog.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWaterLog.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.CreateWaterLog.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.CreateWaterLog.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.CreateWaterLog.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.CreateWaterLog.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWaterLog.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWaterLog.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { code, message }. Retry only rate_limited and the transient 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.CreateWaterLog.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.CreateWaterLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// Delete a water log
+    ///
+    /// **API key or client token.**
+    ///
+    /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry. The amount no longer counts toward its day's cap.
+    ///
+    /// Callable with a client token carrying the `water_logs:write` scope.
+    ///
+    /// - Remark: HTTP `DELETE /v1.2/water-logs/{log_id}`.
+    /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)`.
+    package enum DeleteWaterLog {
+        package static let id: Swift.String = "deleteWaterLog"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/path`.
+            package struct Path: Sendable, Hashable {
+                /// The log id returned when the log was created.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/path/log_id`.
+                package var logId: Components.Schemas.WaterLogId
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - logId: The log id returned when the log was created.
+                package init(logId: Components.Schemas.WaterLogId) {
+                    self.logId = logId
+                }
+            }
+            package var path: Operations.DeleteWaterLog.Input.Path
+            /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///
+                /// | Credential | Header | Result |
+                /// | --- | --- | --- |
+                /// | API key (`sk-…`) | absent | `400 end_user_id_required` |
+                /// | API key (`sk-…`) | present | the request acts on that end user |
+                /// | Client token (`ct-…`) | absent | filled in from the token |
+                /// | Client token (`ct-…`) | the end user the token is bound to | accepted |
+                /// | Client token (`ct-…`) | any other end user | `403 end_user_id_mismatch` |
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/header/January-End-User-ID`.
+                package var januaryEndUserID: Components.Parameters.JanuaryEndUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.DeleteWaterLog.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - accept:
+                package init(
+                    januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.DeleteWaterLog.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.januaryEndUserID = januaryEndUserID
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.DeleteWaterLog.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            package init(
+                path: Operations.DeleteWaterLog.Input.Path,
+                headers: Operations.DeleteWaterLog.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct NoContent: Sendable, Hashable {
+                /// Creates a new `NoContent`.
+                package init() {}
+            }
+            /// The log was deleted; empty body. Idempotent — deleting an already-deleted or unknown log also answers 204.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/204`.
+            ///
+            /// HTTP response code: `204 noContent`.
+            case noContent(Operations.DeleteWaterLog.Output.NoContent)
+            /// The log was deleted; empty body. Idempotent — deleting an already-deleted or unknown log also answers 204.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/204`.
+            ///
+            /// HTTP response code: `204 noContent`.
+            package static var noContent: Self {
+                .noContent(.init())
+            }
+            /// The associated value of the enum case if `self` is `.noContent`.
+            ///
+            /// - Throws: An error if `self` is not `.noContent`.
+            /// - SeeAlso: `.noContent`.
+            package var noContent: Operations.DeleteWaterLog.Output.NoContent {
+                get throws {
+                    switch self {
+                    case let .noContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "noContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.DeleteWaterLog.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.DeleteWaterLog.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// log_id is not a UUID.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.DeleteWaterLog.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.DeleteWaterLog.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/401/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/401/headers/WWW-Authenticate`.
+                    package var wwwAuthenticate: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - wwwAuthenticate: RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    package init(wwwAuthenticate: Swift.String? = nil) {
+                        self.wwwAuthenticate = wwwAuthenticate
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.DeleteWaterLog.Output.Unauthorized.Headers
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.DeleteWaterLog.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.DeleteWaterLog.Output.Unauthorized.Headers = .init(),
+                    body: Operations.DeleteWaterLog.Output.Unauthorized.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The request carried no `Authorization` header, or the credential in it was rejected.
+            ///
+            /// `unauthorized` — the header is missing or malformed, or the key is not one we recognise. A valid key belonging to the other API version is `403 forbidden` instead.
+            ///
+            /// A client token is rejected in one of three ways, and only the first should be handled automatically:
+            ///
+            /// - `token_expired` — the token is past its TTL. Mint a fresh one from your backend and retry the request once. This is routine and expected once per TTL window.
+            /// - `token_invalid` — no such token: it was never issued, or it has been purged, which happens shortly after it expires. This code is not an automatic token-refresh signal.
+            /// - `token_revoked` — the token was revoked, by `POST /v1.2/auth/client-token-revocations` or from the dashboard. The end user signs in again in your app, and your backend decides whether to mint another; a device that just re-mints defeats the revocation.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.DeleteWaterLog.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.DeleteWaterLog.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/403/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/403/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.DeleteWaterLog.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.DeleteWaterLog.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            ///
+            /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.DeleteWaterLog.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            package var forbidden: Operations.DeleteWaterLog.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.DeleteWaterLog.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.DeleteWaterLog.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.DeleteWaterLog.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.DeleteWaterLog.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.DeleteWaterLog.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.DeleteWaterLog.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.DeleteWaterLog.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.DeleteWaterLog.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { code, message }. Retry only rate_limited and the transient 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.DeleteWaterLog.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.DeleteWaterLog.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// List a user's daily weights in a date range
+    ///
+    /// **API key or client token.**
+    ///
+    /// Returns one weight per day between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`), oldest first. Only days with a logged weight appear; when several were logged on one day, the one with the latest `measured_at` is returned, in the unit it was logged in. At most 100 days are returned — when more match, the most recent 100. `start_date` may reach back at most 5 years from today in `timezone`. An empty list is a valid result.
+    ///
+    /// Callable with a client token carrying the `weight_logs:read` scope.
+    ///
+    /// - Remark: HTTP `GET /v1.2/weight-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)`.
+    package enum ListWeightLogs {
+        package static let id: Swift.String = "listWeightLogs"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/query`.
+            package struct Query: Sendable, Hashable {
+                /// First local calendar date in `timezone`, inclusive. May be at most 5 years before today in `timezone`.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/query/start_date`.
+                package var startDate: Swift.String
+                /// Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. When more than 100 days in the range have a weight, the most recent 100 are returned.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/query/end_date`.
+                package var endDate: Swift.String
+                /// IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/query/timezone`.
+                package var timezone: Swift.String
+                /// Creates a new `Query`.
+                ///
+                /// - Parameters:
+                ///   - startDate: First local calendar date in `timezone`, inclusive. May be at most 5 years before today in `timezone`.
+                ///   - endDate: Last local calendar date in `timezone`, inclusive. May equal start_date for a single day. When more than 100 days in the range have a weight, the most recent 100 are returned.
+                ///   - timezone: IANA timezone that defines the local calendar days this range covers. Required: without it the days would be cut in UTC, which silently shifts anything logged near midnight into the wrong day for anyone not on UTC.
+                package init(
+                    startDate: Swift.String,
+                    endDate: Swift.String,
+                    timezone: Swift.String
+                ) {
+                    self.startDate = startDate
+                    self.endDate = endDate
+                    self.timezone = timezone
+                }
+            }
+            package var query: Operations.ListWeightLogs.Input.Query
+            /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///
+                /// | Credential | Header | Result |
+                /// | --- | --- | --- |
+                /// | API key (`sk-…`) | absent | `400 end_user_id_required` |
+                /// | API key (`sk-…`) | present | the request acts on that end user |
+                /// | Client token (`ct-…`) | absent | filled in from the token |
+                /// | Client token (`ct-…`) | the end user the token is bound to | accepted |
+                /// | Client token (`ct-…`) | any other end user | `403 end_user_id_mismatch` |
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/header/January-End-User-ID`.
+                package var januaryEndUserID: Components.Parameters.JanuaryEndUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListWeightLogs.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - accept:
+                package init(
+                    januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.ListWeightLogs.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.januaryEndUserID = januaryEndUserID
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.ListWeightLogs.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - query:
+            ///   - headers:
+            package init(
+                query: Operations.ListWeightLogs.Input.Query,
+                headers: Operations.ListWeightLogs.Input.Headers = .init()
+            ) {
+                self.query = query
+                self.headers = headers
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/200/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.ListWeightLogsResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ListWeightLogsResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWeightLogs.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWeightLogs.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// One weight per day that has one, oldest first; an empty array is a valid result.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.ListWeightLogs.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            package var ok: Operations.ListWeightLogs.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWeightLogs.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWeightLogs.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// A date is missing, malformed, or the range is inverted; `start_date` is more than 5 years before today in `timezone` (`date_range_too_large`); or timezone is missing or not a valid IANA name.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.ListWeightLogs.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.ListWeightLogs.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/401/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/401/headers/WWW-Authenticate`.
+                    package var wwwAuthenticate: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - wwwAuthenticate: RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    package init(wwwAuthenticate: Swift.String? = nil) {
+                        self.wwwAuthenticate = wwwAuthenticate
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.ListWeightLogs.Output.Unauthorized.Headers
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWeightLogs.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.ListWeightLogs.Output.Unauthorized.Headers = .init(),
+                    body: Operations.ListWeightLogs.Output.Unauthorized.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The request carried no `Authorization` header, or the credential in it was rejected.
+            ///
+            /// `unauthorized` — the header is missing or malformed, or the key is not one we recognise. A valid key belonging to the other API version is `403 forbidden` instead.
+            ///
+            /// A client token is rejected in one of three ways, and only the first should be handled automatically:
+            ///
+            /// - `token_expired` — the token is past its TTL. Mint a fresh one from your backend and retry the request once. This is routine and expected once per TTL window.
+            /// - `token_invalid` — no such token: it was never issued, or it has been purged, which happens shortly after it expires. This code is not an automatic token-refresh signal.
+            /// - `token_revoked` — the token was revoked, by `POST /v1.2/auth/client-token-revocations` or from the dashboard. The end user signs in again in your app, and your backend decides whether to mint another; a device that just re-mints defeats the revocation.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.ListWeightLogs.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.ListWeightLogs.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/403/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWeightLogs.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWeightLogs.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            ///
+            /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.ListWeightLogs.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            package var forbidden: Operations.ListWeightLogs.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.ListWeightLogs.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWeightLogs.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.ListWeightLogs.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.ListWeightLogs.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.ListWeightLogs.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.ListWeightLogs.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.ListWeightLogs.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.ListWeightLogs.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { code, message }. Retry only rate_limited and the transient 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.ListWeightLogs.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.ListWeightLogs.Output.Default {
+                get throws {
+                    switch self {
+                    case let .`default`(_, response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "default",
+                            response: self
+                        )
+                    }
+                }
+            }
+        }
+        @frozen package enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case other(Swift.String)
+            package init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            package var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                }
+            }
+            package static var allCases: [Self] {
+                [
+                    .json
+                ]
+            }
+        }
+    }
+    /// Log a weight for a user
+    ///
+    /// **API key or client token.**
+    ///
+    /// Records one weight measurement, in `lb` (10–1000) or `kg` (4.5–453.6). Every measurement is kept; listing shows one per local day — the latest by `measured_at` — so logging again later the same day replaces what that day shows. Not idempotent: a retried create records the measurement twice, which listing then shows once.
+    ///
+    /// Callable with a client token carrying the `weight_logs:write` scope.
+    ///
+    /// - Remark: HTTP `POST /v1.2/weight-logs`.
+    /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)`.
+    package enum CreateWeightLog {
+        package static let id: Swift.String = "createWeightLog"
+        package struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/header`.
+            package struct Headers: Sendable, Hashable {
+                /// Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///
+                /// | Credential | Header | Result |
+                /// | --- | --- | --- |
+                /// | API key (`sk-…`) | absent | `400 end_user_id_required` |
+                /// | API key (`sk-…`) | present | the request acts on that end user |
+                /// | Client token (`ct-…`) | absent | filled in from the token |
+                /// | Client token (`ct-…`) | the end user the token is bound to | accepted |
+                /// | Client token (`ct-…`) | any other end user | `403 end_user_id_mismatch` |
+                ///
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/header/January-End-User-ID`.
+                package var januaryEndUserID: Components.Parameters.JanuaryEndUserId?
+                package var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CreateWeightLog.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - januaryEndUserID: Your stable ID for the end user whose logs this request reads or writes. Opaque to January — use the same ID your system already uses for them.
+                ///   - accept:
+                package init(
+                    januaryEndUserID: Components.Parameters.JanuaryEndUserId? = nil,
+                    accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.CreateWeightLog.AcceptableContentType>] = .defaultValues()
+                ) {
+                    self.januaryEndUserID = januaryEndUserID
+                    self.accept = accept
+                }
+            }
+            package var headers: Operations.CreateWeightLog.Input.Headers
+            /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/requestBody`.
+            @frozen package enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.CreateWeightLogBody)
+            }
+            package var body: Operations.CreateWeightLog.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - headers:
+            ///   - body:
+            package init(
+                headers: Operations.CreateWeightLog.Input.Headers = .init(),
+                body: Operations.CreateWeightLog.Input.Body
+            ) {
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen package enum Output: Sendable, Hashable {
+            package struct Created: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/201/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/201/content/application\/json`.
+                    case json(Components.Schemas.WeightLog)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.WeightLog {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWeightLog.Output.Created.Body
+                /// Creates a new `Created`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWeightLog.Output.Created.Body) {
+                    self.body = body
+                }
+            }
+            /// The logged weight, as stored: the unit it was sent in, and `measured_at` in UTC.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/201`.
+            ///
+            /// HTTP response code: `201 created`.
+            case created(Operations.CreateWeightLog.Output.Created)
+            /// The associated value of the enum case if `self` is `.created`.
+            ///
+            /// - Throws: An error if `self` is not `.created`.
+            /// - SeeAlso: `.created`.
+            package var created: Operations.CreateWeightLog.Output.Created {
+                get throws {
+                    switch self {
+                    case let .created(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "created",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/400/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWeightLog.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWeightLog.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// weight is missing, malformed or out of range, or measured_at is malformed.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.CreateWeightLog.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            package var badRequest: Operations.CreateWeightLog.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/401/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/401/headers/WWW-Authenticate`.
+                    package var wwwAuthenticate: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - wwwAuthenticate: RFC 6750 challenge. `Bearer` when the request carried no credential; `Bearer error="invalid_token", error_description="token expired|token invalid|token revoked"` when one was rejected.
+                    package init(wwwAuthenticate: Swift.String? = nil) {
+                        self.wwwAuthenticate = wwwAuthenticate
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.CreateWeightLog.Output.Unauthorized.Headers
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/401/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/401/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWeightLog.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.CreateWeightLog.Output.Unauthorized.Headers = .init(),
+                    body: Operations.CreateWeightLog.Output.Unauthorized.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// The request carried no `Authorization` header, or the credential in it was rejected.
+            ///
+            /// `unauthorized` — the header is missing or malformed, or the key is not one we recognise. A valid key belonging to the other API version is `403 forbidden` instead.
+            ///
+            /// A client token is rejected in one of three ways, and only the first should be handled automatically:
+            ///
+            /// - `token_expired` — the token is past its TTL. Mint a fresh one from your backend and retry the request once. This is routine and expected once per TTL window.
+            /// - `token_invalid` — no such token: it was never issued, or it has been purged, which happens shortly after it expires. This code is not an automatic token-refresh signal.
+            /// - `token_revoked` — the token was revoked, by `POST /v1.2/auth/client-token-revocations` or from the dashboard. The end user signs in again in your app, and your backend decides whether to mint another; a device that just re-mints defeats the revocation.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.CreateWeightLog.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            package var unauthorized: Operations.CreateWeightLog.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/403/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/403/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWeightLog.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWeightLog.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            ///
+            /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.CreateWeightLog.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            package var forbidden: Operations.CreateWeightLog.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/429/headers`.
+                package struct Headers: Sendable, Hashable {
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/429/headers/Retry-After`.
+                    package var retryAfter: Swift.String?
+                    /// Creates a new `Headers`.
+                    ///
+                    /// - Parameters:
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    package init(retryAfter: Swift.String? = nil) {
+                        self.retryAfter = retryAfter
+                    }
+                }
+                /// Received HTTP response headers
+                package var headers: Operations.CreateWeightLog.Output.TooManyRequests.Headers
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/429/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/429/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWeightLog.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - headers: Received HTTP response headers
+                ///   - body: Received HTTP response body
+                package init(
+                    headers: Operations.CreateWeightLog.Output.TooManyRequests.Headers = .init(),
+                    body: Operations.CreateWeightLog.Output.TooManyRequests.Body
+                ) {
+                    self.headers = headers
+                    self.body = body
+                }
+            }
+            /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
+            ///
+            /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
+            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            ///
+            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.CreateWeightLog.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            package var tooManyRequests: Operations.CreateWeightLog.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
+                            response: self
+                        )
+                    }
+                }
+            }
+            package struct Default: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/default/content`.
+                @frozen package enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/default/content/application\/json`.
+                    case json(Components.Schemas.ErrorResponse)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    package var json: Components.Schemas.ErrorResponse {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                package var body: Operations.CreateWeightLog.Output.Default.Body
+                /// Creates a new `Default`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                package init(body: Operations.CreateWeightLog.Output.Default.Body) {
+                    self.body = body
+                }
+            }
+            /// Any other error: the HTTP status plus { code, message }. Retry only rate_limited and the transient 5xx codes.
+            ///
+            /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/default`.
+            ///
+            /// HTTP response code: `default`.
+            case `default`(statusCode: Swift.Int, Operations.CreateWeightLog.Output.Default)
+            /// The associated value of the enum case if `self` is `.`default``.
+            ///
+            /// - Throws: An error if `self` is not `.`default``.
+            /// - SeeAlso: `.`default``.
+            package var `default`: Operations.CreateWeightLog.Output.Default {
                 get throws {
                     switch self {
                     case let .`default`(_, response):

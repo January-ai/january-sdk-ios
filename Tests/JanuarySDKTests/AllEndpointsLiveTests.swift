@@ -3,7 +3,7 @@ import Testing
 @testable import January
 
 @Test
-func exercisesAllSeventeenClientOperationsLive() async throws {
+func exercisesEveryClientOperationLive() async throws {
     let environment = ProcessInfo.processInfo.environment
     guard
         let apiKey = environment["JANUARY_API_KEY"], !apiKey.isEmpty,
@@ -92,8 +92,8 @@ func exercisesAllSeventeenClientOperationsLive() async throws {
         let start = calendar.date(byAdding: .day, value: -1, to: Date())!
         let end = calendar.date(byAdding: .day, value: 1, to: Date())!
         let listed = try await client.foodLogs.list(
-            start: SelfDateFormatter.string(from: start),
-            end: SelfDateFormatter.string(from: end)
+            start: dayString(start, in: timezone),
+            end: dayString(end, in: timezone)
         )
         #expect(listed.items.contains { $0.id == logID })
         pass("foodLogs.list")
@@ -132,18 +132,50 @@ func exercisesAllSeventeenClientOperationsLive() async throws {
     ))
     #expect(!prediction.prediction.isEmpty)
     pass("glucose.predict")
+
+    // One moment for the logs and the day they are listed under, in the client's timezone (the
+    // calendar the API groups logs by), so the test cannot straddle midnight.
+    let loggedAt = Date()
+    let loggedAtUTC = ISO8601DateFormatter().string(from: loggedAt)
+    let today = dayString(loggedAt, in: timezone)
+    var createdWaterLogID: String?
+    do {
+        let water = try await client.waterLogs.create(amount: .init(value: 8, unit: .fluidOunces), consumedAtUTC: loggedAtUTC)
+        createdWaterLogID = water.id
+        #expect(water.amount == .init(value: 8, unit: .fluidOunces))
+        pass("waterLogs.create")
+
+        let totals = try await client.waterLogs.list(start: today, end: today, unit: .fluidOunces)
+        #expect(totals.items.contains { $0.date == today && $0.total.value >= 8 })
+        pass("waterLogs.list")
+
+        try await client.waterLogs.delete(id: water.id)
+        createdWaterLogID = nil
+        pass("waterLogs.delete")
+    } catch {
+        if let createdWaterLogID { try? await client.waterLogs.delete(id: createdWaterLogID) }
+        throw error
+    }
+
+    let weight = try await client.weightLogs.create(weight: .init(value: 175, unit: .pounds), measuredAtUTC: loggedAtUTC)
+    #expect(weight.weight == .init(value: 175, unit: .pounds))
+    pass("weightLogs.create")
+
+    let weights = try await client.weightLogs.list(start: today, end: today)
+    #expect(weights.items.contains { $0.date == today })
+    pass("weightLogs.list")
 }
 
 private let burgerImageURL = "https://friendlysrestaurants.com/assets/live/img/production/detail/menu/lunch-dinner_999-combohs_all-american-burger-fries.jpg"
 
-private let SelfDateFormatter: DateFormatter = {
+private func dayString(_ date: Date, in timezone: TimeZone) -> String {
     let formatter = DateFormatter()
     formatter.calendar = Calendar(identifier: .gregorian)
     formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
+    formatter.timeZone = timezone
     formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-}()
+    return formatter.string(from: date)
+}
 
 private func pass(_ operation: String) {
     print("PASS \(operation)")

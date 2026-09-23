@@ -1,0 +1,170 @@
+appId: ai.january.partner.demo
+name: Live - weight in kilograms and pounds, the weight chart, and the day picker, checked against the API
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+- tapOn:
+    id: tab-tracking
+- copyTextFrom:
+    id: logs-day-label
+- evalScript: ${output.day = maestro.copiedText}
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: weight
+      DAY: ${output.day}
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible:
+    id: weight-entry
+    text: ${output.live.weightText}
+# Kilograms. (Weight logs cannot be deleted; each run adds today's entries.)
+- tapOn:
+    id: weight-unit-kg
+- tapOn:
+    id: weight-value
+- eraseText: 6
+- inputText: "72.5"
+- tapOn:
+    text: Done
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible:
+      id: weight-entry
+      text: 72.5 kg
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: weight
+      DAY: ${output.day}
+      EXPECT: 72.5 kg
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: weight-week
+      DAY: ${output.day}
+      UNIT: kg
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- extendedWaitUntil:
+    visible:
+      id: weight-chart
+      text: ${output.live.weightWeek}
+    timeout: 30000
+- takeScreenshot: live-96-01-weight-kg
+- runFlow: ../live-pause.yaml
+# Pounds.
+- scrollUntilVisible:
+    element:
+      id: weight-unit-lb
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: weight-unit-lb
+- tapOn:
+    id: weight-value
+- eraseText: 6
+- inputText: "160"
+- tapOn:
+    text: Done
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible:
+      id: weight-entry
+      text: 160 lb
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: weight
+      DAY: ${output.day}
+      EXPECT: 160 lb
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: weight-week
+      DAY: ${output.day}
+      UNIT: lb
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- extendedWaitUntil:
+    visible:
+      id: weight-chart
+      text: ${output.live.weightWeek}
+    timeout: 30000
+- takeScreenshot: live-96-02-weight-lb-week
+- tapOn:
+    id: weight-chart-range-month
+- extendedWaitUntil:
+    visible:
+      id: weight-chart
+      text: "Weight, last 30 days: .*"
+    timeout: 30000
+- takeScreenshot: live-96-03-weight-chart-month
+- tapOn:
+    id: weight-chart-range-year
+- extendedWaitUntil:
+    visible:
+      id: weight-chart
+      text: "Weight, last 12 months: .*"
+    timeout: 60000
+- takeScreenshot: live-96-04-weight-chart-year
+# The previous day shows that day's weight, then back to today.
+- scrollUntilVisible:
+    element:
+      id: logs-day-previous
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: logs-day-previous
+- copyTextFrom:
+    id: logs-day-label
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: weight
+      DAY: ${maestro.copiedText}
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- extendedWaitUntil:
+    visible:
+      id: weight-entry
+      text: ${output.live.weightText}
+    timeout: 30000
+- takeScreenshot: live-96-05-previous-day
+- scrollUntilVisible:
+    element:
+      id: logs-day-today
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: logs-day-today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- extendedWaitUntil:
+    visible:
+      id: weight-entry
+      text: 160 lb
+    timeout: 30000

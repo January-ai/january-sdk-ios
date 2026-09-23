@@ -88,7 +88,7 @@ struct SearchField: View {
                 .foregroundStyle(AppPalette.green)
                 .frame(width: 36, height: 36)
                 // The identifier belongs on the control that receives the tap.
-                .accessibilityIdentifier(voiceIdentifier ?? "voice-capture-button")
+                .accessibilityIdentifier(voiceIdentifier ?? "")
             }
         }
     }

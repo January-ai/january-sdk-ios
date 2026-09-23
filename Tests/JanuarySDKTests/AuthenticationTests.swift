@@ -419,6 +419,41 @@ func tokenInvalidDoesNotRefresh() async throws {
 }
 
 @Test
+func nonRetryableProviderFailureIsAnAuthenticationErrorWithTheProvidersMessage() async throws {
+    let calls = CallCounter()
+    let sleeper = SleepProbe()
+    let transport = AuthenticationTransport()
+    let client = try JanuaryClient(
+        serverURL: URL(string: "https://example.invalid")!,
+        transport: transport,
+        clientTokenProvider: {
+            await calls.increment()
+            throw JanuaryTokenProviderError("The partner token endpoint rejected the request.")
+        },
+        tokenRetryPolicy: .init(maximumAttempts: 9),
+        sleep: { await sleeper.sleep(for: $0) }
+    )
+
+    do {
+        _ = try await client.foods.search(.init(query: "banana"))
+        Issue.record("Expected the token provider's refusal")
+    } catch let error as JanuaryError {
+        #expect(error.category == .authentication)
+        #expect(error.code == "client_token_provider_failed")
+        #expect(error.message == "The partner token endpoint rejected the request.")
+    }
+    #expect(await calls.value() == 1)
+    #expect(await sleeper.delays().isEmpty)
+    #expect(await transport.requests().isEmpty)
+}
+
+private actor CallCounter {
+    private var count = 0
+    func increment() { count += 1 }
+    func value() -> Int { count }
+}
+
+@Test
 func providerFailuresMapToSafeAuthenticationErrors() async throws {
     let now = Date(timeIntervalSince1970: 4_000)
     let provider = TokenProviderProbe(outcomes: [.failure])

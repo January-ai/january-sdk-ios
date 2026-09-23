@@ -17,8 +17,8 @@ private actor SurfaceTransport: ClientTransport {
         operations.append(operationID)
         endUserIDs.append(request.headerFields[HTTPField.Name("January-End-User-ID")!])
         timezones.append(request.path?.contains("timezone=") == true ? "query" : nil)
-        let status: HTTPResponse.Status = operationID == "createFoodLog" ? .init(code: 201) :
-            (operationID == "deleteFoodLog" ? .init(code: 204) : .ok)
+        let status: HTTPResponse.Status = ["createFoodLog", "createWaterLog", "createWeightLog"].contains(operationID) ? .init(code: 201) :
+            (["deleteFoodLog", "deleteWaterLog"].contains(operationID) ? .init(code: 204) : .ok)
         var response = HTTPResponse(status: status)
         response.headerFields[.contentType] = "application/json"
         return (response, HTTPBody(Data(responseJSON(for: operationID).utf8)))
@@ -54,8 +54,14 @@ private actor SurfaceTransport: ClientTransport {
             #"{"id":"00000000-0000-0000-0000-000000000001","foods":[],"eaten_at":"2026-08-22T12:00:00Z","name":"Fixture"}"#
         case "listFoodLogs":
             #"{"items":[]}"#
-        case "deleteFoodLog":
+        case "deleteFoodLog", "deleteWaterLog":
             ""
+        case "createWaterLog":
+            #"{"id":"00000000-0000-0000-0000-000000000002","amount":{"value":8,"unit":"fl_oz"},"consumed_at":"2026-08-22T12:00:00.000Z"}"#
+        case "listWaterLogs", "listWeightLogs":
+            #"{"items":[]}"#
+        case "createWeightLog":
+            #"{"weight":{"value":150,"unit":"lb"},"measured_at":"2026-08-22T12:00:00.000Z"}"#
         case "predictGlucose":
             #"{"points":[{"minutes":0,"value":100}],"impact_score":"low","chart":{"min":70,"max":140}}"#
         default:
@@ -127,6 +133,11 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
     _ = try await client.foodLogs.get(id: createdID)
     _ = try await client.foodLogs.update(id: createdID, name: "Updated")
     _ = try await client.foodLogs.delete(id: createdID)
+    let water = try await client.waterLogs.create(amount: .init(value: 8, unit: .fluidOunces))
+    _ = try await client.waterLogs.list(start: "2026-08-21", end: "2026-08-23")
+    try await client.waterLogs.delete(id: water.id)
+    _ = try await client.weightLogs.create(weight: .init(value: 150, unit: .pounds))
+    _ = try await client.weightLogs.list(start: "2026-08-21", end: "2026-08-23")
     _ = try await client.glucose.predict(
         .init(
             userProfile: .init(age: 35, gender: .male, height: 70, weight: 175),
@@ -140,8 +151,9 @@ func allContractOperationsAreExposedThroughThePublicClient() async throws {
         "searchRestaurants", "getRestaurantMenuItems", "searchRestaurantMenuItems",
         "scanFoodPhoto", "correctPhotoScan", "createFoodLog", "listFoodLogs", "getFoodLog",
         "updateFoodLog", "deleteFoodLog", "predictGlucose",
+        "createWaterLog", "listWaterLogs", "deleteWaterLog", "createWeightLog", "listWeightLogs",
     ]))
     let captured = await transport.capturedEndUserIDs()
-    #expect(captured.compactMap { $0 }.count == 5)
+    #expect(captured.compactMap { $0 }.count == 10)
     #expect(captured.compactMap { $0 }.allSatisfy { $0 == "fixture-user" })
 }

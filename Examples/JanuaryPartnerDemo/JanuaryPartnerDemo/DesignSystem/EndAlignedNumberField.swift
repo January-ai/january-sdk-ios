@@ -25,6 +25,17 @@ struct EndAlignedNumberField: UIViewRepresentable {
         textField.adjustsFontSizeToFitWidth = true
         textField.minimumFontSize = 18
         textField.accessibilityIdentifier = accessibilityIdentifier
+        // Number and decimal pads have no return key; the bar gives the keyboard a way to close.
+        let toolbar = UIToolbar()
+        toolbar.items = [
+            UIBarButtonItem(systemItem: .flexibleSpace),
+            UIBarButtonItem(
+                title: "Done",
+                primaryAction: UIAction { [weak textField] _ in textField?.resignFirstResponder() }
+            ),
+        ]
+        toolbar.sizeToFit()
+        textField.inputAccessoryView = toolbar
         return textField
     }
 

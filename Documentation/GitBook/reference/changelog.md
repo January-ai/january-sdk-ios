@@ -4,6 +4,11 @@ See [Versioning and support](versioning-and-support.md) before installing or upd
 
 ## Unreleased
 
+* Water and weight logs: `waterLogs.create`/`list`/`delete` and `weightLogs.create`/`list`, with daily totals over a date range
+* `ServingSummary.weightGrams` on detected and alternative foods
+* `foodAnalysis.correct` sends the API's correction shape and validates hand-built detections; `foodLogs.update` rejects an empty update; `glucose.predict` requires a finite, whole-number `age`
+* A non-retryable `JanuaryTokenProviderError` fails the request as an authentication error (`client_token_provider_failed`) with the provider's message, instead of a transport failure
+
 * Breaking: `DetectedFood` exposes `serving` and `quantity` instead of `servings`, matching the current Partner API; `0.1.0` fails to decode photo scans
 * Food-log summaries per day or week with `foodLogs.getSummary`
 * Optional reasoning-based photo analysis with `ScanFoodPhotoRequest.reasoningEffort`

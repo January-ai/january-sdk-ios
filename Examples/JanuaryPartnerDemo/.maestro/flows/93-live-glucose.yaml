@@ -1,0 +1,46 @@
+appId: ai.january.partner.demo
+name: Live - glucose prediction for a meal built from food search
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+- tapOn:
+    id: tab-glucose
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 30000
+- tapOn:
+    id: food-picker-result-0
+- extendedWaitUntil:
+    visible:
+      id: food-serving-sheet
+    timeout: 30000
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0
+- takeScreenshot: live-93-01-glucose-meal
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-predict
+- tapOn:
+    id: glucose-predict
+- extendedWaitUntil:
+    visible:
+      id: "glucose-(results-screen|error)"
+    timeout: 60000
+- takeScreenshot: live-93-02-glucose-result
+- assertVisible:
+    id: glucose-chart

@@ -483,3 +483,26 @@ package struct UniversalClient: Sendable {
 
 @inline(__always)
 package func suppressMutabilityWarning<T>(_ value: inout T) {}
+
+private struct AnyStringCodingKey: CodingKey {
+    let stringValue: String
+    var intValue: Int? { nil }
+    init(stringValue: String) { self.stringValue = stringValue }
+    init?(intValue: Int) { nil }
+}
+
+package extension Decoder {
+    /// Rejects a JSON object that carries keys outside `knownKeys`, for schemas
+    /// declared with `additionalProperties: false`.
+    func ensureNoAdditionalProperties(knownKeys: Set<String>) throws {
+        let container = try self.container(keyedBy: AnyStringCodingKey.self)
+        let unknownKeys = container.allKeys.map(\.stringValue).filter { !knownKeys.contains($0) }
+        guard unknownKeys.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: AnyStringCodingKey(stringValue: unknownKeys.sorted()[0]),
+                in: container,
+                debugDescription: "Unknown keys: \(unknownKeys.sorted().joined(separator: ", "))"
+            )
+        }
+    }
+}

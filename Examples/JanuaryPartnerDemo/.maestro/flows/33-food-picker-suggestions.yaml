@@ -1,0 +1,87 @@
+appId: ai.january.partner.demo
+name: Food picker suggestions, loading, and choosing another serving
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-glucose
+    timeout: 15000
+- tapOn:
+    id: tab-glucose
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: glucose-add-food
+- tapOn:
+    id: glucose-add-food
+- assertVisible:
+    id: food-picker-voice
+# The fixture suggests foods for queries that start with "fix".
+- tapOn:
+    id: food-picker-input
+- inputText: fix
+- extendedWaitUntil:
+    visible:
+      id: food-picker-suggestions
+    timeout: 15000
+- tapOn:
+    id: food-picker-suggestion-0
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- assertNotVisible:
+    id: food-picker-suggestions
+# A held search shows the loading row.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      HOLD: "true"
+- tapOn:
+    id: food-picker-input
+- eraseText: 30
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-loading
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- assertNotVisible:
+    id: food-picker-loading
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods
+      DELAY: "0"
+# Choose the second serving from the serving menu.
+- tapOn:
+    id: food-picker-result-0
+- extendedWaitUntil:
+    visible:
+      id: food-serving-sheet
+    timeout: 15000
+- assertVisible:
+    id: food-serving-controls
+- tapOn:
+    id: food-serving-unit
+- assertVisible:
+    id: food-serving-option-0
+- tapOn:
+    id: food-serving-option-1
+- assertVisible: 1 oz
+- tapOn:
+    id: food-serving-add
+- assertVisible:
+    id: glucose-food-0
+- assertVisible: 1 oz

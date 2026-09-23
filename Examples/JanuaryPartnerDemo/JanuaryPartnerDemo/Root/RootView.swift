@@ -105,6 +105,8 @@ private struct DemoSetupView: View {
                     .appCard()
                 }
                 .frame(maxWidth: 680)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("setup-screen")
             }
             .padding(.vertical, 40)
         }

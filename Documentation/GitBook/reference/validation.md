@@ -17,6 +17,12 @@ The SDK rejects these invalid inputs before transport where validation is implem
 | Restaurant radius | 1 through 17,000 meters |
 | Restaurant limit | Integer from 1 through 100 |
 | Food-log `timestampUTC` | ISO-8601 date-time |
+| Food-log update | At least one of `foods`, `timestampUTC`, `name` |
+| Water amount | 1 through 811.5 fl oz, 0.125 through 101.4 cup, or 30 through 24,000 ml |
+| Weight-log weight | 10 through 1,000 lb, or 4.5 through 453.6 kg |
+| Water and weight `consumedAtUTC` / `measuredAtUTC` | ISO-8601 date-time |
+| Glucose profile `age` | Whole number of years |
+| Photo-scan correction | Every detection carries its food ID, serving ID, serving quantity, and quantity |
 | CGM and historical-food timestamp | ISO-8601 date-time |
 | Provider token | Nonempty with finite `expiresIn` greater than 60 seconds |
 | Portion quantity | Finite, greater than 0, and no greater than 10,000 |

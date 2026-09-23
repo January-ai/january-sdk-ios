@@ -1,0 +1,220 @@
+appId: ai.january.partner.demo
+name: Live - water in fluid ounces and milliliters with delete-last, cups, and the water chart, checked against the API
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+- tapOn:
+    id: tab-tracking
+- copyTextFrom:
+    id: logs-day-label
+- evalScript: ${output.day = maestro.copiedText}
+# Fluid ounces: the day's total before, after logging 8 fl oz, and after deleting it.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: fl_oz
+- evalScript: ${output.waterBefore = output.live.water}
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
+- assertVisible:
+    id: water-total
+    text: ${output.live.waterText}
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+# "Delete last" appears once the log is saved.
+- extendedWaitUntil:
+    visible:
+      id: water-log-delete
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: fl_oz
+      EXPECT: ${output.waterBefore + 8}
+- scrollUntilVisible:
+    element:
+      id: water-total
+    direction: UP
+    centerElement: true
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- takeScreenshot: live-95-01-water-fl-oz
+# The Week chart shows what the API has for the last 7 days.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water-week
+      DAY: ${output.day}
+      UNIT: fl_oz
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-chart
+- extendedWaitUntil:
+    visible:
+      id: water-chart
+      text: ${output.live.waterWeek}
+    timeout: 30000
+- takeScreenshot: live-95-02-water-chart-week
+- tapOn:
+    id: water-chart-range-month
+- extendedWaitUntil:
+    visible:
+      id: water-chart
+      text: "Water, last 30 days: .*"
+    timeout: 30000
+- takeScreenshot: live-95-03-water-chart-month
+- tapOn:
+    id: water-chart-range-year
+- extendedWaitUntil:
+    visible:
+      id: water-chart
+      text: "Water, last 12 months: .*"
+    timeout: 60000
+- takeScreenshot: live-95-04-water-chart-year
+- tapOn:
+    id: water-chart-range-week
+- runFlow: ../live-pause.yaml
+- scrollUntilVisible:
+    element:
+      id: water-log-delete
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    notVisible:
+      id: water-log-delete
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: fl_oz
+      EXPECT: "${output.waterBefore === 0 ? 'none' : output.waterBefore}"
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- takeScreenshot: live-95-05-water-deleted
+# Milliliters: the 8 fl oz amount becomes 237 ml.
+- tapOn:
+    id: water-unit-ml
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: ml
+- evalScript: ${output.waterBefore = output.live.water}
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-log-delete
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: ml
+      EXPECT: ${output.waterBefore + 237}
+- scrollUntilVisible:
+    element:
+      id: water-total
+    direction: UP
+    centerElement: true
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- takeScreenshot: live-95-06-water-ml
+- scrollUntilVisible:
+    element:
+      id: water-log-delete
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    notVisible:
+      id: water-log-delete
+    timeout: 30000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: ml
+      EXPECT: "${output.waterBefore === 0 ? 'none' : output.waterBefore}"
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- runFlow: ../live-pause.yaml
+# Cups: when the API does not accept them yet, the card reports it and nothing is logged.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: cup-support
+      DAY: ${output.day}
+- tapOn:
+    id: water-unit-cup
+- runFlow:
+    when:
+      true: ${output.live.cupRejected}
+    file: ../live-cups-refused.yaml
+- runFlow:
+    when:
+      true: ${!output.live.cupRejected}
+    file: ../live-cups-accepted.yaml
+# Back to fluid ounces: the card recovers.
+- scrollUntilVisible:
+    element:
+      id: water-unit-fl_oz
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: water-unit-fl_oz
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: fl_oz
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- assertNotVisible:
+    id: water-error
+- takeScreenshot: live-95-09-water-back-to-fl-oz

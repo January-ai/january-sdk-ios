@@ -8,16 +8,37 @@ private enum AppConfiguration {
     // MARK: Configure the demo here
 
     private static let environment = ProcessInfo.processInfo.environment
+    /// The token URL and end-user ID can also be passed as launch arguments
+    /// (`-JANUARY_PARTNER_TOKEN_URL http://…`), for example by `xcrun simctl launch`
+    /// or a UI test runner. Credentials are read from the environment only.
+    private static let launchArguments = UserDefaults.standard.volatileDomain(forName: UserDefaults.argumentDomain)
+
+    private static func setting(_ name: String) -> String? {
+        environment[name] ?? launchArguments[name] as? String
+    }
+
     // Connect the demo to your authenticated token endpoint.
-    static let partnerTokenURL = environment["JANUARY_PARTNER_TOKEN_URL"].flatMap(URL.init(string:))
+    static let partnerTokenURL = setting("JANUARY_PARTNER_TOKEN_URL").flatMap(URL.init(string:))
     static let partnerAppSessionToken = environment["JANUARY_PARTNER_SESSION_TOKEN"] ?? ""
 
     // Optional local Debug shortcut. Never commit or ship a server API key.
     static let debugServerAPIKey = environment["JANUARY_API_KEY"] ?? ""
 
+    /// Debug builds only: send API requests to another origin, such as the local fixture server,
+    /// to rehearse the client-token flow without calling the January API.
+    static let debugAPIBaseURL: URL? = {
+#if DEBUG
+        guard let value = setting("JANUARY_API_BASE_URL")?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty else { return nil }
+        return URL(string: value)
+#else
+        return nil
+#endif
+    }()
+
     static let endUserID: String = {
         let candidates = [
-            environment["JANUARY_END_USER_ID"],
+            setting("JANUARY_END_USER_ID"),
         ]
         return candidates.compactMap { candidate in
             let normalized = candidate?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -31,7 +52,8 @@ private enum AppConfiguration {
             return .clientToken(
                 partnerTokenURL: partnerTokenURL,
                 appSessionToken: sessionToken,
-                endUserID: endUserID
+                endUserID: endUserID,
+                apiBaseURL: debugAPIBaseURL
             )
         }
 
@@ -49,6 +71,12 @@ private enum AppConfiguration {
 #endif
 
         return .setupRequired()
+    }
+
+    static var apiLabel: String {
+        guard partnerTokenURL != nil, let debugAPIBaseURL else { return "Production" }
+        return debugAPIBaseURL.host.map { host in debugAPIBaseURL.port.map { "\(host):\($0)" } ?? host }
+            ?? debugAPIBaseURL.absoluteString
     }
 
     static var authenticationLabel: String {
@@ -79,6 +107,10 @@ struct JanuaryPartnerDemoApp: App {
             "demo.endUserID": AppConfiguration.endUserID,
         ])
         UserDefaults.standard.set(isUITesting ? "UI test fixture" : AppConfiguration.authenticationLabel, forKey: "demo.authenticationMode")
+        UserDefaults.standard.set(
+            isUITesting ? "Local fixture server" : AppConfiguration.apiLabel,
+            forKey: "demo.apiOrigin"
+        )
         _model = StateObject(wrappedValue: AppModel(authentication: authentication))
     }
 

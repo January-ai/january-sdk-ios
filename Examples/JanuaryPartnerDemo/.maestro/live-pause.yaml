@@ -1,0 +1,9 @@
+appId: ai.january.partner.demo
+# Used by the live flows between bursts of requests, to stay well under the
+# API's per-user limit of 60 requests a minute: waits 20 seconds for text that
+# never appears.
+---
+- extendedWaitUntil:
+    visible: "Pausing between live requests"
+    timeout: 20000
+    optional: true

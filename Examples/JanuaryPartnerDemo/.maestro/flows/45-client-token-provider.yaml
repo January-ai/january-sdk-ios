@@ -1,0 +1,111 @@
+appId: ai.january.partner.demo
+name: The client-token provider reports a failing token endpoint, recovers, and gets a new user's token after a switch
+tags:
+  - fixture
+# The second user's ID is saved on the device; clear it so later flows start from the default.
+onFlowComplete:
+  - stopApp
+  - clearState
+---
+# Launch in client-token mode, as with the token relay, but with the fixture
+# server standing in for both the relay and the API (JANUARY_API_BASE_URL is
+# honoured by Debug builds only). The endpoint first refuses the user: a 403 is
+# not retried, while a 5xx would be retried with backoff for about 45 seconds.
+- runScript:
+    file: ../scripts/reset-fixture.js
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /api/january/client-token
+      STATUS: "403"
+- launchApp:
+    clearState: true
+    stopApp: true
+    arguments:
+      -JANUARY_PARTNER_TOKEN_URL: http://127.0.0.1:18768/api/january/client-token
+      -JANUARY_END_USER_ID: token-flow-user
+      -JANUARY_API_BASE_URL: http://127.0.0.1:18768
+- extendedWaitUntil:
+    visible:
+      id: search-screen
+    timeout: 60000
+- assertNotVisible: Local testing mode.*
+- tapOn:
+    id: search-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-error
+    timeout: 30000
+# An authentication failure with the provider's message, not a network error.
+- assertVisible: Couldn.t use the configured credentials
+- assertVisible: The partner token endpoint rejected the request.
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /api/january/client-token
+      END_USER: token-flow-user
+# The endpoint recovers; retrying mints a token and searches for that user.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /api/january/client-token
+      STATUS: "200"
+- tapOn:
+    id: search-retry
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 30000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/foods
+      END_USER: token-flow-user
+# Settings names the connection.
+- tapOn:
+    id: settings-button
+- extendedWaitUntil:
+    visible:
+      id: settings-sheet
+    timeout: 15000
+- assertVisible: Client token provider
+# The API origin sits in the About section, below the half-height sheet's fold.
+- scrollUntilVisible:
+    element:
+      text: .*127\.0\.0\.1:18768.*
+    direction: DOWN
+# Switching the user discards the first user's token: the next request asks the
+# token endpoint for the new user and is made with that user's token.
+- scrollUntilVisible:
+    element:
+      id: settings-user-id
+    direction: UP
+- tapOn:
+    id: settings-user-id
+- eraseText: 60
+- inputText: token-flow-second-user
+- pressKey: Enter
+- tapOn:
+    id: settings-close
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: lentils
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 30000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /api/january/client-token
+      END_USER: token-flow-second-user
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/foods
+      END_USER: token-flow-second-user

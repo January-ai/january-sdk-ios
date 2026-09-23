@@ -1,0 +1,122 @@
+appId: ai.january.partner.demo
+name: Live - connection, suggestions, food search, food detail, glucose, and alternatives
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+- takeScreenshot: live-90-01-launch
+# Settings shows the token endpoint connection.
+- tapOn:
+    id: settings-button
+- extendedWaitUntil:
+    visible:
+      id: settings-sheet
+    timeout: 15000
+- assertVisible: Client token provider
+- takeScreenshot: live-90-02-settings
+- tapOn:
+    id: settings-close
+# Suggestions while typing a food name.
+- tapOn:
+    id: search-input
+- inputText: "${typeof SUGGEST_QUERY === 'undefined' ? 'banan' : SUGGEST_QUERY}"
+- extendedWaitUntil:
+    visible:
+      id: autocomplete-suggestions
+    timeout: 30000
+- takeScreenshot: live-90-03-suggestions
+- tapOn:
+    id: autocomplete-result-0
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 30000
+- takeScreenshot: live-90-04-suggestion-results
+- tapOn:
+    id: search-clear
+# A food search shows the same first result as the API.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: search
+      QUERY: greek yogurt
+- tapOn:
+    id: search-input
+- inputText: greek yogurt
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 30000
+- assertVisible:
+    id: food-result-0
+    text: "${output.live.firstFoodPattern}"
+- takeScreenshot: live-90-05-search-results
+# Food detail: nutrition for the chosen serving, then its glucose response.
+- tapOn:
+    id: food-result-0
+- extendedWaitUntil:
+    visible:
+      id: food-detail-screen
+    timeout: 30000
+- assertVisible:
+    id: food-macros
+- takeScreenshot: live-90-06-food-detail
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-check-glucose
+- tapOn:
+    id: food-check-glucose
+- extendedWaitUntil:
+    visible:
+      id: food-glucose-result
+    timeout: 60000
+- takeScreenshot: live-90-07-food-glucose
+- tapOn:
+    text: Close glucose response
+# Alternatives: results, or the empty state when nothing fits.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-alternatives
+- tapOn:
+    id: food-alternatives
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: alternatives-refresh
+- tapOn:
+    id: alternatives-refresh
+- extendedWaitUntil:
+    visible:
+      id: "alternatives-(results|empty)"
+    timeout: 90000
+- assertNotVisible:
+    id: alternatives-error
+- takeScreenshot: live-90-08-alternatives
+- tapOn:
+    text: Close alternatives
+# A branded search.
+- tapOn:
+    text: Search
+- extendedWaitUntil:
+    visible:
+      id: search-screen
+    timeout: 15000
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: search
+      QUERY: greek yogurt
+      TYPE: branded
+- tapOn:
+    id: category-branded
+- tapOn:
+    id: search-submit
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+      text: "${output.live.firstFoodPattern}"
+    timeout: 30000
+- takeScreenshot: live-90-09-branded-results

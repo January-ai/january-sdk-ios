@@ -52,11 +52,17 @@ All initializers resolve an omitted or blank timezone to
 | `foodLogs` | `update(_:)` | Update a food log |
 | `foodLogs` | `delete(_:)` | Delete a food log |
 | `glucose` | `predict(_:)` | Predict glucose impact |
+| `waterLogs` | `create(_:)` | Log an amount of water |
+| `waterLogs` | `list(_:)` | Daily water totals for a date range |
+| `waterLogs` | `delete(_:)` | Delete a water log |
+| `weightLogs` | `create(_:)` | Log a weight measurement |
+| `weightLogs` | `list(_:)` | Latest weight per day for a date range |
 
 All resource calls use Swift concurrency, are `async throws`, and may throw `JanuaryError` or preserve `CancellationError`.
 
 `JanuaryClient` applies its configured `PartnerUserContext` automatically to
-`foods`, `restaurants`, `foodAnalysis`, `foodLogs`, and `glucose`. There is no
+`foods`, `restaurants`, `foodAnalysis`, `foodLogs`, `glucose`, `waterLogs`, and
+`weightLogs`. There is no
 second user-client object and no need to repeat the ID in individual requests.
 The public client always targets January production and exposes no API-origin
 override.
@@ -82,3 +88,7 @@ The SDK uses typed wrappers to prevent identifier mixups:
 | Food-log create/update | `FoodLog` |
 | Food-log list | `ListFoodLogsResponse` |
 | Glucose prediction | `GlucosePrediction` |
+| Water-log create | `WaterLog` |
+| Water-log list | `ListWaterLogsResponse` |
+| Weight-log create | `WeightLog` |
+| Weight-log list | `ListWeightLogsResponse` |

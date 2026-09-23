@@ -1,8 +1,16 @@
 # January iOS Demo
 
 This January-owned integration harness demonstrates food and restaurant
-discovery, meal-photo analysis, food logs, and glucose prediction with the
-`January` Swift package.
+discovery, meal-photo analysis, food logs, a per-day Tracking dashboard (the
+day's meals with their nutrient totals, water, and weight, plus week, month,
+and year charts of water and weight), and glucose prediction with the `January`
+Swift package.
+
+The Tracking charts end today in the user's timezone. Water shows daily totals
+as bars (monthly totals for the year) in the water card's unit; weight shows
+each day's latest weight as a line in the weight card's unit. A list request
+returns at most 100 days, so the year view requests spans of up to 90 days and
+merges them (see `Tracking/TrackingChartData.swift`).
 
 ## Requirements
 
@@ -40,6 +48,15 @@ Leave the server running, open `JanuaryPartnerDemo.xcodeproj`, select the
 `JanuaryPartnerDemo` scheme and an iOS Simulator, then press **Run**. Search for
 `banana` to make the first SDK request.
 
+Both values can also be passed as launch arguments, for example to an installed
+simulator build:
+
+```sh
+xcrun simctl launch booted ai.january.partner.demo \
+  -JANUARY_PARTNER_TOKEN_URL http://127.0.0.1:8787/api/january/client-token \
+  -JANUARY_END_USER_ID january-sdk-demo-user
+```
+
 ## Production authentication
 
 A real partner backend must authenticate the app session before minting a token
@@ -60,7 +77,9 @@ posts to the configured endpoint, supplies the selected end-user ID for local
 relay testing, and decodes the server response for the SDK. It also supports an
 optional authorization value for a relay that is reachable from another device.
 
-You can override the end-user ID and timezone from the in-app Settings sheet.
+You can override the end-user ID and timezone from the in-app Settings sheet;
+every request after the change is made for that user and timezone. A new
+end-user ID applies when you press Return or close Settings.
 The Scan tab can use the bundled sample meal on the simulator; camera capture is
 available on a physical device.
 
@@ -75,8 +94,13 @@ set `JANUARY_PARTNER_TOKEN_URL` to its HTTPS token URL, and set
 `JANUARY_PARTNER_SESSION_TOKEN` to its `RELAY_TOKEN`. This is for development
 and testing only, not production authentication.
 
-The visual tokens, reusable SwiftUI components, layout rules, and screen
-requirements are documented in [DESIGN_SPEC.md](DESIGN_SPEC.md).
+## End-to-end tests
+
+The Maestro suite in [`.maestro`](.maestro/README.md) drives every screen of the
+demo against a local fixture server. Its `live` flows run the same journeys
+against the January API through the local token relay and check each change
+they make against the API; see
+[Live flows](.maestro/README.md#live-flows) for how to run them.
 
 The Search tab includes a microphone button for every text-based search mode.
 It demonstrates `VoiceCaptureSession` permission handling, live recording

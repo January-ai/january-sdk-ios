@@ -1,0 +1,54 @@
+appId: ai.january.partner.demo
+name: Food name suggestions, and a late suggestion response never covers submitted results
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: search-input
+    timeout: 15000
+# The fixture suggests foods for queries that start with "fix".
+- tapOn:
+    id: search-input
+- inputText: fixture
+- extendedWaitUntil:
+    visible:
+      id: autocomplete-suggestions
+    timeout: 15000
+- assertVisible: Fixture lentils
+- tapOn:
+    id: autocomplete-result-0
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 15000
+- assertNotVisible:
+    id: autocomplete-suggestions
+- assertVisible: Fixture oatmeal
+# Regression: submitting while a suggestion request is still in flight used to
+# reopen the suggestion list over the results when that response arrived.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/foods/autocomplete
+      DELAY: "4"
+- tapOn:
+    id: search-clear
+- tapOn:
+    id: search-input
+- inputText: fixture
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: search-results
+    timeout: 15000
+# Outlast the delayed suggestion response.
+- runScript:
+    file: ../scripts/wait.js
+    env:
+      SECONDS: "6"
+- assertNotVisible:
+    id: autocomplete-suggestions
+- assertVisible:
+    id: food-result-0

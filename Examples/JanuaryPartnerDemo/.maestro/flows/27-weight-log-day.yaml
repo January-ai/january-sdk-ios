@@ -1,0 +1,59 @@
+appId: ai.january.partner.demo
+name: Tracking day view weight create in kilograms and previous day
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+- tapOn:
+    id: tab-tracking
+# Center the weight card's header; the log button sits just below it, above
+# the card's trend chart.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible: No weight logged
+# Switching to kilograms converts the 150 lb default to 68 kg.
+- tapOn:
+    id: weight-unit-kg
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible: 68 kg
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-weight
+# The previous day has no weight, and the day label leaves "Today".
+- scrollUntilVisible:
+    element:
+      id: logs-day-previous
+    direction: UP
+- tapOn:
+    id: logs-day-previous
+- assertVisible:
+    id: logs-day-today
+- assertNotVisible: Today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible: No weight logged
+- scrollUntilVisible:
+    element:
+      id: logs-day-today
+    direction: UP
+- tapOn:
+    id: logs-day-today
+- assertVisible: Today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-entry
+- assertVisible: 68 kg

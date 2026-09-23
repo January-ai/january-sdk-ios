@@ -1,0 +1,143 @@
+appId: ai.january.partner.demo
+name: Food logs loading and date ranges, then an empty editor, a failed save, and a retried save
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-food-logs
+    timeout: 15000
+# A held refresh of an empty list shows the loading row.
+- tapOn:
+    id: tab-food-logs
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-refresh
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      HOLD: "true"
+- tapOn:
+    id: food-logs-refresh
+- scrollUntilVisible:
+    element:
+      id: food-logs-loading
+    direction: DOWN
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+# Each date range lists that range.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: logs-range-today
+- tapOn:
+    id: logs-range-today
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+- tapOn:
+    id: logs-range-month
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+- tapOn:
+    id: logs-range-week
+- extendedWaitUntil:
+    visible:
+      id: food-logs-empty
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/food-logs
+# A new log starts empty and cannot be saved until it has a food.
+- scrollUntilVisible:
+    element:
+      id: food-log-create
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: food-log-create
+- extendedWaitUntil:
+    visible:
+      id: food-log-editor
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-editor-empty
+- assertVisible:
+    id: food-log-save
+    enabled: false
+- tapOn:
+    id: food-log-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: oatmeal
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 15000
+- tapOn:
+    id: food-picker-result-0
+- tapOn:
+    id: food-serving-add
+- assertNotVisible:
+    id: food-log-editor-empty
+# A failed save keeps the meal and offers a retry; the retry shows the saving state.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      STATUS: "500"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-save
+- tapOn:
+    id: food-log-save
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-save-retry
+- assertVisible:
+    id: food-log-save-error
+- assertVisible: Fixture oatmeal
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+      HOLD: "true"
+- tapOn:
+    id: food-log-save-retry
+- extendedWaitUntil:
+    visible:
+      id: food-log-save-loading
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
+# Saved: the editor closes and the list shows the new log.
+- extendedWaitUntil:
+    notVisible:
+      id: food-log-editor
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: food-log-0
+    direction: DOWN
+    timeout: 30000

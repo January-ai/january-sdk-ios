@@ -1,0 +1,139 @@
+appId: ai.january.partner.demo
+name: Tracking charts water and weight by week month and year then empty
+tags:
+  - fixture
+---
+- runFlow: ../bootstrap.yaml
+- extendedWaitUntil:
+    visible:
+      id: tab-tracking
+    timeout: 15000
+- runScript:
+    file: ../scripts/seed-history.js
+- tapOn:
+    id: tab-tracking
+# Water: daily bars for the week and month, monthly bars for the year. Each
+# chart's accessibility label summarizes the range it shows.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-chart
+- extendedWaitUntil:
+    visible:
+      text: "Water, last 7 days: 5 days logged, .* fl oz in total"
+    timeout: 15000
+- assertVisible:
+    id: water-chart-range-week
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-tracking-water-chart-week
+- tapOn:
+    id: water-chart-range-month
+- extendedWaitUntil:
+    visible:
+      text: "Water, last 30 days: 24 days logged, .*"
+    timeout: 15000
+# The year is read in spans of at most 90 days; the fixture, like the API,
+# returns at most 100 days per request, so all 12 months only fill in when the
+# spans are merged.
+- tapOn:
+    id: water-chart-range-year
+- extendedWaitUntil:
+    visible:
+      text: "Water, last 12 months: 12 months logged, .*"
+    timeout: 20000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-tracking-water-chart-year
+# Totals are requested in the card's unit.
+- tapOn:
+    id: water-chart-range-week
+# Segmented controls switch by their visible label on iOS; centering keeps the
+# control clear of the navigation bar.
+- scrollUntilVisible:
+    element:
+      text: cup
+    direction: UP
+    centerElement: true
+- tapOn:
+    text: cup
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-chart
+- extendedWaitUntil:
+    visible:
+      text: "Water, last 7 days: 5 days logged, .* cup in total"
+    timeout: 15000
+# Weight: one line across the range, converted to the card's unit.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- extendedWaitUntil:
+    visible:
+      text: "Weight, last 7 days: 5 entries, from .* lb to .* lb"
+    timeout: 15000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-tracking-weight-chart-week
+- tapOn:
+    id: weight-chart-range-month
+- extendedWaitUntil:
+    visible:
+      text: "Weight, last 30 days: 25 entries, .*"
+    timeout: 15000
+- tapOn:
+    id: weight-chart-range-year
+- extendedWaitUntil:
+    visible:
+      text: "Weight, last 12 months: .* entries, .*"
+    timeout: 20000
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-tracking-weight-chart-year
+- tapOn:
+    id: weight-chart-range-week
+- scrollUntilVisible:
+    element:
+      text: kg
+    direction: UP
+    centerElement: true
+- tapOn:
+    text: kg
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart
+- extendedWaitUntil:
+    visible:
+      text: "Weight, last 7 days: 5 entries, from .* kg to .* kg"
+    timeout: 15000
+# A range with nothing logged shows the empty state.
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/weight-logs
+      EMPTY: "true"
+- tapOn:
+    id: weight-chart-range-month
+- extendedWaitUntil:
+    visible:
+      id: weight-chart-empty
+    timeout: 15000
+- assertVisible: No weight logged in this range
+- assertNotVisible:
+    id: weight-chart
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-tracking-weight-chart-empty
+- runScript:
+    file: ../scripts/control-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
+      EMPTY: "true"
+# The water card sits above the weight card.
+- scrollUntilVisible:
+    element:
+      id: water-chart-range-month
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: water-chart-range-month
+- extendedWaitUntil:
+    visible:
+      id: water-chart-empty
+    timeout: 15000
+- assertVisible: No water logged in this range
+- assertNotVisible:
+    id: water-chart

@@ -56,3 +56,5 @@ let corrected = try await client.foodAnalysis.correct(
 ```
 
 `detections` is always an array; it may be empty. `mealName`, total nutrients, and glucose impact are optional.
+
+Pass the analysis back exactly as the API returned it: the correction needs every detection's food ID, serving ID, serving quantity, and quantity, and rejects a detection missing one of them before transport. A detection's serving `weightGrams` is forwarded when the API reported it.

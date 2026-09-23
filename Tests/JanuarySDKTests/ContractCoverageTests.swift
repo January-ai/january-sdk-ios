@@ -803,6 +803,7 @@ func everyRestaurantResponseVariantMapsThroughBothPublicOperations() async throw
 func everyPhotoScanningResponseVariantMapsThroughBothPublicOperations() async throws {
     let detection = FoodDetection(
         food: .init(
+            id: .init(rawValue: 42),
             name: "Food",
             nutrients: .init(),
             serving: .init(id: .init(rawValue: 7), quantity: 1, unit: "serving"),

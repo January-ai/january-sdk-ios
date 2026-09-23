@@ -55,4 +55,4 @@ The SDK itself handles `401 token_expired` by invalidating the cached token,
 calling the provider, and replaying the API operation once. Do not add another
 unbounded request-retry loop around SDK calls.
 
-Malformed provider tokens produce authentication errors with `invalid_client_token` or `invalid_client_token_expiration`. Exhausted provider fetches produce `client_token_provider_failed` without exposing the provider's underlying error text.
+Malformed provider tokens produce authentication errors with `invalid_client_token` or `invalid_client_token_expiration`. Exhausted provider fetches produce `client_token_provider_failed` without exposing the provider's underlying error text. A provider that throws `JanuaryTokenProviderError` with `retryable: false`, for example because your token endpoint refused the user, also produces an authentication error with `client_token_provider_failed`, carrying the message your provider supplied; no January API request is made.
