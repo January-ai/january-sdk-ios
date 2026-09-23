@@ -19,6 +19,11 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   matching the API.
 - `glucose.predict` rejects a fractional `age` before transport; the API takes
   whole years.
+- A token provider that throws `JanuaryTokenProviderError` with
+  `retryable: false` now fails the request with an authentication error
+  (`client_token_provider_failed`) carrying the provider's message. It was
+  reported as a transport failure ("The request to the January API failed."),
+  although no API request was made.
 - The demo app adds a Tracking tab: a per-day view of the day's food logs
   with their nutrient totals, the day's water total (in fl oz, ml, or cups),
   and the day's weight.

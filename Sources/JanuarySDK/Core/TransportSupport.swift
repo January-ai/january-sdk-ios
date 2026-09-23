@@ -37,6 +37,16 @@ internal func mapTransportError(_ error: any Error) -> any Error {
     if let januaryError = underlying as? JanuaryError {
         return januaryError
     }
+    // The app's token provider refused with an explicit, non-retryable failure (for example
+    // its token endpoint rejected the user). No January API request was made, so this is an
+    // authentication failure, not a networking one; the message is the one the provider wrote.
+    if let providerError = underlying as? JanuaryTokenProviderError {
+        return JanuaryError(
+            category: .authentication,
+            code: "client_token_provider_failed",
+            message: providerError.message
+        )
+    }
     if underlying is DecodingError {
         return JanuaryError(category: .decoding, message: "The January API returned an unreadable response.")
     }
