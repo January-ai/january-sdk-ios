@@ -981,7 +981,7 @@ private struct FoodGlucoseSheet: View {
                         Text(foodName)
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(AppPalette.ink)
-                        Text("\(quantity.formatted(.number.precision(.fractionLength(0...2)))) \(serving.unit)")
+                        Text("\(quantity.formatted(.number.precision(.fractionLength(0...2)))) \(serving.unit ?? "serving")")
                             .font(.subheadline)
                             .monospacedDigit()
                             .foregroundStyle(AppPalette.muted)
