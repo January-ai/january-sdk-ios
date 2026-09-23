@@ -132,11 +132,16 @@ tags:
       STATUS: "200"
 - tapOn:
     id: water-chart-retry
-# The empty chart replaces the taller error card, so it starts above the retry button.
+# The shorter empty chart replaces the error card and the screen shifts, so find
+# it from the water card's header.
 - scrollUntilVisible:
     element:
-      id: water-chart-empty
+      id: water-total
     direction: UP
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-chart-empty
 # Slow chart requests show each chart's loading state.
 - runScript:
     file: ../scripts/control-fixture.js
