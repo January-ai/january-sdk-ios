@@ -31,8 +31,30 @@ tags:
 - extendedWaitUntil:
     visible: 8 fl oz
     timeout: 15000
-# Another day never shows this day's total or offers to delete its log, even
-# when that day's water cannot be loaded.
+- scrollUntilVisible:
+    element:
+      id: water-log-delete
+    direction: UP
+- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-water
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    visible: No water logged
+    timeout: 15000
+- assertNotVisible:
+    id: water-log-delete
+# Log again, then look at another day: it never shows this day's total or
+# offers to delete its log, even when that day's water cannot be loaded, and
+# coming back no longer offers the delete.
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible: 8 fl oz
+    timeout: 15000
 - runScript:
     file: ../scripts/control-fixture.js
     env:
@@ -73,16 +95,6 @@ tags:
       TARGET_ID: water-total
 - extendedWaitUntil:
     visible: 8 fl oz
-    timeout: 15000
-- scrollUntilVisible:
-    element:
-      id: water-log-delete
-    direction: UP
-- takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-water
-- tapOn:
-    id: water-log-delete
-- extendedWaitUntil:
-    visible: No water logged
     timeout: 15000
 - assertNotVisible:
     id: water-log-delete

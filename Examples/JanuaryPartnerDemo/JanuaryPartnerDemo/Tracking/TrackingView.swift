@@ -18,8 +18,8 @@ struct TrackingView: View {
     @State private var waterValue = 8.0
     @State private var waterUnit = VolumeUnit.fluidOunces
     @State private var waterTotal: Volume?
-    /// The water log created last in this session, with the user, timezone, and day it was
-    /// logged for (`loadTaskID`); "Delete last" is offered only for that same user and day.
+    /// The water log created last on this screen, with the user, timezone, and day it was logged
+    /// for (`loadTaskID`); "Delete last" is offered only while those stay the same.
     @State private var lastWaterLog: (log: WaterLog, key: String)?
     @State private var waterError: Error?
     @State private var isLoggingWater = false
@@ -155,9 +155,9 @@ struct TrackingView: View {
                     .accessibilityIdentifier("settings-button")
             }
             .task(id: loadTaskID) {
-                // Nothing from the previous user or day stays on screen while this one loads,
-                // and "Delete last" belongs to the user and day it was logged for.
-                logs = []; summary = nil; waterTotal = nil; dayWeight = nil
+                // Nothing from the previous user or day stays on screen while this one loads, and
+                // "Delete last" ends: it is offered only right after logging, for that user and day.
+                logs = []; summary = nil; waterTotal = nil; dayWeight = nil; lastWaterLog = nil
                 error = nil; waterError = nil; weightError = nil
                 guard userID != nil else { return }
                 await load()
