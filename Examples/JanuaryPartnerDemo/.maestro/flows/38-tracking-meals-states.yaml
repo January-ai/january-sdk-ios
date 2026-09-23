@@ -95,11 +95,11 @@ tags:
 - assertNotVisible:
     id: tracking-food-logs-error
 # The day picker: back a day, forward again, and the label follows.
+# The day picker sits just below the user card.
 - scrollUntilVisible:
     element:
-      id: logs-day-label
+      id: food-log-user-card
     direction: UP
-    centerElement: true
 - assertVisible:
     id: logs-day-label
     text: Today.*

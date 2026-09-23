@@ -56,10 +56,7 @@ def logged_on(log, query):
     """Whether a log was eaten within the request's start_date..end_date in its timezone."""
     start, end = query.get("start_date"), query.get("end_date")
     if not start or not end: return True
-    try: zone = ZoneInfo(query.get("timezone", "UTC"))
-    except Exception: zone = timezone.utc
-    eaten = datetime.fromisoformat(log["eaten_at"].replace("Z", "+00:00")).astimezone(zone).date().isoformat()
-    return start <= eaten <= end
+    return start <= local_day(log["eaten_at"], query) <= end
 
 def food_log(name="Fixture breakfast", foods=None, eaten_at=None):
     """One saved log with the foods a create or update sent (food 102 is the lentils), or the oatmeal."""
@@ -91,10 +88,16 @@ LIST_LIMIT = 100
 def now_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
 
+def request_zone(query):
+    try: return ZoneInfo(query.get("timezone", "UTC"))
+    except Exception: return timezone.utc
+
 def local_today(query):
-    try: zone = ZoneInfo(query.get("timezone", "UTC"))
-    except Exception: zone = timezone.utc
-    return datetime.now(zone).date().isoformat()
+    return datetime.now(request_zone(query)).date().isoformat()
+
+def local_day(timestamp, query):
+    """The request timezone's calendar date of an ISO-8601 timestamp."""
+    return datetime.fromisoformat(timestamp.replace("Z", "+00:00")).astimezone(request_zone(query)).date().isoformat()
 
 def scaled_nutrients(count):
     return {key: {"value": amount["value"] * count, "unit": amount["unit"]} for key, amount in NUTRIENTS.items()}
@@ -123,19 +126,23 @@ def history_weight(days_ago):
     kilograms = round(70 + days_ago * 0.012 + 0.4 * math.sin(days_ago / 2.5), 1)
     return {"value": round(kilograms * LB_PER_KG, 1), "unit": "lb"} if days_ago % 10 == 0 else {"value": kilograms, "unit": "kg"}
 
-def daily_items(query, today_item, history_item):
-    """One item per local day inside start_date..end_date, oldest first, capped at the most recent
-    LIST_LIMIT days like the API. Today comes from logs created in this run; earlier days come from
-    the seeded history (when seeded)."""
+def daily_items(query, day_item):
+    """One item per local day inside start_date..end_date that has something logged, oldest first,
+    capped at the most recent LIST_LIMIT days like the API. day_item(date, days_ago) combines the
+    logs created in this run for that local date with the seeded history (days before today, when
+    seeded)."""
     today = datetime.fromisoformat(local_today(query)).date()
-    start = query.get("start_date", today.isoformat()); end = query.get("end_date", today.isoformat())
-    items = []
-    if STATE["history"]:
-        for days_ago in range(HISTORY_DAYS, 0, -1):
-            date = (today - timedelta(days=days_ago)).isoformat()
-            if start <= date <= end and (item := history_item(date, days_ago)): items.append(item)
-    if start <= today.isoformat() <= end and (item := today_item(today.isoformat())): items.append(item)
+    start = datetime.fromisoformat(query.get("start_date", today.isoformat())).date()
+    end = datetime.fromisoformat(query.get("end_date", today.isoformat())).date()
+    items, day = [], start
+    while day <= end:
+        if item := day_item(day.isoformat(), (today - day).days): items.append(item)
+        day += timedelta(days=1)
     return items[-LIST_LIMIT:]
+
+def seeded(days_ago):
+    """Whether the seeded history covers a day that many days before today."""
+    return STATE["history"] and 0 < days_ago <= HISTORY_DAYS
 
 def volume(amount, unit):
     """Converts a logged {value, unit} to the unit a listing asks for."""
@@ -207,38 +214,42 @@ class Handler(BaseHTTPRequestHandler):
             if self.command == "GET":
                 result = {"items": [{key: value for key, value in log.items() if key != "user"}
                                     for log in visible(STATE["logs"], user) if logged_on(log, query)]}
-            elif self.command == "DELETE": STATE["logs"] = [log for log in STATE["logs"] if log not in visible(STATE["logs"], user)]; return self.respond({}, 204)
+            elif self.command == "DELETE":
+                log_id = path.rsplit("/", 1)[1]
+                STATE["logs"] = [log for log in STATE["logs"] if not (log["id"] == log_id and log in visible(STATE["logs"], user))]
+                return self.respond({}, 204)
             else:
                 result = food_log(body.get("name") or "Fixture breakfast", body.get("foods"), body.get("eaten_at"))
                 STATE["logs"] = [log for log in STATE["logs"] if log not in visible(STATE["logs"], user)] + [dict(result, user=user)]
         elif "/water-logs" in path:
-            # Every log lands on today's local date; one daily total per day in the requested unit.
+            # One daily total per local date (in the request's timezone), in the requested unit:
+            # the logs consumed that day plus the seeded history.
             if self.command == "GET":
                 unit = query.get("unit", "fl_oz")
-                def today_water(date):
-                    mine = visible(STATE["water"], user)
-                    if not mine: return None
-                    return {"date": date, "total": {"value": round(sum(volume(entry["amount"], unit) for entry in mine), 1), "unit": unit}}
-                def past_water(date, days_ago):
-                    milliliters = history_water(days_ago)
-                    return None if milliliters is None else {"date": date, "total": {"value": round(volume({"value": milliliters, "unit": "ml"}, unit), 1), "unit": unit}}
-                result = {"items": [] if empty else daily_items(query, today_water, past_water)}
+                def day_water(date, days_ago):
+                    amounts = [volume(entry["amount"], unit) for entry in visible(STATE["water"], user) if local_day(entry["consumed_at"], query) == date]
+                    history = history_water(days_ago) if seeded(days_ago) else None
+                    if history is not None: amounts.append(volume({"value": history, "unit": "ml"}, unit))
+                    return {"date": date, "total": {"value": round(sum(amounts), 1), "unit": unit}} if amounts else None
+                result = {"items": [] if empty else daily_items(query, day_water)}
             elif self.command == "DELETE":
                 log_id = path.rsplit("/", 1)[1]; STATE["water"] = [entry for entry in STATE["water"] if entry["id"] != log_id or entry.get("user") != user]
                 return self.respond({}, 204)
             else:
-                result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "consumed_at": now_iso()}
+                result = {"id": f"water-log-{len(STATE['water']) + 1}", "amount": body.get("amount"), "consumed_at": body.get("consumed_at") or now_iso()}
                 STATE["water"].append(dict(result, user=user))
         elif "/weight-logs" in path:
-            # The latest measurement stands for today's local date, in the unit it was logged in.
+            # Each local date's latest measurement, in the unit it was logged in, or else the
+            # seeded history's.
             if self.command == "GET":
-                def today_weight(date):
-                    mine = visible(STATE["weights"], user)
-                    return {"date": date, "weight": mine[-1]["weight"]} if mine else None
-                def past_weight(date, days_ago): return {"date": date, "weight": weight} if (weight := history_weight(days_ago)) else None
-                result = {"items": [] if empty else daily_items(query, today_weight, past_weight)}
+                def day_weight(date, days_ago):
+                    measured = sorted((entry["measured_at"], index, entry["weight"]) for index, entry in enumerate(visible(STATE["weights"], user))
+                                      if local_day(entry["measured_at"], query) == date)
+                    weight = measured[-1][2] if measured else (history_weight(days_ago) if seeded(days_ago) else None)
+                    return {"date": date, "weight": weight} if weight else None
+                result = {"items": [] if empty else daily_items(query, day_weight)}
             else:
-                result = {"weight": body.get("weight"), "measured_at": now_iso()}
+                result = {"weight": body.get("weight"), "measured_at": body.get("measured_at") or now_iso()}
                 STATE["weights"].append(dict(result, user=user))
         else: return self.respond({"code": "not_found", "message": f"Unmapped fixture route {path}"}, 404)
         created = self.command == "POST" and (path.endswith("/food-logs") or path.endswith("/water-logs") or path.endswith("/weight-logs"))

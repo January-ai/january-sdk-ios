@@ -57,9 +57,11 @@ onFlowComplete:
     env:
       ROUTE: /v1.2/water-logs
       HOLD: "true"
+# Switch with the screen scrolled to the top, so the checks below start from a
+# known position while the tab reloads for the new user.
 - scrollUntilVisible:
     element:
-      id: settings-button
+      id: food-log-user-card
     direction: UP
 - tapOn:
     id: settings-button
@@ -71,11 +73,11 @@ onFlowComplete:
 - tapOn:
     id: settings-close
 # Nothing of the first user's stays: the cards and the chart load, and there is
-# nothing to delete. (The screen is still scrolled down to the weight chart.)
-- scrollUntilVisible:
-    element:
-      id: water-total
-    direction: UP
+# nothing to delete.
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
 - assertVisible:
     id: water-total
     text: Loading water…
