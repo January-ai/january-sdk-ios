@@ -5,6 +5,8 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-23
+
 - Added `waterLogs` (`create`, `list`, `delete`) and `weightLogs` (`create`,
   `list`) for water intake and body-weight logging, with daily totals over a
   date range. New models: `VolumeUnit`, `WaterAmount`, `Volume`, `WaterLog`,
