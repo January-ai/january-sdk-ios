@@ -67,8 +67,11 @@ logging again later the same day replaces what that day shows.
 let log = try await client.weightLogs.create(weight: Weight(value: 68.5, unit: .kilograms))
 ```
 
-Creating a weight log is not idempotent: the SDK never retries it
-automatically, and a retried request records a second measurement.
+Creating a weight log is not idempotent: a retried request records a second
+measurement, so the SDK does not retry a failed create. The one exception is
+the standard replay after a `401 token_expired` response, which the API
+refused before recording anything (see
+[Retries and concurrency](../reference/retries-and-concurrency.md#january-api-replay)).
 
 ## Daily weights
 
