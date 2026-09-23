@@ -159,6 +159,28 @@ enum TrackingChartData {
         }
     }
 
+    /// Milliliters in one `"ml"`, `"fl_oz"` (US fluid ounce), or `"cup"` (US cup, 8 fluid ounces),
+    /// the SDK's `VolumeUnit` raw values.
+    static let millilitersPerVolumeUnit: [String: Double] = ["ml": 1, "fl_oz": 29.5735295625, "cup": 236.5882365]
+
+    /// Converts an amount the user is about to log to another volume unit, rounded the way the
+    /// amount field shows it (whole milliliters, tenths of a fluid ounce or cup), so the amount
+    /// logged is the amount shown.
+    static func convertVolumeEntry(_ value: Double, from source: String, to target: String) -> Double {
+        guard source != target,
+              let sourceMilliliters = millilitersPerVolumeUnit[source],
+              let targetMilliliters = millilitersPerVolumeUnit[target] else { return value }
+        let converted = value * sourceMilliliters / targetMilliliters
+        return target == "ml" ? converted.rounded() : (converted * 10).rounded() / 10
+    }
+
+    /// Converts a weight the user is about to log between `"kg"` and `"lb"`, rounded to tenths as
+    /// the weight field shows it.
+    static func convertWeightEntry(_ value: Double, from source: String, to target: String) -> Double {
+        guard source != target else { return value }
+        return (convertWeight(value, from: source, to: target) * 10).rounded() / 10
+    }
+
     /// Weight points in `unit`, oldest first, from `(day, value, unit)` entries.
     static func weightPoints(_ entries: [(day: String, value: Double, unit: String)], in unit: String, calendar: Calendar) -> [TrackingWeightPoint] {
         entries

@@ -51,7 +51,8 @@ struct WeightTrendChart: View {
     let revision: Int
 
     @State private var range = TrackingChartRange.week
-    @State private var loaded: (range: TrackingChartRange, items: [DailyWeight])?
+    /// The last loaded range, for the user it was loaded for.
+    @State private var loaded: (context: PartnerUserContext, range: TrackingChartRange, items: [DailyWeight])?
     @State private var error: Error?
 
     private struct LoadKey: Hashable { let context: PartnerUserContext; let range: TrackingChartRange; let revision: Int }
@@ -66,7 +67,7 @@ struct WeightTrendChart: View {
                     identifier: "weight-chart-error",
                     retryIdentifier: "weight-chart-retry"
                 )
-            } else if let loaded, loaded.range == range {
+            } else if let loaded, loaded.context == context, loaded.range == range {
                 let points = TrackingChartData.weightPoints(
                     loaded.items.map { (day: $0.date, value: $0.weight.value, unit: $0.weight.unit.rawValue) },
                     in: unit.rawValue,
@@ -134,7 +135,7 @@ struct WeightTrendChart: View {
                 pages.append(try await client.weightLogs.list(.init(start: span.start, end: span.end, user: context)).items)
             }
             guard !Task.isCancelled else { return }
-            loaded = (range, TrackingChartData.merge(pages, key: \.date))
+            loaded = (context, range, TrackingChartData.merge(pages, key: \.date))
         } catch {
             guard !Task.isCancelled else { return }
             self.error = error
@@ -155,7 +156,8 @@ struct WaterTrendChart: View {
     let revision: Int
 
     @State private var range = TrackingChartRange.week
-    @State private var loaded: (range: TrackingChartRange, unit: VolumeUnit, items: [DailyWaterTotal])?
+    /// The last loaded range and unit, for the user they were loaded for.
+    @State private var loaded: (context: PartnerUserContext, range: TrackingChartRange, unit: VolumeUnit, items: [DailyWaterTotal])?
     @State private var error: Error?
 
     private struct LoadKey: Hashable { let context: PartnerUserContext; let range: TrackingChartRange; let unit: VolumeUnit; let revision: Int }
@@ -170,7 +172,7 @@ struct WaterTrendChart: View {
                     identifier: "water-chart-error",
                     retryIdentifier: "water-chart-retry"
                 )
-            } else if let loaded, loaded.range == range, loaded.unit == unit {
+            } else if let loaded, loaded.context == context, loaded.range == range, loaded.unit == unit {
                 let bars = TrackingChartData.waterBars(
                     totals: Dictionary(loaded.items.map { ($0.date, $0.total.value) }, uniquingKeysWith: { _, last in last }),
                     range: range,
@@ -228,7 +230,7 @@ struct WaterTrendChart: View {
                 pages.append(try await client.waterLogs.list(.init(start: span.start, end: span.end, unit: unit, user: context)).items)
             }
             guard !Task.isCancelled else { return }
-            loaded = (range, unit, TrackingChartData.merge(pages, key: \.date))
+            loaded = (context, range, unit, TrackingChartData.merge(pages, key: \.date))
         } catch {
             guard !Task.isCancelled else { return }
             self.error = error

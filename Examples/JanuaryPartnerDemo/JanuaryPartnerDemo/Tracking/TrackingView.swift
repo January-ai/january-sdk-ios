@@ -18,9 +18,12 @@ struct TrackingView: View {
     @State private var waterValue = 8.0
     @State private var waterUnit = VolumeUnit.fluidOunces
     @State private var waterTotal: Volume?
-    @State private var lastWaterLog: WaterLog?
+    /// The water log created last in this session, with the user, timezone, and day it was
+    /// logged for (`loadTaskID`); "Delete last" is offered only for that same user and day.
+    @State private var lastWaterLog: (log: WaterLog, key: String)?
     @State private var waterError: Error?
     @State private var isLoggingWater = false
+    @State private var isLoadingWater = false
 
     @State private var weightValue = 150.0
     @State private var weightUnit = WeightUnit.pounds
@@ -116,7 +119,7 @@ struct TrackingView: View {
                             if !logs.isEmpty {
                                 ForEach(Array(logs.enumerated()), id: \.element.id) { index, log in
                                     NavigationLink {
-                                        FoodLogDetailView(client: client, log: log, context: context) { Task { await load() } }
+                                        FoodLogDetailView(client: client, log: log, context: context) { Task { await loadMeals() } }
                                     } label: {
                                         FoodLogRow(log: log).appCard()
                                     }
@@ -152,12 +155,11 @@ struct TrackingView: View {
                     .accessibilityIdentifier("settings-button")
             }
             .task(id: loadTaskID) {
-                guard userID != nil else {
-                    logs = []; summary = nil; waterTotal = nil; dayWeight = nil
-                    error = nil; waterError = nil; weightError = nil
-                    return
-                }
-                logs = []; summary = nil
+                // Nothing from the previous user or day stays on screen while this one loads,
+                // and "Delete last" belongs to the user and day it was logged for.
+                logs = []; summary = nil; waterTotal = nil; dayWeight = nil
+                error = nil; waterError = nil; weightError = nil
+                guard userID != nil else { return }
                 await load()
             }
         }
@@ -207,7 +209,7 @@ struct TrackingView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(waterTotal.map { volumeText($0.value, $0.unit) } ?? "No water logged")
+                    Text(waterHeadline)
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppPalette.ink)
                         .accessibilityIdentifier("water-total")
@@ -223,11 +225,18 @@ struct TrackingView: View {
                 ) { unitTitle($0) }
                     .frame(maxWidth: 200)
                     .accessibilityLabel("Water units")
+                    // Keep the amount to log the same volume, so it stays within the new unit's range.
+                    .onChange(of: waterUnit) { previous, unit in
+                        waterValue = TrackingChartData.convertVolumeEntry(waterValue, from: previous.rawValue, to: unit.rawValue)
+                        // Only the water total depends on the unit.
+                        waterTotal = nil; waterError = nil
+                        Task { await loadWater() }
+                    }
             }
             if let waterError {
                 ErrorNotice(
                     error: waterError,
-                    retry: { Task { await load() } },
+                    retry: { Task { await loadWater() } },
                     identifier: "water-error",
                     retryIdentifier: "water-retry"
                 )
@@ -251,7 +260,7 @@ struct TrackingView: View {
                     Task { await logWater() }
                 }
                 .accessibilityIdentifier("water-log-create")
-                if lastWaterLog != nil {
+                if lastWaterLog?.key == loadTaskID {
                     Button("Delete last", role: .destructive) { Task { await deleteLastWater() } }
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppPalette.rustText)
@@ -278,7 +287,7 @@ struct TrackingView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(dayWeight.map(weightText) ?? "No weight logged")
+                    Text(weightHeadline)
                         .font(AppTypography.bodyStrong)
                         .foregroundStyle(AppPalette.ink)
                         .accessibilityIdentifier("weight-entry")
@@ -294,11 +303,14 @@ struct TrackingView: View {
                 ) { $0.rawValue }
                     .frame(maxWidth: 150)
                     .accessibilityLabel("Weight units")
+                    .onChange(of: weightUnit) { previous, unit in
+                        weightValue = TrackingChartData.convertWeightEntry(weightValue, from: previous.rawValue, to: unit.rawValue)
+                    }
             }
             if let weightError {
                 ErrorNotice(
                     error: weightError,
-                    retry: { Task { await load() } },
+                    retry: { Task { await loadWeight() } },
                     identifier: "weight-error",
                     retryIdentifier: "weight-retry"
                 )
@@ -358,7 +370,7 @@ struct TrackingView: View {
         isToday ? .now : (calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day)
     }
     private var loadTaskID: String {
-        "\(userSession.endUserID)|\(userSession.timezone)|\(dayQuery)|\(waterUnit.rawValue)"
+        "\(userSession.endUserID)|\(userSession.timezone)|\(dayQuery)"
     }
 
     private func shiftDay(by days: Int) {
@@ -366,48 +378,94 @@ struct TrackingView: View {
         day = min(next, .now)
     }
 
+    // Each load remembers the user, timezone, and day it was for (`loadTaskID`) and drops its
+    // result if they changed while it ran, so a slow or cancelled request for another user or
+    // day never lands on screen.
+
     @MainActor private func load() async {
+        guard context != nil else { return }
+        let key = loadTaskID
+        isLoading = true
+        await loadMeals()
+        await loadWater()
+        await loadWeight()
+        if key == loadTaskID { isLoading = false }
+    }
+
+    /// Reloads the day's food logs and their totals, for example after a log is edited or deleted.
+    @MainActor private func loadMeals() async {
         guard let context else { return }
-        isLoading = true; error = nil
-        let start = dayQuery, end = dayQuery
+        let key = loadTaskID, day = dayQuery
+        error = nil
         do {
-            logs = try await client.foodLogs.list(.init(start: start, end: end, user: context)).items
-            summary = try await client.foodLogs.getSummary(.init(start: start, end: end, user: context))
-        } catch { self.error = error }
+            let dayLogs = try await client.foodLogs.list(.init(start: day, end: day, user: context)).items
+            let daySummary = try await client.foodLogs.getSummary(.init(start: day, end: day, user: context))
+            guard key == loadTaskID else { return }
+            logs = dayLogs
+            summary = daySummary
+        } catch {
+            guard key == loadTaskID, !(error is CancellationError) else { return }
+            self.error = error
+        }
+    }
+
+    /// Reloads only the day's water total, so logging water costs one list request, not four.
+    @MainActor private func loadWater() async {
+        guard let context else { return }
+        let key = loadTaskID, day = dayQuery, unit = waterUnit
+        isLoadingWater = true
+        defer { if key == loadTaskID, unit == waterUnit { isLoadingWater = false } }
         do {
-            waterTotal = try await client.waterLogs.list(.init(start: start, end: end, unit: waterUnit, user: context)).items.first?.total
+            let total = try await client.waterLogs.list(.init(start: day, end: day, unit: unit, user: context)).items.first?.total
+            guard key == loadTaskID, unit == waterUnit else { return }
+            waterTotal = total
             waterError = nil
-        } catch { waterError = error }
+        } catch {
+            guard key == loadTaskID, unit == waterUnit, !(error is CancellationError) else { return }
+            waterError = error
+        }
+    }
+
+    /// Reloads only the day's weight.
+    @MainActor private func loadWeight() async {
+        guard let context else { return }
+        let key = loadTaskID, day = dayQuery
         do {
-            dayWeight = try await client.weightLogs.list(.init(start: start, end: end, user: context)).items.first?.weight
+            let weight = try await client.weightLogs.list(.init(start: day, end: day, user: context)).items.first?.weight
+            guard key == loadTaskID else { return }
+            dayWeight = weight
             weightError = nil
-        } catch { weightError = error }
-        isLoading = false
+        } catch {
+            guard key == loadTaskID, !(error is CancellationError) else { return }
+            weightError = error
+        }
     }
 
     @MainActor private func logWater() async {
         guard let context else { return }
         isLoggingWater = true; waterError = nil
         do {
-            lastWaterLog = try await client.waterLogs.create(.init(
+            let key = loadTaskID
+            let log = try await client.waterLogs.create(.init(
                 amount: .init(value: waterValue, unit: waterUnit),
                 consumedAtUTC: AppFormatting.apiDate.string(from: defaultMealTime),
                 user: context
             ))
+            lastWaterLog = (log, key)
             waterChartRevision += 1
-            await load()
+            await loadWater()
         } catch { waterError = error }
         isLoggingWater = false
     }
 
     @MainActor private func deleteLastWater() async {
-        guard let context, let lastWaterLog else { return }
+        guard let context, let lastWaterLog, lastWaterLog.key == loadTaskID else { return }
         waterError = nil
         do {
-            try await client.waterLogs.delete(.init(id: lastWaterLog.id, user: context))
+            try await client.waterLogs.delete(.init(id: lastWaterLog.log.id, user: context))
             self.lastWaterLog = nil
             waterChartRevision += 1
-            await load()
+            await loadWater()
         } catch { waterError = error }
     }
 
@@ -421,9 +479,21 @@ struct TrackingView: View {
                 user: context
             ))
             weightChartRevision += 1
-            await load()
+            await loadWeight()
         } catch { weightError = error }
         isLoggingWeight = false
+    }
+
+    private var waterHeadline: String {
+        if let waterTotal { return volumeText(waterTotal.value, waterTotal.unit) }
+        if isLoading || isLoadingWater { return "Loading water…" }
+        return waterError == nil ? "No water logged" : "Water total unavailable"
+    }
+
+    private var weightHeadline: String {
+        if let dayWeight { return weightText(dayWeight) }
+        if isLoading { return "Loading weight…" }
+        return weightError == nil ? "No weight logged" : "Weight unavailable"
     }
 
     private func unitTitle(_ unit: VolumeUnit) -> String {

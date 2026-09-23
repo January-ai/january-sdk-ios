@@ -95,6 +95,23 @@ final class TrackingChartDataTests: XCTestCase {
         XCTAssertEqual(TrackingChartData.convertWeight(70, from: "kg", to: "kg"), 70)
     }
 
+    func testSwitchingTheWaterUnitKeepsTheVolumeToLogWithinTheUnitsRange() {
+        // 8 fl oz is below the 30 ml minimum; switching units converts it instead of keeping 8.
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(8, from: "fl_oz", to: "ml"), 237)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(8, from: "fl_oz", to: "cup"), 1)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(237, from: "ml", to: "fl_oz"), 8)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(250, from: "ml", to: "cup"), 1.1)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(1.5, from: "cup", to: "ml"), 355)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(12.5, from: "fl_oz", to: "fl_oz"), 12.5)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(12.5, from: "fl_oz", to: "gallon"), 12.5)
+    }
+
+    func testSwitchingTheWeightUnitConvertsTheWeightToLogToTenths() {
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(150, from: "lb", to: "kg"), 68)
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(72.5, from: "kg", to: "lb"), 159.8)
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(72.54, from: "kg", to: "kg"), 72.54)
+    }
+
     func testWeightPointsConvertMixedUnitsAndSortByDay() {
         let points = TrackingChartData.weightPoints([
             (day: "2026-09-21", value: 154, unit: "lb"),
