@@ -143,6 +143,8 @@ final class TrackingChartDataTests: XCTestCase {
         XCTAssertEqual(TrackingChartData.weightSummary(points, range: .week, unit: "kg", locale: english),
                        "Weight, last 7 days: 3 entries, from 70.2 kg to 69.8 kg")
         XCTAssertEqual(TrackingChartData.weightSummary([], range: .month, unit: "kg", locale: english), "Weight, last 30 days: no entries")
+        // 250 typed in milliliters is logged as 8.5 fl oz after a switch, not as 250 fl oz.
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(250, from: "ml", to: "fl_oz"), 8.5)
 
         let bars = TrackingChartData.waterBars(totals: ["2026-09-21": 32, "2026-09-22": 16.5], range: .week, today: today, calendar: calendar)
         XCTAssertEqual(TrackingChartData.waterSummary(bars, range: .week, unit: "fl oz", locale: english),
@@ -152,3 +154,11 @@ final class TrackingChartDataTests: XCTestCase {
                        "Water, last 12 months: 1 month logged, 2 cup in total")
     }
 }
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(70, from: "kg", to: "lb"), 154.3)
+        XCTAssertEqual(TrackingChartData.convertWeightEntry(1, from: "lb", to: "kg"), 0.5)
+    }
+
+    func testSwitchingUnitsLeavesAnEmptyAmountEmpty() {
+        XCTAssertNil(TrackingChartData.convertVolumeEntry(nil, from: "ml", to: "fl_oz"))
+        XCTAssertNil(TrackingChartData.convertVolumeEntry(nil, from: "fl_oz", to: "cup"))
+        XCTAssertNil(TrackingChartData.convertWeightEntry(nil, from: "lb", to: "kg"))

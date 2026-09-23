@@ -5,6 +5,9 @@ struct EndAlignedNumberField: UIViewRepresentable {
     let value: String
     let allowsDecimal: Bool
     var accessibilityIdentifier: String? = nil
+    /// Changing it shows `value` even while the field is being edited. Change it when the value
+    /// changes for a reason other than typing, such as a unit switch, in the same update as the value.
+    var refreshID: AnyHashable? = nil
     let onValueChange: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -42,16 +45,20 @@ struct EndAlignedNumberField: UIViewRepresentable {
     func updateUIView(_ textField: UITextField, context: Context) {
         context.coordinator.parent = self
         textField.accessibilityIdentifier = accessibilityIdentifier
-        if !textField.isFirstResponder, textField.text != value {
+        let refreshed = context.coordinator.refreshID != refreshID
+        context.coordinator.refreshID = refreshID
+        if refreshed || !textField.isFirstResponder, textField.text != value {
             textField.text = value
         }
     }
 
     final class Coordinator: NSObject, UITextFieldDelegate {
         var parent: EndAlignedNumberField
+        var refreshID: AnyHashable?
 
         init(parent: EndAlignedNumberField) {
             self.parent = parent
+            refreshID = parent.refreshID
         }
 
         @objc func editingChanged(_ textField: UITextField) {

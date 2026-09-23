@@ -1,4 +1,5 @@
-// Checks the most recent request the fixture server received on a route: that it
+// Checks the most recent request the fixture server received on a route (with the
+// HTTP method METHOD, when set, since a list and a create share a path): that it
 // was made for END_USER (the fixture tokens end with the end-user ID, and token
 // requests send it in the January-End-User-ID header),
 // that the query parameter QUERY_KEY equals QUERY_VALUE, that the compact JSON
@@ -18,9 +19,11 @@ const response = http.get(control + '/__requests');
 if (!response.ok) {
   throw new Error('Reading the fixture requests failed: HTTP ' + response.status);
 }
-const matching = JSON.parse(response.body).filter((request) => request.path === ROUTE);
+const method = typeof METHOD === 'string' && METHOD ? METHOD : '';
+const matching = JSON.parse(response.body)
+  .filter((request) => request.path === ROUTE && (!method || request.method === method));
 if (matching.length === 0) {
-  throw new Error('The fixture server received no request on ' + ROUTE);
+  throw new Error('The fixture server received no ' + (method ? method + ' ' : '') + 'request on ' + ROUTE);
 }
 const last = matching[matching.length - 1];
 if (typeof END_USER === 'string' && END_USER) {

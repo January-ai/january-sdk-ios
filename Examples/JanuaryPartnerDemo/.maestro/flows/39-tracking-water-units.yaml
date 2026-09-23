@@ -38,6 +38,13 @@ tags:
       ROUTE: /v1.2/water-logs
       QUERY_KEY: unit
       QUERY_VALUE: ml
+# The converted amount is the one logged.
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      METHOD: POST
+      BODY_CONTAINS: '"value":237 && "unit":"ml"'
 # A typed amount is logged as typed; the keyboard's Done button closes it.
 - tapOn:
     id: water-amount
@@ -50,6 +57,12 @@ tags:
 - extendedWaitUntil:
     visible: 487 ml
     timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      METHOD: POST
+      BODY_CONTAINS: '"value":250 && "unit":"ml"'
 - scrollUntilVisible:
     element:
       id: water-log-delete
@@ -73,6 +86,9 @@ tags:
       ROUTE: /v1.2/water-logs
       QUERY_KEY: unit
       QUERY_VALUE: cup
+- assertVisible:
+    id: water-amount
+    text: "1.1"
 - scrollUntilVisible:
     element:
       id: water-log-create
@@ -82,6 +98,12 @@ tags:
 - extendedWaitUntil:
     visible: 2.1 cup
     timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      METHOD: POST
+      BODY_CONTAINS: '"value":1.1 && "unit":"cup"'
 - scrollUntilVisible:
     element:
       id: water-log-delete
@@ -97,3 +119,48 @@ tags:
 - extendedWaitUntil:
     visible: 8 fl oz
     timeout: 15000
+# A unit switched while the keyboard is open converts the typed amount on screen,
+# and that amount is the one logged: 250 typed as ml is 8.5 fl oz, not 250 fl oz.
+- tapOn:
+    id: water-unit-ml
+- tapOn:
+    id: water-amount
+- eraseText: 6
+- inputText: "250"
+- tapOn:
+    id: water-unit-fl_oz
+- assertVisible:
+    id: water-amount
+    text: "8.5"
+- tapOn:
+    text: Done
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-log-delete
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      METHOD: POST
+      BODY_CONTAINS: '"value":8.5 && "unit":"fl_oz"'
+# An emptied amount stays empty across a switch, and there is nothing to log.
+- tapOn:
+    id: water-amount
+- eraseText: 6
+- tapOn:
+    id: water-unit-cup
+- tapOn:
+    text: Done
+- assertVisible:
+    id: water-log-create
+    enabled: false
+- assertNotVisible:
+    id: water-amount
+    text: ".+"

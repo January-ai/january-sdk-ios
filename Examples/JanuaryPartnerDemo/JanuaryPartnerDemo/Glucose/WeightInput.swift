@@ -36,7 +36,9 @@ struct WeightInput: View {
                 EndAlignedNumberField(
                     value: formatNumber(displayedWeight.wrappedValue),
                     allowsDecimal: true,
-                    accessibilityIdentifier: "glucose-weight"
+                    accessibilityIdentifier: "glucose-weight",
+                    // A unit switch shows the converted weight even while the keyboard is open.
+                    refreshID: displayUnit
                 ) { value in
                     if let value = Double(value) { displayedWeight.wrappedValue = value }
                 }
