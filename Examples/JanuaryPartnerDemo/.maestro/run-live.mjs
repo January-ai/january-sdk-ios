@@ -7,7 +7,10 @@
 //   node Examples/JanuaryPartnerDemo/.maestro/run-live.mjs --end-user your-test-user
 //
 //   --end-user ID      required: the dedicated test user the flows write to
-//   --token-url URL    default: the local token relay
+//   --token-url URL    default: the local token relay; any endpoint must, like the local
+//                      relay, need no session token: the flows never pass credentials,
+//                      since the app would get them as launch arguments and Maestro
+//                      records its variables in its debug output
 //   --from NN          start at flow NN, e.g. --from 95 to resume
 //   --only NN,NN       run only these flows
 //   --pause SECONDS    wait between flows to spread the requests out (default 20)
@@ -94,6 +97,9 @@ function resumeCommand(from) {
 async function preflight() {
   const token = await fetch(tokenURL, { method: "POST", headers: { "January-End-User-ID": options.endUser } });
   if (token.status === 429) return { limited: `the token endpoint answered 429: ${await token.text()}` };
+  if (token.status === 401 || token.status === 403) {
+    throw new Error(`The token endpoint at ${tokenURL} requires a session token (HTTP ${token.status}). The live flows run only against an endpoint that needs none, such as the local relay.`);
+  }
   if (!token.ok) throw new Error(`The token endpoint at ${tokenURL} answered HTTP ${token.status}. Is it running?`);
   const { token: value } = await token.json();
   const probe = await fetch(

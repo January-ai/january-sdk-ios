@@ -113,7 +113,10 @@ about 35 in any minute; the food-log, water, and weight flows make most of
 them. Accounts also have a daily request allowance, so check yours before a
 run, or run the flows in parts with `--only`.
 
-`--token-url` points the flows at another token endpoint, and `TIMEZONE=...`
+`--token-url` points the flows at another token endpoint that, like the local
+relay, needs no session token: the flows pass no credentials, which the app
+would receive as launch arguments and Maestro would record in its debug
+output. `TIMEZONE=...`
 sets the timezone of the API checks when the simulator's differs from this
 machine's. The water flow first asks the API whether it accepts daily totals
 in cups: if it does, it logs and deletes a cup; if not, it checks that the

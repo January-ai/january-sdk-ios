@@ -3,7 +3,8 @@ appId: ai.january.partner.demo
 # as a fresh install, for the test user END_USER_ID.
 #
 #   -e END_USER_ID=...   required: a dedicated test user the flows may write to
-#   -e TOKEN_URL=...     default: the local token relay
+#   -e TOKEN_URL=...     default: the local token relay; like it, the endpoint must
+#                        need no session token (the flows pass no credentials)
 #   -e API_URL=...       Debug builds only: another API origin, for a rehearsal
 #                        against the fixture server
 #

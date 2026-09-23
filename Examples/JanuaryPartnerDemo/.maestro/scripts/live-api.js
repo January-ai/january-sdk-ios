@@ -30,8 +30,9 @@
 //
 // DAY may be the Tracking day label ("Today, 2026-09-22"); its date is used.
 // Without DAY, checks use today in TIMEZONE.
-// Environment: END_USER_ID (required), TOKEN_URL (default: the local token relay),
-// API_URL (default: the January API), TIMEZONE (default: this machine's).
+// Environment: END_USER_ID (required), TOKEN_URL (default: the local token relay;
+// it must need no session token, as the flows pass no credentials), API_URL
+// (default: the January API), TIMEZONE (default: this machine's).
 //
 // A 429 from the API stops the check with an error that starts with
 // "RATE_LIMITED", which run-live.mjs recognizes: it stops the run there and
@@ -61,6 +62,9 @@ function accessToken() {
   pace();
   const response = http.post(tokenURL, { headers: { 'January-End-User-ID': END_USER_ID }, body: '' });
   stopIfRateLimited(response, 'the token request');
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('The token endpoint requires a session token (HTTP ' + response.status + '); use one that needs none, such as the local relay.');
+  }
   if (!response.ok) throw new Error('The token endpoint answered HTTP ' + response.status);
   const body = JSON.parse(response.body);
   const seconds = Number(body.expiresIn || body.expires_in || 300);
