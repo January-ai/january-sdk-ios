@@ -12,13 +12,13 @@ tags:
     id: app-root
 - assertVisible:
     id: search-voice
-# A delayed search shows the button's loading state until results arrive. The
-# delay outlasts the few seconds Maestro waits for the screen to settle.
+# A search the fixture server holds shows the button's loading state until it is
+# released.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/foods
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: search-input
 - inputText: oatmeal
@@ -27,7 +27,11 @@ tags:
 - extendedWaitUntil:
     visible:
       id: search-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/foods
 - extendedWaitUntil:
     visible:
       id: search-results

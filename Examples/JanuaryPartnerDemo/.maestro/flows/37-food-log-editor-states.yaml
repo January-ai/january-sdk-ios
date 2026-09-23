@@ -8,7 +8,7 @@ tags:
     visible:
       id: tab-food-logs
     timeout: 15000
-# A slow refresh of an empty list shows the loading row.
+# A held refresh of an empty list shows the loading row.
 - tapOn:
     id: tab-food-logs
 - runFlow:
@@ -19,23 +19,22 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/food-logs
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: food-logs-refresh
 - scrollUntilVisible:
     element:
       id: food-logs-loading
     direction: DOWN
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
 - extendedWaitUntil:
     visible:
       id: food-logs-empty
     timeout: 15000
-- runScript:
-    file: ../scripts/control-fixture.js
-    env:
-      ROUTE: /v1.2/food-logs
-      DELAY: "0"
 # Each date range lists that range.
 - runFlow:
     file: ../scroll-to.yaml
@@ -121,23 +120,22 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/food-logs
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: food-log-save-retry
 - extendedWaitUntil:
     visible:
       id: food-log-save-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-logs
 # Saved: the editor closes and the list shows the new log.
 - extendedWaitUntil:
     notVisible:
       id: food-log-editor
     timeout: 20000
-- runScript:
-    file: ../scripts/control-fixture.js
-    env:
-      ROUTE: /v1.2/food-logs
-      DELAY: "0"
 - scrollUntilVisible:
     element:
       id: food-log-0

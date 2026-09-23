@@ -17,7 +17,7 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/food-logs
-      DELAY: "30"
+      HOLD: "true"
 - tapOn:
     id: tab-tracking
 - scrollUntilVisible:
@@ -39,10 +39,9 @@ tags:
     env:
       TARGET_ID: tracking-loading
 - runScript:
-    file: ../scripts/control-fixture.js
+    file: ../scripts/release-fixture.js
     env:
       ROUTE: /v1.2/food-logs
-      DELAY: "0"
 # The day's meal and its totals.
 - runFlow:
     file: ../scroll-to.yaml

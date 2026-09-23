@@ -34,12 +34,12 @@ tags:
     timeout: 15000
 - assertNotVisible:
     id: food-picker-suggestions
-# A slow search shows the loading row.
+# A held search shows the loading row.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/foods
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: food-picker-input
 - eraseText: 30
@@ -48,7 +48,11 @@ tags:
 - extendedWaitUntil:
     visible:
       id: food-picker-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/foods
 - extendedWaitUntil:
     visible:
       id: food-picker-result-0

@@ -142,12 +142,12 @@ tags:
     file: ../scroll-to.yaml
     env:
       TARGET_ID: water-chart-empty
-# Slow chart requests show each chart's loading state.
+# Held chart requests show each chart's loading state.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/water-logs
-      DELAY: "8"
+      HOLD: "true"
 - scrollUntilVisible:
     element:
       id: water-chart-range-year
@@ -158,12 +158,16 @@ tags:
 - extendedWaitUntil:
     visible:
       id: water-chart-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/water-logs
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/weight-logs
-      DELAY: "8"
+      HOLD: "true"
 - runFlow:
     file: ../scroll-to.yaml
     env:
@@ -173,4 +177,12 @@ tags:
 - extendedWaitUntil:
     visible:
       id: weight-chart-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/weight-logs
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: weight-chart

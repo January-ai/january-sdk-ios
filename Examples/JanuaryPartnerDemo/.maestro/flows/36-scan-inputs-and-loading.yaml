@@ -53,14 +53,18 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/food-analysis/image
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: scan-analyze
 - extendedWaitUntil:
     visible:
       id: scan-loading
-    timeout: 5000
+    timeout: 15000
 - assertVisible: Complex meals can take a little longer.*
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/image
 - extendedWaitUntil:
     visible:
       id: scan-results
@@ -85,13 +89,17 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/food-analysis/corrections
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: scan-correction-submit
 - extendedWaitUntil:
     visible:
       id: scan-correction-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/corrections
 - extendedWaitUntil:
     visible: Corrected breakfast
     timeout: 15000

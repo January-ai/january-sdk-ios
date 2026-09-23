@@ -95,12 +95,12 @@ tags:
     id: food-picker-result-0
 - tapOn:
     id: food-serving-add
-# A slow estimate shows the loading state, then the result.
+# A held estimate shows the loading state, then the result.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/glucose/predictions
-      DELAY: "8"
+      HOLD: "true"
 - runFlow:
     file: ../scroll-to.yaml
     env:
@@ -110,7 +110,11 @@ tags:
 - extendedWaitUntil:
     visible:
       id: glucose-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
 - extendedWaitUntil:
     visible:
       id: glucose-result

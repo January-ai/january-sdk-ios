@@ -51,13 +51,12 @@ onFlowComplete:
     file: ../scroll-to.yaml
     env:
       TARGET_ID: weight-chart
-# Switch to a second user while that user's water is slow to load (the delay
-# outlasts the Settings steps).
+# Switch to a second user while the fixture server holds that user's water.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/water-logs
-      DELAY: "40"
+      HOLD: "true"
 - scrollUntilVisible:
     element:
       id: settings-button
@@ -91,15 +90,14 @@ onFlowComplete:
 - assertNotVisible:
     text: 8 fl oz
 - runScript:
-    file: ../scripts/control-fixture.js
+    file: ../scripts/release-fixture.js
     env:
       ROUTE: /v1.2/water-logs
-      DELAY: "0"
 - extendedWaitUntil:
     visible:
       id: water-total
       text: No water logged
-    timeout: 60000
+    timeout: 20000
 - assertNotVisible:
     id: water-log-delete
 - runFlow:

@@ -15,7 +15,7 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/food-analysis/text
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: search-input
 - inputText: a bowl of oatmeal
@@ -23,7 +23,11 @@ tags:
 - extendedWaitUntil:
     visible:
       id: search-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/food-analysis/text
 - extendedWaitUntil:
     visible:
       id: description-results
@@ -82,7 +86,7 @@ tags:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/glucose/predictions
-      DELAY: "8"
+      HOLD: "true"
 - runFlow:
     file: ../scroll-to.yaml
     env:
@@ -92,7 +96,11 @@ tags:
 - extendedWaitUntil:
     visible:
       id: description-glucose-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
 - runFlow:
     file: ../scroll-to.yaml
     env:

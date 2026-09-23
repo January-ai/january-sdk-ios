@@ -28,7 +28,8 @@ maestro test $(node Examples/JanuaryPartnerDemo/.maestro/shard.mjs 2 3) --includ
 `bootstrap.yaml` launches the app with the Debug-only `-ui-testing` argument,
 which points the client at `http://127.0.0.1:18768` with a stub token and turns
 animations off. Flows change the fixture server's behaviour through
-`scripts/control-fixture.js` (HTTP status, delay, empty collections per route),
+`scripts/control-fixture.js` (HTTP status, delay, empty collections, or held
+responses per route, with `release-fixture.js` to answer held requests),
 `seed-fixture.js` (one saved food log, eaten just after midnight today),
 `seed-history.js` (400 days of water
 and weight before today, for the Tracking charts; list requests still honour
@@ -69,9 +70,10 @@ every pull request; it needs no simulator.
   theirs with the keyboard's `Done` button, and so do multiline editors; tap
   `Done` before tapping a button below the field.
 - Cover every screen's loading, empty, error, and success states. Assert a
-  loading state deterministically: delay the route with `control-fixture.js`
-  (`DELAY: "8"`, longer than Maestro waits for the screen to settle after a
-  tap), then wait for the loading identifier.
+  loading state deterministically, whatever the device's speed: hold the
+  route with `control-fixture.js` (`HOLD: "true"`), wait for the loading
+  identifier, then answer with `release-fixture.js`. A fixed delay is not
+  enough, since Maestro waits for the screen to settle after each tap.
 - Tag every flow `fixture`, `parity`, or `live`; CI runs `fixture` and
   `parity`.
 

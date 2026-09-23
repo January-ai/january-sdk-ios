@@ -18,18 +18,22 @@ tags:
     visible:
       id: restaurant-result-0
     timeout: 15000
-# A slow menu shows its loading row, then the items.
+# A held menu shows its loading row, then the items.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/restaurants/cafe/menu-items
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: restaurant-result-0
 - extendedWaitUntil:
     visible:
       id: menu-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/restaurants/cafe/menu-items
 - extendedWaitUntil:
     visible:
       id: menu-results

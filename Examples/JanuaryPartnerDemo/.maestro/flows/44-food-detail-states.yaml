@@ -39,12 +39,12 @@ tags:
     env:
       ROUTE: /v1.2/foods/101
       STATUS: "200"
-# A slow glucose estimate shows its loading state.
+# A held glucose estimate shows its loading state.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/glucose/predictions
-      DELAY: "8"
+      HOLD: "true"
 - scrollUntilVisible:
     element:
       id: food-check-glucose
@@ -55,19 +55,23 @@ tags:
 - extendedWaitUntil:
     visible:
       id: food-glucose-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/glucose/predictions
 - extendedWaitUntil:
     visible:
       id: food-glucose-result
     timeout: 20000
 - tapOn:
     text: Close glucose response
-# Slow alternatives show theirs.
+# Held alternatives show theirs.
 - runScript:
     file: ../scripts/control-fixture.js
     env:
       ROUTE: /v1.2/foods/101/alternatives
-      DELAY: "8"
+      HOLD: "true"
 - runFlow:
     file: ../scroll-to.yaml
     env:
@@ -83,14 +87,18 @@ tags:
 - extendedWaitUntil:
     visible:
       id: alternatives-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/foods/101/alternatives
 - extendedWaitUntil:
     visible:
       id: alternatives-results
     timeout: 20000
 - tapOn:
     text: Close alternatives
-# A slow barcode lookup shows the loading state; an unknown barcode reports that
+# A held barcode lookup shows the loading state; an unknown barcode reports that
 # nothing matched.
 - tapOn:
     text: Search
@@ -103,7 +111,7 @@ tags:
     env:
       ROUTE: /v1.2/foods/barcode/000000000000
       STATUS: "404"
-      DELAY: "8"
+      HOLD: "true"
 - tapOn:
     id: search-clear
 - tapOn:
@@ -115,7 +123,11 @@ tags:
 - extendedWaitUntil:
     visible:
       id: search-loading
-    timeout: 5000
+    timeout: 15000
+- runScript:
+    file: ../scripts/release-fixture.js
+    env:
+      ROUTE: /v1.2/foods/barcode/000000000000
 - extendedWaitUntil:
     visible:
       id: search-error

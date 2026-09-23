@@ -2,6 +2,7 @@
 import json
 import math
 import sys
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -73,6 +74,14 @@ def food_log(name="Fixture breakfast", foods=None, eaten_at=None):
     return {"id": "opaque-log-1", "name": name, "eaten_at": eaten_at or seeded_eaten_at(), "foods": logged_foods}
 
 STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_eaten_at": None}
+# Routes whose responses wait until a flow releases them (/__control?...&hold=true, then
+# /__release?route=...), so a flow can assert a loading state however slow the device is.
+HOLDS = {}
+
+def release_holds(route=None):
+    for held in [route] if route else list(HOLDS):
+        event = HOLDS.pop(held, None)
+        if event: event.set()
 ML_PER_FL_OZ = 29.5735
 ML_PER_UNIT = {"fl_oz": ML_PER_FL_OZ, "cup": ML_PER_FL_OZ * 8, "ml": 1}
 LB_PER_KG = 1 / 0.45359237
@@ -146,9 +155,15 @@ class Handler(BaseHTTPRequestHandler):
         query = {key: values[0] for key, values in parse_qs(parsed.query).items()}
         raw = self.rfile.read(int(self.headers.get("Content-Length", 0)))
         body = json.loads(raw) if raw and "application/json" in self.headers.get("Content-Type", "") else {}
-        if path == "/__reset": STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_eaten_at=None); return self.respond({})
+        if path == "/__reset":
+            release_holds(); STATE.update(rules={}, logs=[], water=[], weights=[], history=False, requests=[], seeded_eaten_at=None)
+            return self.respond({})
         if path == "/__history": STATE["history"] = True; return self.respond({})
-        if path == "/__control": STATE["rules"][query["route"]] = query; return self.respond({})
+        if path == "/__control":
+            release_holds(query["route"]); STATE["rules"][query["route"]] = query
+            if query.get("hold") == "true": HOLDS[query["route"]] = threading.Event()
+            return self.respond({})
+        if path == "/__release": release_holds(query["route"]); STATE["rules"].get(query["route"], {})["hold"] = "false"; return self.respond({})
         if path == "/__seed": STATE["logs"] = [food_log()]; STATE["seeded_eaten_at"] = STATE["logs"][0]["eaten_at"]; return self.respond({})
         if path == "/__seeded": return self.respond({"eaten_at": STATE["seeded_eaten_at"]})
         if path == "/__requests": return self.respond(STATE["requests"])
@@ -158,6 +173,7 @@ class Handler(BaseHTTPRequestHandler):
         STATE["requests"].append({"method": self.command, "path": path, "query": query, "body": body, "at": time.time(),
                                   "authorization": self.headers.get("Authorization"), "end_user": self.headers.get("January-End-User-ID")})
         rule = STATE["rules"].get(path, {})
+        if rule.get("hold") == "true" and (held := HOLDS.get(path)): held.wait(timeout=120)
         if float(rule.get("delay", 0)): time.sleep(float(rule["delay"]))
         status = int(rule.get("status", 200)); empty = rule.get("empty") == "true"
         if status != 200:
