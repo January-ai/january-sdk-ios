@@ -163,15 +163,24 @@ enum TrackingChartData {
     /// the SDK's `VolumeUnit` raw values.
     static let millilitersPerVolumeUnit: [String: Double] = ["ml": 1, "fl_oz": 29.5735295625, "cup": 236.5882365]
 
+    /// The amounts one water log accepts, per unit (the SDK validates the same ranges).
+    static let volumeEntryRange: [String: ClosedRange<Double>] = ["fl_oz": 1...811.5, "ml": 30...24_000, "cup": 0.125...101.4]
+
     /// Converts an amount the user is about to log to another volume unit, rounded the way the
     /// amount field shows it (whole milliliters, tenths of a fluid ounce or cup), so the amount
-    /// logged is the amount shown.
+    /// logged is the amount shown, and kept within the new unit's range: 1 fl oz is 0.125 cup,
+    /// which would show as 0.1, below the minimum, so it becomes 0.2.
     static func convertVolumeEntry(_ value: Double, from source: String, to target: String) -> Double {
         guard source != target,
               let sourceMilliliters = millilitersPerVolumeUnit[source],
               let targetMilliliters = millilitersPerVolumeUnit[target] else { return value }
-        let converted = value * sourceMilliliters / targetMilliliters
-        return target == "ml" ? converted.rounded() : (converted * 10).rounded() / 10
+        let step = target == "ml" ? 1.0 : 0.1
+        let converted = ((value * sourceMilliliters / targetMilliliters) / step).rounded() * step
+        guard let range = volumeEntryRange[target] else { return converted }
+        // The small allowance keeps binary rounding in the division from moving a bound a step.
+        let lowest = (range.lowerBound / step - 1e-9).rounded(.up) * step
+        let highest = (range.upperBound / step + 1e-9).rounded(.down) * step
+        return ((min(max(converted, lowest), highest)) * 10).rounded() / 10
     }
 
     /// Converts a weight the user is about to log between `"kg"` and `"lb"`, rounded to tenths as

@@ -106,6 +106,18 @@ final class TrackingChartDataTests: XCTestCase {
         XCTAssertEqual(TrackingChartData.convertVolumeEntry(12.5, from: "fl_oz", to: "gallon"), 12.5)
     }
 
+    func testConvertedWaterAmountsStayWithinTheNewUnitsRange() {
+        // The smallest amounts round below the cup minimum (0.125) at the field's precision.
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(1, from: "fl_oz", to: "cup"), 0.2)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(30, from: "ml", to: "cup"), 0.2)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(0.125, from: "cup", to: "ml"), 30)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(0.2, from: "cup", to: "fl_oz"), 1.6)
+        // The largest ones stay at or below each maximum.
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(24_000, from: "ml", to: "fl_oz"), 811.5)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(811.5, from: "fl_oz", to: "cup"), 101.4)
+        XCTAssertEqual(TrackingChartData.convertVolumeEntry(101.4, from: "cup", to: "ml"), 23_990)
+    }
+
     func testSwitchingTheWeightUnitConvertsTheWeightToLogToTenths() {
         XCTAssertEqual(TrackingChartData.convertWeightEntry(150, from: "lb", to: "kg"), 68)
         XCTAssertEqual(TrackingChartData.convertWeightEntry(72.5, from: "kg", to: "lb"), 159.8)
