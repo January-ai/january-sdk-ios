@@ -8,6 +8,9 @@ See [Versioning and support](versioning-and-support.md) before installing or upd
 * `ServingSummary.weightGrams` on detected and alternative foods
 * `foodAnalysis.correct` sends the API's correction shape and validates hand-built detections; `foodLogs.update` rejects an empty update; `glucose.predict` requires a finite, whole-number `age`
 * A non-retryable `JanuaryTokenProviderError` fails the request as an authentication error (`client_token_provider_failed`) with the provider's message, instead of a transport failure
+* Breaking: `ServingOption.id`, `AlternativeFood.id`, and `LoggedFood.id` are no longer optional; the API always returns them
+* A photo scan without `reasoningEffort` uses the API's default, now the reasoning-based analyzer; pass `.none` for the standard analyzer
+* A `409` `conflict` response is a `validation` error with the code `conflict`, and every API error keeps the API's `code` and `message`
 
 * Breaking: `DetectedFood` exposes `serving` and `quantity` instead of `servings`, matching the current Partner API; `0.1.0` fails to decode photo scans
 * Food-log summaries per day or week with `foodLogs.getSummary`

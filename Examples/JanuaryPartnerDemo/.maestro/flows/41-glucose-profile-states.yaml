@@ -49,6 +49,14 @@ tags:
     id: glucose-weight
 - eraseText: 6
 - inputText: "165"
+# Switching units with the keyboard open shows the converted weight.
+- tapOn:
+    id: glucose-weight-unit-kg
+- assertVisible:
+    id: glucose-weight
+    text: "74.8"
+- tapOn:
+    id: glucose-weight-unit-lb
 - tapOn:
     text: Done
 - assertVisible:

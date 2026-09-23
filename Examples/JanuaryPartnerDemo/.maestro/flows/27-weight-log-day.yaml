@@ -29,6 +29,12 @@ tags:
 - extendedWaitUntil:
     visible: 68 kg
     timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/weight-logs
+      METHOD: POST
+      BODY_CONTAINS: '"value":68 && "unit":"kg"'
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-logs-weight
 # The previous day has no weight, and the day label leaves "Today".
 - scrollUntilVisible:
@@ -57,3 +63,45 @@ tags:
     env:
       TARGET_ID: weight-entry
 - assertVisible: 68 kg
+# A unit switched while the keyboard is open converts the typed weight on screen,
+# and that weight is the one logged: 70 typed as kg is 154.3 lb.
+- tapOn:
+    id: weight-value
+- eraseText: 6
+- inputText: "70"
+- tapOn:
+    id: weight-unit-lb
+- assertVisible:
+    id: weight-value
+    text: "154.3"
+- tapOn:
+    text: Done
+- scrollUntilVisible:
+    element:
+      id: weight-log-create
+    direction: DOWN
+- tapOn:
+    id: weight-log-create
+- extendedWaitUntil:
+    visible: 154.3 lb
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/weight-logs
+      METHOD: POST
+      BODY_CONTAINS: '"value":154.3 && "unit":"lb"'
+# An emptied weight stays empty across a switch, and there is nothing to log.
+- tapOn:
+    id: weight-value
+- eraseText: 6
+- tapOn:
+    id: weight-unit-kg
+- tapOn:
+    text: Done
+- assertVisible:
+    id: weight-log-create
+    enabled: false
+- assertNotVisible:
+    id: weight-value
+    text: ".+"

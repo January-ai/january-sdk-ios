@@ -29,6 +29,10 @@ final class UserSession: ObservableObject {
         self.timezone = defaults.string(forKey: Key.timezone) ?? TimeZone.current.identifier
     }
 
+    /// The end user's timezone. The API files their logs under calendar days in it, so every day
+    /// and time the demo shows or sends is in this timezone, not the device's.
+    var timeZone: TimeZone { TimeZone(identifier: timezone) ?? .current }
+
     var partnerUserID: PartnerUserID? {
         AppFormatting.endUserID(endUserID)
     }
@@ -37,7 +41,7 @@ final class UserSession: ObservableObject {
         partnerUserID.map {
             PartnerUserContext(
                 endUserID: $0,
-                timezone: TimeZone(identifier: timezone) ?? .current
+                timezone: timeZone
             )
         }
     }

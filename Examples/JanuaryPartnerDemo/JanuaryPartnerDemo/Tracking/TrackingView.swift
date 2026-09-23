@@ -15,7 +15,10 @@ struct TrackingView: View {
     @State private var isLoading = false
     @State private var error: Error?
 
-    @State private var waterValue = 8.0
+    /// The amount to log, in `waterUnit`; nil while the field is empty.
+    @State private var waterValue: Double? = 8.0
+    /// Advanced when a unit switch converts `waterValue`, so the field shows it even mid-edit.
+    @State private var waterEntryRevision = 0
     @State private var waterUnit = VolumeUnit.fluidOunces
     @State private var waterTotal: Volume?
     /// The water log created last on this screen, with the user, timezone, and day it was logged
@@ -25,7 +28,9 @@ struct TrackingView: View {
     @State private var isLoggingWater = false
     @State private var isLoadingWater = false
 
-    @State private var weightValue = 150.0
+    /// The weight to log, in `weightUnit`; nil while the field is empty.
+    @State private var weightValue: Double? = 150.0
+    @State private var weightEntryRevision = 0
     @State private var weightUnit = WeightUnit.pounds
     @State private var dayWeight: Weight?
     @State private var weightError: Error?
@@ -162,6 +167,8 @@ struct TrackingView: View {
                 guard userID != nil else { return }
                 await load()
             }
+            // A new timezone starts the day picker on that timezone's today.
+            .onChange(of: userSession.timezone) { day = .now }
         }
     }
 
@@ -228,6 +235,7 @@ struct TrackingView: View {
                     // Keep the amount to log the same volume, so it stays within the new unit's range.
                     .onChange(of: waterUnit) { previous, unit in
                         waterValue = TrackingChartData.convertVolumeEntry(waterValue, from: previous.rawValue, to: unit.rawValue)
+                        waterEntryRevision += 1
                         // Only the water total depends on the unit.
                         waterTotal = nil; waterError = nil
                         Task { await loadWater() }
@@ -243,19 +251,18 @@ struct TrackingView: View {
             }
             numberField("Amount · \(unitTitle(waterUnit))") {
                 EndAlignedNumberField(
-                    value: waterValue.formatted(.number.precision(.fractionLength(0...1))),
+                    value: entryText(waterValue),
                     allowsDecimal: true,
-                    accessibilityIdentifier: "water-amount"
-                ) { value in
-                    if let value = Double(value) { waterValue = value }
-                }
+                    accessibilityIdentifier: "water-amount",
+                    refreshID: waterEntryRevision
+                ) { waterValue = Double($0) }
             }
             HStack(spacing: 12) {
                 PrimaryButton(
                     title: "Log water",
                     systemImage: "drop",
                     isLoading: isLoggingWater,
-                    isDisabled: isLoggingWater
+                    isDisabled: isLoggingWater || waterValue == nil
                 ) {
                     Task { await logWater() }
                 }
@@ -305,6 +312,7 @@ struct TrackingView: View {
                     .accessibilityLabel("Weight units")
                     .onChange(of: weightUnit) { previous, unit in
                         weightValue = TrackingChartData.convertWeightEntry(weightValue, from: previous.rawValue, to: unit.rawValue)
+                        weightEntryRevision += 1
                     }
             }
             if let weightError {
@@ -317,18 +325,17 @@ struct TrackingView: View {
             }
             numberField("Weight · \(weightUnit.rawValue)") {
                 EndAlignedNumberField(
-                    value: weightValue.formatted(.number.precision(.fractionLength(0...1))),
+                    value: entryText(weightValue),
                     allowsDecimal: true,
-                    accessibilityIdentifier: "weight-value"
-                ) { value in
-                    if let value = Double(value) { weightValue = value }
-                }
+                    accessibilityIdentifier: "weight-value",
+                    refreshID: weightEntryRevision
+                ) { weightValue = Double($0) }
             }
             PrimaryButton(
                 title: "Log weight",
                 systemImage: "scalemass",
                 isLoading: isLoggingWeight,
-                isDisabled: isLoggingWeight
+                isDisabled: isLoggingWeight || weightValue == nil
             ) {
                 Task { await logWeight() }
             }
@@ -352,7 +359,7 @@ struct TrackingView: View {
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = Locale(identifier: "en_US_POSIX")
-        calendar.timeZone = TimeZone(identifier: userSession.timezone) ?? .current
+        calendar.timeZone = userSession.timeZone
         return calendar
     }
     private var dayQuery: String { AppFormatting.apiDayString(from: day, calendar: calendar) }
@@ -365,10 +372,7 @@ struct TrackingView: View {
         formatter.timeStyle = .none
         return formatter.string(from: day)
     }
-    /// A meal created for a past day is dated noon on that day; today's meals default to now.
-    private var defaultMealTime: Date {
-        isToday ? .now : (calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day)
-    }
+    private var defaultMealTime: Date { TrackingChartData.entryTime(forDay: day, calendar: calendar) }
     private var loadTaskID: String {
         "\(userSession.endUserID)|\(userSession.timezone)|\(dayQuery)"
     }
@@ -450,7 +454,7 @@ struct TrackingView: View {
     }
 
     @MainActor private func logWater() async {
-        guard let context else { return }
+        guard let context, let waterValue else { return }
         let key = loadTaskID
         isLoggingWater = true; waterError = nil
         defer { isLoggingWater = false }
@@ -488,7 +492,7 @@ struct TrackingView: View {
     }
 
     @MainActor private func logWeight() async {
-        guard let context else { return }
+        guard let context, let weightValue else { return }
         let key = loadTaskID
         isLoggingWeight = true; weightError = nil
         defer { isLoggingWeight = false }
@@ -505,6 +509,11 @@ struct TrackingView: View {
             guard key == loadTaskID else { return }
             weightError = error
         }
+    }
+
+    /// An amount as the water and weight fields show it; empty for no amount.
+    private func entryText(_ value: Double?) -> String {
+        value?.formatted(.number.precision(.fractionLength(0...1))) ?? ""
     }
 
     private var waterHeadline: String {

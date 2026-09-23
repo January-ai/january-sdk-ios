@@ -148,6 +148,13 @@ enum TrackingChartData {
         }
     }
 
+    /// When a log made for `day` is dated: now for today, and otherwise noon on that day on the
+    /// end user's clock (`calendar` is in their timezone), so the API files it under that day.
+    static func entryTime(forDay day: Date, now: Date = .now, calendar: Calendar) -> Date {
+        guard !calendar.isDate(day, inSameDayAs: now) else { return now }
+        return calendar.date(bySettingHour: 12, minute: 0, second: 0, of: day) ?? day
+    }
+
     // MARK: Units
 
     /// Converts a weight between `"kg"` and `"lb"` (the SDK's `WeightUnit` raw values).
@@ -169,8 +176,9 @@ enum TrackingChartData {
     /// Converts an amount the user is about to log to another volume unit, rounded the way the
     /// amount field shows it (whole milliliters, tenths of a fluid ounce or cup), so the amount
     /// logged is the amount shown, and kept within the new unit's range: 1 fl oz is 0.125 cup,
-    /// which would show as 0.1, below the minimum, so it becomes 0.2.
-    static func convertVolumeEntry(_ value: Double, from source: String, to target: String) -> Double {
+    /// which would show as 0.1, below the minimum, so it becomes 0.2. An empty amount stays empty.
+    static func convertVolumeEntry(_ value: Double?, from source: String, to target: String) -> Double? {
+        guard let value else { return nil }
         guard source != target,
               let sourceMilliliters = millilitersPerVolumeUnit[source],
               let targetMilliliters = millilitersPerVolumeUnit[target] else { return value }
@@ -184,8 +192,9 @@ enum TrackingChartData {
     }
 
     /// Converts a weight the user is about to log between `"kg"` and `"lb"`, rounded to tenths as
-    /// the weight field shows it.
-    static func convertWeightEntry(_ value: Double, from source: String, to target: String) -> Double {
+    /// the weight field shows it. An empty weight stays empty.
+    static func convertWeightEntry(_ value: Double?, from source: String, to target: String) -> Double? {
+        guard let value else { return nil }
         guard source != target else { return value }
         return (convertWeight(value, from: source, to: target) * 10).rounded() / 10
     }

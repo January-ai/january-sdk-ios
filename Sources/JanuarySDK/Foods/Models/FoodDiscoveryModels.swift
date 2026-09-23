@@ -82,12 +82,12 @@ public struct DetectedFood: Codable, Hashable, Sendable {
 
 /// A healthier alternative to a food, with the servings its nutrition can be read against.
 public struct AlternativeFood: Codable, Hashable, Sendable {
-    public var id: FoodID?
+    public var id: FoodID
     public var name: String?
     public var brandName: String?
     public var nutrients: CompleteScanNutritionFacts
     public var servings: [ServingSummary]
-    public init(id: FoodID? = nil, name: String?, brandName: String? = nil, nutrients: CompleteScanNutritionFacts, servings: [ServingSummary] = []) {
+    public init(id: FoodID, name: String?, brandName: String? = nil, nutrients: CompleteScanNutritionFacts, servings: [ServingSummary] = []) {
         self.id = id; self.name = name; self.brandName = brandName; self.nutrients = nutrients; self.servings = servings
     }
     enum CodingKeys: String, CodingKey { case id, name, nutrients, servings; case brandName = "brand_name" }

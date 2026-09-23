@@ -143,7 +143,7 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -529,7 +529,7 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -850,7 +850,9 @@ package enum Components {
             package var message: Swift.String
             /// A stable machine-readable identifier for the class of failure — build retry logic on this, never on message wording.
             ///
-            /// Any request, each with the status it usually accompanies: `invalid_request` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `payload_too_large` (413), `rate_limited` (429), `request_limit_exceeded` (429), `credit_limit_exceeded` (429), `internal_error` (500), `not_implemented` (501), `upstream_error` (502), `service_unavailable` (503), `upstream_timeout` (504). Those pairings are the common case, not a guarantee: a status we do not map falls back to `invalid_request` below 500 and `internal_error` at or above it, so an internal service answering 409 or 422 reaches you with that status and `code: invalid_request`. Branch on the code first and treat the status as the fallback, exactly as for a code you do not recognise.
+            /// Any request, each with the status it usually accompanies: `invalid_request` (400), `unauthorized` (401), `forbidden` (403), `not_found` (404), `conflict` (409), `payload_too_large` (413), `rate_limited` (429), `request_limit_exceeded` (429), `credit_limit_exceeded` (429), `internal_error` (500), `not_implemented` (501), `upstream_error` (502), `service_unavailable` (503), `upstream_timeout` (504). Those pairings are the common case, not a guarantee: a status we do not map falls back to `invalid_request` below 500 and `internal_error` at or above it, so an internal service answering 422 reaches you with that status and `code: invalid_request`. Branch on the code first and treat the status as the fallback, exactly as for a code you do not recognise.
+            ///
+            /// `conflict` (409) means the request conflicts with an existing resource, such as an Idempotency-Key reused with different files. Resolve the conflict before retrying.
             ///
             /// `cancelled` (499) means the client disconnected before completion. The closed connection may prevent delivery of the error body.
             ///
@@ -1237,7 +1239,7 @@ package enum Components {
             /// Opaque serving id; may look numeric but is always a string.
             ///
             /// - Remark: Generated from `#/components/schemas/ServingOption/id`.
-            package var id: Swift.String?
+            package var id: Swift.String
             /// - Remark: Generated from `#/components/schemas/ServingOption/quantity`.
             package var quantity: Swift.Double?
             /// - Remark: Generated from `#/components/schemas/ServingOption/unit`.
@@ -1262,7 +1264,7 @@ package enum Components {
             ///   - weightGrams:
             ///   - isPrimary: Whether this is the default serving for the food.
             package init(
-                id: Swift.String? = nil,
+                id: Swift.String,
                 quantity: Swift.Double? = nil,
                 unit: Swift.String? = nil,
                 scalingFactor: Swift.Double? = nil,
@@ -1552,10 +1554,10 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/AlternativeFood`.
         package struct AlternativeFood: Codable, Hashable, Sendable {
-            /// Catalog food id, or null when the producer matched none.
+            /// Catalog food id.
             ///
             /// - Remark: Generated from `#/components/schemas/AlternativeFood/id`.
-            package var id: Swift.String?
+            package var id: Swift.String
             /// Null only when the producer sent a food with no name.
             ///
             /// - Remark: Generated from `#/components/schemas/AlternativeFood/name`.
@@ -1573,13 +1575,13 @@ package enum Components {
             /// Creates a new `AlternativeFood`.
             ///
             /// - Parameters:
-            ///   - id: Catalog food id, or null when the producer matched none.
+            ///   - id: Catalog food id.
             ///   - name: Null only when the producer sent a food with no name.
             ///   - brandName: Null for generic (non-branded) foods.
             ///   - nutrients:
             ///   - servings: Servings to read the nutrition against. Empty when the recommender returned none — the key itself is always present.
             package init(
-                id: Swift.String? = nil,
+                id: Swift.String,
                 name: Swift.String? = nil,
                 brandName: Swift.String? = nil,
                 nutrients: Components.Schemas.NutritionFacts,
@@ -1710,10 +1712,10 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem`.
         package struct RestaurantMenuItem: Codable, Hashable, Sendable {
-            /// Food id of the dish — the same id `GET /v1.2/foods/{food_id}` and `POST /v1.2/food-logs` take. Null only when the menu source carries no id for the row.
+            /// Food id of the dish — the same id `GET /v1.2/foods/{food_id}` and `POST /v1.2/food-logs` take.
             ///
             /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/id`.
-            package var id: Swift.String?
+            package var id: Swift.String
             /// Null only when the menu source has no name for the dish.
             ///
             /// - Remark: Generated from `#/components/schemas/RestaurantMenuItem/name`.
@@ -1735,14 +1737,14 @@ package enum Components {
             /// Creates a new `RestaurantMenuItem`.
             ///
             /// - Parameters:
-            ///   - id: Food id of the dish — the same id `GET /v1.2/foods/{food_id}` and `POST /v1.2/food-logs` take. Null only when the menu source carries no id for the row.
+            ///   - id: Food id of the dish — the same id `GET /v1.2/foods/{food_id}` and `POST /v1.2/food-logs` take.
             ///   - name: Null only when the menu source has no name for the dish.
             ///   - nutrients:
             ///   - glycemicIndex: Glycemic index; null when the source has none.
             ///   - glycemicLoad: Glycemic load; null when the source has none.
             ///   - servings: The serving the nutrition is given for. `GET /v1.2/foods/{food_id}` returns the complete list of servings.
             package init(
-                id: Swift.String? = nil,
+                id: Swift.String,
                 name: Swift.String? = nil,
                 nutrients: Components.Schemas.NutritionFacts,
                 glycemicIndex: Swift.Double? = nil,
@@ -2316,10 +2318,10 @@ package enum Components {
         }
         /// - Remark: Generated from `#/components/schemas/LoggedFood`.
         package struct LoggedFood: Codable, Hashable, Sendable {
-            /// Food id from a search or food-analysis result. Null only when the upstream sent a food with no id.
+            /// Food id from a search or food-analysis result.
             ///
             /// - Remark: Generated from `#/components/schemas/LoggedFood/food_id`.
-            package var foodId: Swift.String?
+            package var foodId: Swift.String
             /// Null only when the upstream sent none.
             ///
             /// - Remark: Generated from `#/components/schemas/LoggedFood/name`.
@@ -2345,7 +2347,7 @@ package enum Components {
             /// Creates a new `LoggedFood`.
             ///
             /// - Parameters:
-            ///   - foodId: Food id from a search or food-analysis result. Null only when the upstream sent a food with no id.
+            ///   - foodId: Food id from a search or food-analysis result.
             ///   - name: Null only when the upstream sent none.
             ///   - brandName: Null for generic (non-branded) foods.
             ///   - imageUrl:
@@ -2355,7 +2357,7 @@ package enum Components {
             ///   - quantity: Number of selected servings consumed. Consumed amount = food.quantity × food.serving.quantity, in food.serving.unit (4 × 0.5 cup = 2 cups). Nutrients are already scaled to this portion. Null when unavailable.
             ///   - serving:
             package init(
-                foodId: Swift.String? = nil,
+                foodId: Swift.String,
                 name: Swift.String? = nil,
                 brandName: Swift.String? = nil,
                 imageUrl: Swift.String? = nil,
@@ -4431,7 +4433,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -4893,7 +4895,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -5354,7 +5356,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -5808,7 +5810,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -6304,7 +6306,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -6800,7 +6802,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -7326,7 +7328,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -7798,7 +7800,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -8324,7 +8326,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -8509,7 +8511,7 @@ package enum Operations {
     ///
     /// **API key or client token.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; omit `reasoning` or set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -8762,7 +8764,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -9300,7 +9302,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -9736,7 +9738,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///
@@ -10265,7 +10267,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -10739,7 +10741,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -11241,7 +11243,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -11703,7 +11705,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -12225,7 +12227,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -12722,7 +12724,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -13207,7 +13209,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -13660,7 +13662,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -14106,7 +14108,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -14584,7 +14586,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -15037,7 +15039,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description, and `end_user_id_mismatch` means the `January-End-User-ID` header disagrees with the end user the token is bound to — omit it, or send exactly that id.
             ///
@@ -15473,7 +15475,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, and `GET /v1.2/credits`).
+            /// The credential is valid but is not allowed to make this request. `forbidden` is the general case — a key issued for the other API version, for example. A client token adds `client_token_not_allowed`, meaning the endpoint takes only an `sk-` API key — its description opens with **API key only.** (in this API: `POST /v1.2/auth/client-tokens`, `POST /v1.2/auth/client-token-revocations`, `POST /v1.2/chat/completions`, `POST /v1.2/literature/search`, `POST /v1.2/extractions`, `GET /v1.2/extractions/{job_id}`, `GET /v1.2/patients/{patient_id}/snapshot`, and `GET /v1.2/credits`).
             ///
             /// On an endpoint that opens with **API key or client token.**, `scope_insufficient` means the token was minted without the scope named at the end of that endpoint’s description.
             ///

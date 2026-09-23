@@ -12,7 +12,7 @@ public struct FoodPortion: Hashable, Sendable {
     public var selection: FoodSelection {
         FoodSelection(
             id: foodID,
-            serving: ServingSelection(id: serving.id!, quantity: quantity)
+            serving: ServingSelection(id: serving.id, quantity: quantity)
         )
     }
 
@@ -41,7 +41,7 @@ public struct FoodPortion: Hashable, Sendable {
             selected = food.servings.first(where: { $0.isPrimary == true }) ?? food.servings[0]
         }
 
-        guard selected.id != nil, let servingQuantity = selected.quantity,
+        guard let servingQuantity = selected.quantity,
               servingQuantity.isFinite, servingQuantity > 0,
               selected.scalingFactor.isFinite, selected.scalingFactor > 0 else {
             throw FoodPortionError.invalidServing(selected.id)

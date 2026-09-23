@@ -109,6 +109,7 @@ struct GlucoseView: View {
                     ) {
                         VStack(spacing: 0) {
                             DatePicker("Start time", selection: $startTime)
+                                .environment(\.timeZone, userSession.timeZone)
                                 .padding(.vertical, 8)
 
                             ForEach($foods) { $item in

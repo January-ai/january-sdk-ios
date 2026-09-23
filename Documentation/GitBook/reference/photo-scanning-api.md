@@ -40,7 +40,7 @@ public struct CorrectPhotoScanRequest: Hashable, Sendable {
 }
 ```
 
-The string image can be a public URL string or data URI. The `Data` initializer normalizes orientation, preserves aspect ratio, bounds the longest edge, compresses to JPEG, and creates the data URI. `reasoningEffort: .xhigh` selects the reasoning-based analyzer; the result shape and cost are the same.
+The string image can be a public URL string or data URI. The `Data` initializer normalizes orientation, preserves aspect ratio, bounds the longest edge, compresses to JPEG, and creates the data URI. When `reasoningEffort` is `nil`, the request leaves the choice to the API, which uses the reasoning-based analyzer. `.none` selects the standard analyzer, and `.xhigh` asks for the reasoning-based one explicitly. Both return the same result shape at the same cost.
 
 ## Response models
 

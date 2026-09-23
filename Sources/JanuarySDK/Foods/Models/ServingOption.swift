@@ -1,6 +1,6 @@
 /// A serving option returned with a food.
 public struct ServingOption: Codable, Hashable, Sendable {
-    public var id: ServingID?
+    public var id: ServingID
     public var quantity: Double?
     public var unit: String?
     public var scalingFactor: Double
@@ -8,7 +8,7 @@ public struct ServingOption: Codable, Hashable, Sendable {
     public var isPrimary: Bool?
 
     public init(
-        id: ServingID?,
+        id: ServingID,
         quantity: Double?,
         unit: String?,
         scalingFactor: Double,
@@ -34,7 +34,7 @@ public struct ServingOption: Codable, Hashable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decodeIfPresent(ServingID.self, forKey: .id)
+        id = try container.decode(ServingID.self, forKey: .id)
         quantity = try container.decodeIfPresent(Double.self, forKey: .quantity)
         unit = try container.decodeIfPresent(String.self, forKey: .unit)
         scalingFactor = try container.decodeIfPresent(Double.self, forKey: .scalingFactor) ?? 1.0

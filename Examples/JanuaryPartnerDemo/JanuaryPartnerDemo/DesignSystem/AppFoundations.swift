@@ -57,10 +57,7 @@ struct SelectedFood: Identifiable, Hashable {
     var quantity: Double
 
     var selection: FoodSelection {
-        guard let servingID = serving.id else {
-            preconditionFailure("Selected foods must have a serving ID.")
-        }
-        return FoodSelection(id: food.id, serving: ServingSelection(id: servingID, quantity: quantity))
+        FoodSelection(id: food.id, serving: ServingSelection(id: serving.id, quantity: quantity))
     }
 }
 
@@ -91,6 +88,14 @@ enum AppFormatting {
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter
     }()
+
+    /// An API timestamp as a date and time on the end user's clock.
+    static func logTime(_ value: String, in timeZone: TimeZone) -> String {
+        guard let date = date(fromAPI: value) else { return value }
+        var style = Date.FormatStyle(date: .abbreviated, time: .shortened)
+        style.timeZone = timeZone
+        return date.formatted(style)
+    }
 
     static func apiDayString(from date: Date, calendar: Calendar) -> String {
         let formatter = DateFormatter()

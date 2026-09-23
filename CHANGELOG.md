@@ -24,12 +24,24 @@ uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (`client_token_provider_failed`) carrying the provider's message. It was
   reported as a transport failure ("The request to the January API failed."),
   although no API request was made.
+- Breaking: `ServingOption.id` (`ServingID`), `AlternativeFood.id`, and
+  `LoggedFood.id` (`FoodID`) are no longer optional, because the API always
+  returns them. Remove optional unwrapping of these IDs; `ServingOption` and
+  `AlternativeFood` initializers take a non-optional ID.
+- `analyzePhoto` without `reasoningEffort` now gets the reasoning-based
+  analyzer, the API's new default; the SDK still sends no effort unless you set
+  one. Set `reasoningEffort: .none` to keep the standard analyzer.
+- A `409` response (`conflict`: the request conflicts with an existing
+  resource) is reported as a `validation` error with the code `conflict`
+  rather than a transport error. For any status an operation does not
+  document, the error now keeps the API's `code` and `message`.
 - The demo app adds a Tracking tab: a per-day view of the day's food logs
   with their nutrient totals, the day's water total (in fl oz, ml, or cups),
   and the day's weight.
 - Regenerated the internal transport from contract release 1.2.0: water and
   weight logs, the correction request shape, `weight_grams` on logged servings,
-  and the `water_logs:*` and `weight_logs:*` client-token scopes.
+  the `water_logs:*` and `weight_logs:*` client-token scopes, required food,
+  serving, and menu-item IDs, and the `conflict` error code.
 
 ## [0.2.0] - 2026-09-16
 

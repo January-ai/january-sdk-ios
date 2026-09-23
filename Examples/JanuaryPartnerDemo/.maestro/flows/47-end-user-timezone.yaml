@@ -1,0 +1,102 @@
+appId: ai.january.partner.demo
+name: Tracking and Logs use the end user's timezone, far from the device's
+tags:
+  - fixture
+# The end user's timezone comes from a launch argument; clear it so later flows
+# use the device's.
+onFlowComplete:
+  - stopApp
+  - clearState
+---
+# Pacific/Kiritimati is UTC+14: for most of the day its date differs from the
+# simulator's, and the days below are computed on its clock at run time.
+- runScript:
+    file: ../scripts/reset-fixture.js
+- launchApp:
+    clearState: true
+    stopApp: true
+    arguments:
+      -ui-testing: true
+      -demo.timezone: Pacific/Kiritimati
+- extendedWaitUntil:
+    visible:
+      id: search-screen
+    timeout: 120000
+- runScript:
+    file: ../scripts/days-in-zone.js
+    env:
+      TIMEZONE: Pacific/Kiritimati
+# Tracking opens on the end user's today and asks for it in their timezone.
+- tapOn:
+    id: tab-tracking
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: logs-day-picker
+- extendedWaitUntil:
+    visible: ${output.today}
+    timeout: 15000
+- assertVisible: Today
+# The day's total and the week chart both end on that day.
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      QUERY_KEY: end_date
+      QUERY_VALUE: ${output.today}
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      QUERY_KEY: timezone
+      QUERY_VALUE: Pacific/Kiritimati
+# Water logged for the day before is dated noon on the end user's clock, so the
+# API files it under that day.
+- tapOn:
+    id: logs-day-previous
+- extendedWaitUntil:
+    visible: ${output.yesterday}
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: water-total
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: 8 fl oz
+    timeout: 15000
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/water-logs
+      METHOD: POST
+      TIME_KEY: consumed_at
+      TIME_EQUALS: ${output.yesterdayNoon}
+# Logs' Today is the end user's today too.
+- tapOn:
+    id: tab-food-logs
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: logs-range-today
+- tapOn:
+    id: logs-range-today
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-logs-empty
+- runScript:
+    file: ../scripts/wait.js
+- runScript:
+    file: ../scripts/assert-request.js
+    env:
+      ROUTE: /v1.2/food-logs
+      QUERY_KEY: start_date
+      QUERY_VALUE: ${output.today}

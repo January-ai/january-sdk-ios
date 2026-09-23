@@ -37,6 +37,10 @@ tags:
     visible:
       id: food-glucose-result
     timeout: 15000
+# The serving reads as an amount and unit.
+- assertVisible: 1 cup
+- assertNotVisible:
+    text: ".*Optional\\(.*"
 - takeScreenshot: Examples/JanuaryPartnerDemo/.maestro/artifacts/ios-food-glucose
 - tapOn:
     text: Close glucose response
