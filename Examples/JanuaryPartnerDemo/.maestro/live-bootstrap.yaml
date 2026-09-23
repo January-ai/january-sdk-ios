@@ -1,0 +1,27 @@
+appId: ai.january.partner.demo
+# Every live flow starts here: launch the demo against a real token endpoint,
+# as a fresh install, for the test user END_USER_ID.
+#
+#   -e END_USER_ID=...   required: a dedicated test user the flows may write to
+#   -e TOKEN_URL=...     default: the local token relay
+#   -e API_URL=...       Debug builds only: another API origin, for a rehearsal
+#                        against the fixture server
+#
+# The defaults live in the expressions below rather than an `env:` block,
+# because a subflow's own env replaces the value passed on the command line.
+---
+- runScript:
+    file: scripts/live-api.js
+    env:
+      CHECK: preflight
+- launchApp:
+    clearState: true
+    stopApp: true
+    arguments:
+      -JANUARY_PARTNER_TOKEN_URL: "${typeof TOKEN_URL === 'undefined' ? 'http://127.0.0.1:8787/api/january/client-token' : TOKEN_URL}"
+      -JANUARY_END_USER_ID: "${typeof END_USER_ID === 'undefined' ? '' : END_USER_ID}"
+      -JANUARY_API_BASE_URL: "${typeof API_URL === 'undefined' ? '' : API_URL}"
+- extendedWaitUntil:
+    visible:
+      id: search-screen
+    timeout: 60000

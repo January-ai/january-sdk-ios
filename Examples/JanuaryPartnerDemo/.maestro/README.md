@@ -4,6 +4,8 @@ Maestro flows that drive the demo app against the local fixture server, one
 flow per user journey, mirroring the React Native SDK's suite (same flow names,
 same kebab-case accessibility identifiers). They run on every pull request,
 split across three simulator shards, and locally against any booted simulator.
+Flows tagged `live` run the same app against the January API through a token
+relay; they never run in CI (see [Live flows](#live-flows)).
 
 ## Run locally
 
@@ -70,7 +72,54 @@ every pull request; it needs no simulator.
   loading state deterministically: delay the route with `control-fixture.js`
   (`DELAY: "8"`, longer than Maestro waits for the screen to settle after a
   tap), then wait for the loading identifier.
-- Tag every flow `fixture` or `parity`; CI runs both tags.
+- Tag every flow `fixture`, `parity`, or `live`; CI runs `fixture` and
+  `parity`.
+
+## Live flows
+
+Flows `90`–`96` are tagged `live`. They run the demo as a fresh install in
+client-token mode against the January API, exercise search, food detail,
+alternatives, barcode, meal description, photo scan and correction,
+restaurants and menus, glucose prediction, food logs, water, weight, and the
+Tracking charts, and check every change they make against the API with
+`scripts/live-api.js`, which gets a token for the same user from the same
+token endpoint and never prints it.
+
+They write to the end user you pass, so use a dedicated test user. The flows
+delete the food logs and water they create; weight logs cannot be deleted, so
+each complete run adds that day's weights.
+
+```sh
+# Terminal 1: the token relay (see the demo README)
+cd january-token-relay && ./start.sh
+
+# Terminal 2: a Debug build installed on a booted simulator, as above
+node Examples/JanuaryPartnerDemo/.maestro/run-live.mjs --end-user your-test-user
+```
+
+`run-live.mjs` checks with one token request and one API request that the API
+is answering, then runs the flows one at a time with a pause between them and
+stops at the first failure, printing the `--from` command that resumes the run
+there. If the API answers `429 rate_limited`, the flow stops at that step
+instead of failing every later one. The weight flow runs last, so a run that
+stops earlier logs no weight. Screenshots of each step, Maestro's debug output,
+and a log of the API checks land in the output directory (`--output`).
+
+A complete run makes about 150 to 165 January API requests, including the
+client tokens it requests (`--rehearse` counts them flow by flow), and at most
+about 35 in any minute; the food-log, water, and weight flows make most of
+them. Accounts also have a daily request allowance, so check yours before a
+run, or run the flows in parts with `--only`.
+
+`--token-url` points the flows at another token endpoint, and `TIMEZONE=...`
+sets the timezone of the API checks when the simulator's differs from this
+machine's. The water flow first asks the API whether it accepts daily totals
+in cups: if it does, it logs and deletes a cup; if not, it checks that the
+Tracking card reports the refusal and logs nothing.
+
+To rehearse the live flows without the January API, `--rehearse` lets the
+fixture server stand in for both the token endpoint and the API (Debug builds
+only) and prints how many requests each flow made.
 
 ## In CI
 

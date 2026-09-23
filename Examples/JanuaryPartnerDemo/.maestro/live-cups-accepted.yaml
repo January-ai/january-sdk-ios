@@ -1,0 +1,48 @@
+appId: ai.january.partner.demo
+# Used by the live water flow once the API accepts cups: log 1 cup, check the
+# total, and delete it again.
+---
+- runScript:
+    file: scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: cup
+- evalScript: ${output.waterBefore = output.live.water}
+- extendedWaitUntil:
+    visible:
+      id: water-total
+      text: ${output.live.waterText}
+    timeout: 30000
+- takeScreenshot: live-95-07-cups
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: DOWN
+- tapOn:
+    id: water-log-create
+- extendedWaitUntil:
+    visible:
+      id: water-log-delete
+    timeout: 30000
+- runScript:
+    file: scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: cup
+      EXPECT: ${output.waterBefore + 1}
+- tapOn:
+    id: water-log-delete
+- extendedWaitUntil:
+    notVisible:
+      id: water-log-delete
+    timeout: 30000
+- runScript:
+    file: scripts/live-api.js
+    env:
+      CHECK: water
+      DAY: ${output.day}
+      UNIT: cup
+      EXPECT: "${output.waterBefore === 0 ? 'none' : output.waterBefore}"
+- takeScreenshot: live-95-08-cups-deleted

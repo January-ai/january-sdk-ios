@@ -1,0 +1,36 @@
+appId: ai.january.partner.demo
+# Used by the live water flow when the API does not accept cups yet: the water
+# card reports the refusal for the day's total, the chart, and a new log, and
+# nothing is logged.
+---
+- scrollUntilVisible:
+    element:
+      id: water-error
+    direction: DOWN
+    centerElement: true
+    timeout: 30000
+- assertVisible: Check the information you entered
+- assertVisible:
+    id: water-total
+    text: Water total unavailable
+- takeScreenshot: live-95-07-cups-refused
+- runFlow:
+    file: scroll-to.yaml
+    env:
+      TARGET_ID: water-chart-error
+- scrollUntilVisible:
+    element:
+      id: water-log-create
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: water-log-create
+- scrollUntilVisible:
+    element:
+      id: water-error
+    direction: UP
+    centerElement: true
+    timeout: 30000
+- assertNotVisible:
+    id: water-log-delete
+- takeScreenshot: live-95-08-cups-log-refused

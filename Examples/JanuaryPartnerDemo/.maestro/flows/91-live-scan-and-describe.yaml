@@ -1,0 +1,94 @@
+appId: ai.january.partner.demo
+name: Live - barcode lookup, meal description with its glucose prediction, and a photo scan with a correction
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+# Barcode: the demo shows the food the API returns for a known barcode.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: barcode
+      QUERY: greek yogurt
+- tapOn:
+    id: search-mode-barcode
+- tapOn:
+    id: search-input
+- inputText: ${output.live.barcode}
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-result-0
+      text: "${output.live.barcodeFoodPattern}"
+    timeout: 30000
+- takeScreenshot: live-91-01-barcode
+- tapOn:
+    id: search-clear
+# A meal description, then the glucose prediction for what was recognized.
+- tapOn:
+    id: search-mode-description
+- tapOn:
+    id: search-input
+- inputText: two scrambled eggs and a slice of whole wheat toast
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: description-results
+    timeout: 60000
+- assertNotVisible:
+    id: description-empty
+- takeScreenshot: live-91-02-description
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: description-glucose
+- tapOn:
+    id: description-glucose
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: description-glucose-result
+- assertNotVisible:
+    id: description-glucose-error
+- takeScreenshot: live-91-03-description-glucose
+# The bundled sample photo, analyzed, then corrected.
+- tapOn:
+    id: tab-scan
+- tapOn:
+    id: scan-sample
+- tapOn:
+    id: scan-analyze
+- extendedWaitUntil:
+    visible:
+      id: scan-results
+    timeout: 120000
+- assertNotVisible:
+    id: scan-error
+- takeScreenshot: live-91-04-scan-results
+- scrollUntilVisible:
+    element:
+      id: scan-correct
+    direction: DOWN
+- tapOn:
+    id: scan-correct
+- extendedWaitUntil:
+    visible:
+      id: scan-correction-input
+    timeout: 15000
+- tapOn:
+    id: scan-correction-input
+- inputText: There were no fries; the side was a green salad.
+- tapOn:
+    text: Done
+- tapOn:
+    id: scan-correction-submit
+# The correction sheet closes and the result shows the corrected meal.
+- extendedWaitUntil:
+    notVisible:
+      id: scan-correction-input
+    timeout: 120000
+- assertNotVisible:
+    id: scan-correction-error
+- assertVisible:
+    id: scan-results
+- takeScreenshot: live-91-05-scan-corrected

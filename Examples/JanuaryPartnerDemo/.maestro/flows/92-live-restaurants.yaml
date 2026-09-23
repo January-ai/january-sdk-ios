@@ -1,0 +1,81 @@
+appId: ai.january.partner.demo
+name: Live - nearby restaurants, a restaurant's menu, a menu item's glucose impact, and menu item search
+tags:
+  - live
+---
+- runFlow: ../live-bootstrap.yaml
+- tapOn:
+    id: search-scope-restaurants
+- tapOn:
+    id: restaurant-search-input
+- inputText: "${typeof RESTAURANT_QUERY === 'undefined' ? 'Starbucks' : RESTAURANT_QUERY}"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: restaurant-result-0
+    timeout: 30000
+- takeScreenshot: live-92-01-restaurants
+- tapOn:
+    id: restaurant-result-0
+- extendedWaitUntil:
+    visible:
+      id: "menu-(results|empty)"
+    timeout: 60000
+- assertNotVisible:
+    id: menu-error
+- takeScreenshot: live-92-02-restaurant-menu
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: restaurant-menu-item-0
+- tapOn:
+    id: restaurant-menu-item-0
+- extendedWaitUntil:
+    visible:
+      id: menu-item-detail-screen
+    timeout: 15000
+- takeScreenshot: live-92-03-menu-item
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: menu-glucose-button
+- tapOn:
+    id: menu-glucose-button
+- extendedWaitUntil:
+    visible:
+      id: "food-glucose-(result|error)"
+    timeout: 60000
+- takeScreenshot: live-92-04-menu-item-glucose
+- assertNotVisible:
+    id: food-glucose-error
+- tapOn:
+    text: Close glucose response
+- tapOn:
+    text: Back
+- tapOn:
+    text: Search
+# Menu item search.
+- extendedWaitUntil:
+    visible:
+      id: restaurant-search-screen
+    timeout: 15000
+- tapOn:
+    id: restaurant-search-clear
+- tapOn:
+    id: restaurant-mode-menu
+- tapOn:
+    id: restaurant-search-input
+- inputText: "${typeof MENU_QUERY === 'undefined' ? 'latte' : MENU_QUERY}"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: menu-result-0
+    timeout: 30000
+- takeScreenshot: live-92-05-menu-items
+- tapOn:
+    id: menu-result-0
+- extendedWaitUntil:
+    visible:
+      id: menu-item-detail-screen
+    timeout: 15000
+- takeScreenshot: live-92-06-menu-item-detail
