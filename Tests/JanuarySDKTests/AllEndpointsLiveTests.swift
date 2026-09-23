@@ -133,11 +133,14 @@ func exercisesEveryClientOperationLive() async throws {
     #expect(!prediction.prediction.isEmpty)
     pass("glucose.predict")
 
-    // Today in the client's timezone, the calendar the API groups logs by.
-    let today = dayString(Date(), in: timezone)
+    // One moment for the logs and the day they are listed under, in the client's timezone (the
+    // calendar the API groups logs by), so the test cannot straddle midnight.
+    let loggedAt = Date()
+    let loggedAtUTC = ISO8601DateFormatter().string(from: loggedAt)
+    let today = dayString(loggedAt, in: timezone)
     var createdWaterLogID: String?
     do {
-        let water = try await client.waterLogs.create(amount: .init(value: 8, unit: .fluidOunces))
+        let water = try await client.waterLogs.create(amount: .init(value: 8, unit: .fluidOunces), consumedAtUTC: loggedAtUTC)
         createdWaterLogID = water.id
         #expect(water.amount == .init(value: 8, unit: .fluidOunces))
         pass("waterLogs.create")
@@ -154,7 +157,7 @@ func exercisesEveryClientOperationLive() async throws {
         throw error
     }
 
-    let weight = try await client.weightLogs.create(weight: .init(value: 175, unit: .pounds))
+    let weight = try await client.weightLogs.create(weight: .init(value: 175, unit: .pounds), measuredAtUTC: loggedAtUTC)
     #expect(weight.weight == .init(value: 175, unit: .pounds))
     pass("weightLogs.create")
 
