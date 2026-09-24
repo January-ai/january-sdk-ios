@@ -772,14 +772,14 @@ private struct ServingSelectionSheet: View {
                                 columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 4),
                                 spacing: 8
                             ) {
-                                servingMetric("Calories", scaled(food.calories), "cal")
-                                servingMetric("Carbs", scaled(food.carbohydrates), "g")
-                                servingMetric("Protein", scaled(food.protein), "g")
-                                servingMetric("Fat", scaled(food.totalFat), "g")
+                                servingMetric("Calories", nutrition?.calories?.value, "cal")
+                                servingMetric("Carbs", nutrition?.carbohydrates?.value, "g")
+                                servingMetric("Protein", nutrition?.protein?.value, "g")
+                                servingMetric("Fat", nutrition?.totalFat?.value, "g")
                             }
 
                             PrimaryButton(title: "Add to meal") {
-                                onSelect(.init(food: food, serving: serving, quantity: quantity))
+                                onSelect(selectedFood)
                                 dismiss()
                             }
                             .accessibilityIdentifier("food-serving-add")
@@ -801,13 +801,14 @@ private struct ServingSelectionSheet: View {
         .presentationDragIndicator(.hidden)
     }
 
-    private var nutritionScale: Double {
-        let baseQuantity = (serving.quantity ?? 1) == 0 ? 1 : (serving.quantity ?? 1)
-        return quantity * serving.scalingFactor / baseQuantity
+    /// `quantity` servings of the chosen serving. Its SDK portion gives both the
+    /// nutrition shown here and the selection the log sends.
+    private var selectedFood: SelectedFood {
+        SelectedFood(food: food, serving: serving, quantity: quantity)
     }
 
-    private func scaled(_ value: Double?) -> Double? {
-        value.map { $0 * nutritionScale }
+    private var nutrition: NutritionFacts? {
+        selectedFood.portion?.nutrition
     }
 
     private func servingMetric(_ label: String, _ value: Double?, _ unit: String) -> some View {

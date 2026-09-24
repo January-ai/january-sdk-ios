@@ -54,10 +54,22 @@ struct SelectedFood: Identifiable, Hashable {
     let id = UUID()
     let food: FoodSearchItem
     var serving: ServingOption
+    /// The number of servings eaten: 2 for two "6 oz" servings.
     var quantity: Double
 
+    /// The SDK's portion for this many servings. `FoodPortion` takes the amount in the
+    /// serving's unit, so two "6 oz" servings are 12 oz. Nil when the SDK can't size the
+    /// serving, for example when it has no quantity.
+    var portion: FoodPortion? {
+        guard let servingQuantity = serving.quantity else { return nil }
+        return try? food.portion(servingID: serving.id, quantity: quantity * servingQuantity)
+    }
+
+    /// The portion's selection, which sends the number of servings. A serving the SDK
+    /// can't size is sent as the number of servings chosen.
     var selection: FoodSelection {
-        FoodSelection(id: food.id, serving: ServingSelection(id: serving.id, quantity: quantity))
+        portion?.selection
+            ?? FoodSelection(id: food.id, serving: ServingSelection(id: serving.id, quantity: quantity))
     }
 }
 

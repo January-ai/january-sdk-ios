@@ -189,6 +189,45 @@ final class RestaurantMenuUITests: XCTestCase {
         wait("Fixture breakfast")
     }
 
+    /// A food whose serving isn't one unit (a 6 oz serving at 100 cal) is logged with the
+    /// calories the serving sheet showed. The fixture computes a log's nutrition the way the
+    /// API does, from the number of servings sent, so sending the portion's 6 oz as 6
+    /// servings shows 600 cal.
+    func testLoggedPortionKeepsTheCaloriesTheServingSheetShowed() async throws {
+        tab("Logs")
+        wait("No food logs in this range")
+        tap("Add food log")
+        wait("New food log")
+        tap("Add first food")
+        let search = app.textFields["Search foods"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap(); search.typeText("greek yogurt\n")
+        wait("Fixture greek yogurt")
+        tap("Fixture greek yogurt")
+        wait("Choose serving")
+        wait("100", in: "food-serving-sheet")
+        attachScreenshot("portion-before-logging")
+        tap("Add to meal")
+        tap("Save food log")
+
+        wait("Fixture breakfast")
+        tap("Fixture breakfast")
+        wait("100", in: "food-log-detail")
+        XCTAssertFalse(text("600", in: "food-log-detail").exists)
+        wait("1 × 6 oz", in: "food-log-detail")
+        attachScreenshot("portion-in-food-log")
+
+        tab("Tracking")
+        wait("Day totals · 1 log")
+        // The totals' grid is lazy: it draws its values once scrolled into view.
+        for _ in 0..<8 where !text("100", in: "food-logs-summary").exists {
+            app.swipeUp()
+        }
+        wait("100", in: "food-logs-summary")
+        XCTAssertFalse(text("600", in: "food-logs-summary").exists)
+        attachScreenshot("portion-in-day-totals")
+    }
+
     func testGlucoseWorkflowRetainsMealAcrossFailure() async throws {
         tab("Glucose")
         tap("Add food to prediction")
@@ -323,6 +362,23 @@ final class RestaurantMenuUITests: XCTestCase {
             .matching(NSPredicate(format: "label == %@", label))
             .firstMatch
         XCTAssertTrue(element.waitForExistence(timeout: 12), "Expected \(label)\n\(app.debugDescription)")
+    }
+
+    /// Waits for text inside the element with an accessibility identifier.
+    private func wait(_ label: String, in identifier: String) {
+        XCTAssertTrue(
+            text(label, in: identifier).waitForExistence(timeout: 12),
+            "Expected \(label) in \(identifier)\n\(app.debugDescription)"
+        )
+    }
+
+    private func text(_ label: String, in identifier: String) -> XCUIElement {
+        app.descendants(matching: .any)
+            .matching(identifier: identifier)
+            .firstMatch
+            .descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", label))
+            .firstMatch
     }
 
     private func tap(_ label: String) {
