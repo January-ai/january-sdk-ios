@@ -39,3 +39,5 @@ They run on every pull request that changes more than documentation, as the
 Maintainers update `CHANGELOG.md`, confirm CI is green, and create a full
 Semantic Versioning tag. GitHub Actions validates the tag and publishes the
 corresponding GitHub release notes.
+
+<!-- docs-only CI probe; this pull request is closed without merging -->
