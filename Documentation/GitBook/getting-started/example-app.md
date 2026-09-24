@@ -8,7 +8,7 @@ Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj
 
 ## Requirements
 
-The demo is an integration harness, not a zero-configuration sample. It requires Xcode 26, an iOS 26 simulator or device, and token-provider configuration. These demo requirements are independent of the SDK, which supports iOS 15 with Xcode 15 and Swift 5.9.
+The demo is an integration harness, not a zero-configuration sample. It requires Xcode 26, an iOS 26 simulator or device, and either a token endpoint or, in a local Debug build, a server API key. These demo requirements are independent of the SDK, which supports iOS 15 with Xcode 15 and Swift 5.9.
 
 ## Run the token-provider path
 
