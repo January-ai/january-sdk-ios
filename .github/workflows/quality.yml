@@ -5,28 +5,110 @@ on:
   push:
     branches:
       - main
+  # Nightly on main: the full fixture suite, plus the live suite when the
+  # JANUARY_API_KEY secret is set. A manual run does the same on any branch.
+  schedule:
+    - cron: '17 7 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # The event is part of the group so a push to main never cancels the nightly
+  # run, or the other way round.
+  group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   MAESTRO_VERSION: '2.7.0'
   MAESTRO_SHA256: 'a4ccab6b604617e7aef6db4f885666056eabe5cfa32befaa3bc994041b8fcbb5'
 
+# Job timeouts are the slowest successful run in recent history plus about 30%,
+# so a hung simulator or build fails in minutes instead of running on.
+
 jobs:
-  minimum-toolchain:
-    name: Build with Swift 5.9
-    runs-on: macos-14
-    timeout-minutes: 20
+  # A pull request that changes only documentation skips the SDK build, the
+  # demo build and the UI shards. Any other change, and every push, scheduled or
+  # manual run, runs everything.
+  changes:
+    name: Detect docs-only changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.classify.outputs.code }}
+
+    steps:
+      - name: Check out repository
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+
+      - name: Classify the changed files
+        id: classify
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          code=true
+          if [[ "$EVENT" == pull_request ]]; then
+            # The checkout is GitHub's merge of the pull request into its base,
+            # so the diff against the first parent is what the pull request changes.
+            files="$(git diff --name-only --no-renames HEAD^1 HEAD)"
+            printf 'Changed files:\n%s\n' "$files"
+            if [[ -n "$files" ]]; then
+              code=false
+              while IFS= read -r file; do
+                case "$file" in
+                  *.md | Documentation/* | docs/* | LICENSE | .github/ISSUE_TEMPLATE/*) ;;
+                  *) code=true ;;
+                esac
+              done <<< "$files"
+            fi
+          fi
+          if [[ "$code" == false ]]; then
+            echo "::notice::Only documentation changed: the SDK build, the demo build and the UI shards are skipped."
+          fi
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+
+  # Checks that read the repository and need no simulator. They run on every
+  # pull request, docs-only ones included.
+  checks:
+    name: Check docs, secrets, and UI test coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Reject committed Partner API keys
+        run: node scripts/check-no-committed-secrets.mjs
+
+      - name: Verify public authentication
+        run: node scripts/check-public-authentication.mjs
+
+      - name: Validate README and GitBook
+        run: node scripts/check-documentation.mjs
+
+      - name: Check that the UI suite reaches every accessibility identifier
+        run: node scripts/check-ui-coverage.mjs
+
+  minimum-toolchain:
+    name: Build with Swift 5.9
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: macos-14
+    timeout-minutes: 3
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Select Xcode 15
         run: sudo xcode-select -s /Applications/Xcode_15.0.1.app/Contents/Developer
@@ -50,31 +132,22 @@ jobs:
 
   sdk-and-demo:
     name: Build and test Swift SDK
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-26
-    timeout-minutes: 30
+    timeout-minutes: 34
 
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Show Swift toolchain
         run: |
           xcodebuild -version
           swift --version
-
-      - name: Reject committed Partner API keys
-        run: node scripts/check-no-committed-secrets.mjs
-
-      - name: Verify public authentication
-        run: node scripts/check-public-authentication.mjs
-
-      - name: Validate README and GitBook
-        run: node scripts/check-documentation.mjs
-
-      - name: Check that the UI suite reaches every accessibility identifier
-        run: node scripts/check-ui-coverage.mjs
 
       - name: Run package tests and enforce coverage
         run: node scripts/check-coverage.mjs
@@ -106,6 +179,21 @@ jobs:
 
       - name: Run complete example-app UI suite
         run: scripts/test-demo-ui.sh
+
+  # The app the UI shards install, built once on its own so the shards start as
+  # soon as it exists instead of after the SDK tests and the XCUITest suite.
+  build-demo:
+    name: Build demo app
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: macos-26
+    timeout-minutes: 3
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Build the example app for the Maestro suite
         # A Debug simulator build: fixture mode (-ui-testing) is Debug-only.
@@ -141,9 +229,9 @@ jobs:
   # failure screenshots and view hierarchies are uploaded with the JUnit report.
   ui-test-ios:
     name: ui-test-ios (shard ${{ matrix.shard }} of 4)
-    needs: sdk-and-demo
+    needs: build-demo
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 37
 
     strategy:
       fail-fast: false
@@ -156,17 +244,11 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Maestro
-        run: |
-          archive="$RUNNER_TEMP/maestro.zip"
-          curl --fail --location --silent --show-error --retry 3 \
-            "https://github.com/mobile-dev-inc/Maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip" \
-            --output "$archive"
-          echo "${MAESTRO_SHA256}  ${archive}" | shasum -a 256 --check
-          unzip -q "$archive" -d "$RUNNER_TEMP/maestro"
-          "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
-          echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
+        run: .github/scripts/install-maestro.sh
 
       - name: Download the example app
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -175,6 +257,9 @@ jobs:
           path: ${{ runner.temp }}
 
       - name: Run iOS device suite
+        # Stops a hung shard before the job's own limit, so the upload below
+        # still saves its screenshots and logs.
+        timeout-minutes: 35
         run: |
           mkdir -p "$RUNNER_TEMP/ios-demo-app"
           tar -xzf "$RUNNER_TEMP/ios-demo-app.tgz" -C "$RUNNER_TEMP/ios-demo-app"
@@ -191,15 +276,127 @@ jobs:
             ${{ runner.temp }}/ios-fixture.log
 
   # One check that summarizes every shard, so branch protection can require a
-  # single stable name.
+  # single stable name. It passes on a docs-only pull request, whose shards are
+  # skipped on purpose.
   ui-tests:
-    needs: ui-test-ios
+    needs: [changes, ui-test-ios]
     if: always()
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Every UI shard passed
         env:
+          CHANGES: ${{ needs.changes.result }}
+          CODE: ${{ needs.changes.outputs.code }}
           RESULT: ${{ needs.ui-test-ios.result }}
         run: |
-          echo "ios=$RESULT"
+          echo "changes=$CHANGES code=$CODE ios=$RESULT"
+          if [[ "$CHANGES" == success && "$CODE" == false && "$RESULT" == skipped ]]; then
+            echo "Only documentation changed, so the UI shards were skipped."
+            exit 0
+          fi
           test "$RESULT" = "success"
+
+  live-gate:
+    name: Check for the live API key
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      enabled: ${{ steps.key.outputs.enabled }}
+
+    steps:
+      - name: Look for the JANUARY_API_KEY secret
+        id: key
+        env:
+          KEY_SET: ${{ secrets.JANUARY_API_KEY != '' }}
+        run: |
+          echo "enabled=$KEY_SET" >> "$GITHUB_OUTPUT"
+          if [[ "$KEY_SET" != true ]]; then
+            echo "::notice::The JANUARY_API_KEY repository secret is not set, so the live suite is skipped."
+          fi
+
+  # The live flows (tagged `live`) against the January API, through the token
+  # relay running on this runner. The API key reaches only the relay's process.
+  ui-test-ios-live:
+    name: ui-test-ios (live)
+    needs: [live-gate, build-demo]
+    if: needs.live-gate.outputs.enabled == 'true'
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: '300000'
+      # The test end user the live flows sign in as. The weight flow's entries
+      # stay on the account, so keep this a dedicated test user.
+      LIVE_END_USER: ${{ vars.JANUARY_LIVE_END_USER || 'ci-nightly-ios' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check out the token relay
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: January-ai/january-token-relay
+          ref: 65aa6dfc96e4ad0092e48130bba6fc5c3acea648
+          path: token-relay
+          persist-credentials: false
+
+      - name: Start the token relay
+        working-directory: token-relay
+        env:
+          JANUARY_API_KEY: ${{ secrets.JANUARY_API_KEY }}
+        run: |
+          # The relay's own output names part of the key, so it goes to a file
+          # and is shown only with the key removed.
+          nohup node server.js > "$RUNNER_TEMP/token-relay.log" 2>&1 &
+          relay_pid=$!
+          for _ in $(seq 1 60); do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:8787/; then
+              echo "The token relay is running."
+              exit 0
+            fi
+            kill -0 "$relay_pid" 2>/dev/null || break
+            sleep 1
+          done
+          echo "The token relay did not start:"
+          sed -E 's/sk-[^[:space:]]*/sk-[redacted]/g' "$RUNNER_TEMP/token-relay.log"
+          exit 1
+
+      - name: Install Maestro
+        run: .github/scripts/install-maestro.sh
+
+      - name: Download the example app
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-demo-app
+          path: ${{ runner.temp }}
+
+      # run-live.mjs runs one flow at a time, checks each against the API, and
+      # stops cleanly when the API reports a rate limit.
+      - name: Run the live suite
+        timeout-minutes: 55
+        run: |
+          mkdir -p "$RUNNER_TEMP/ios-demo-app"
+          tar -xzf "$RUNNER_TEMP/ios-demo-app.tgz" -C "$RUNNER_TEMP/ios-demo-app"
+          .github/scripts/ios-live-suite.sh "$RUNNER_TEMP/ios-demo-app/JanuaryPartnerDemo.app" "$LIVE_END_USER" "$RUNNER_TEMP/live"
+
+      # Live screenshots show real API data, so they are kept only to debug a
+      # failure, and briefly.
+      - name: Add the relay's log, without the key, to the live results
+        if: failure()
+        run: |
+          mkdir -p "$RUNNER_TEMP/live"
+          sed -E 's/sk-[^[:space:]]*/sk-[redacted]/g' "$RUNNER_TEMP/token-relay.log" > "$RUNNER_TEMP/live/token-relay.log" || true
+
+      - name: Upload the live run's results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: maestro-ios-live
+          path: |
+            ${{ runner.temp }}/live
+            !${{ runner.temp }}/live/**/device-simulator.log
+          retention-days: 7

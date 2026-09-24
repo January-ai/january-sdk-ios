@@ -31,7 +31,8 @@ environment files.
 
 The demo's Maestro flows and how to run them locally are described in
 [Examples/JanuaryPartnerDemo/.maestro/README.md](Examples/JanuaryPartnerDemo/.maestro/README.md).
-They run on every pull request as the `ui-tests` check.
+They run on every pull request that changes more than documentation, as the
+`ui-tests` check.
 
 ## Releases
 
