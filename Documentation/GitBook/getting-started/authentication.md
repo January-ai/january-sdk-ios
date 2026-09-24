@@ -88,7 +88,7 @@ Three options let you run the app before your token endpoint exists:
 | `developmentAPIKey` | The initializer, which sends your API key on every call | Make calls with no client tokens at all |
 
 {% hint style="danger" %}
-`JanuaryDevelopmentTokenProvider` and `developmentAPIKey` put your `sk-…` API key in the app process. Use them only in a local Debug build. Load the key from the Xcode scheme, never commit it, and never ship a build that contains it. Release builds don't compile either one, and the SDK logs a warning to the Xcode console (without the key) whenever you use one.
+`JanuaryDevelopmentTokenProvider` and `developmentAPIKey` put your `sk-…` API key in the app process. Do not use it in production: keep both to a local Debug build, load the key from the Xcode scheme, never commit it, and never ship a build that contains it. Release builds don't compile either one, and the SDK logs a warning to the Xcode console (without the key) whenever you use one.
 {% endhint %}
 
 Set `JANUARY_API_KEY` under **Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables**. An empty key fails with an `.authentication` error.

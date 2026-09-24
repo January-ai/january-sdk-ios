@@ -32,7 +32,7 @@ Read [Versioning and support](versioning-and-support.md) before you update.
 * Nine-attempt bounded exponential backoff with jitter for retryable provider failures
 * Stable `JanuaryError` categories
 * Food autocomplete, full food details, and local portion calculations
-* Restaurant menu-item search and paginated menu lookup by restaurant ID
+* Restaurant menu-item search, and paginated restaurant-menu lookup by restaurant ID (`getMenuItems`)
 * Single food-log retrieval, and deletion with no response body
 * Typed imperial and metric height and weight values
 * Native photo and barcode food scanner, and image-preparation helpers
