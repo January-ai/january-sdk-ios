@@ -1,99 +1,83 @@
 # Client and resources
 
-`JanuaryClient` is the public SDK entry point. Its generated OpenAPI transport remains package-private.
+`JanuaryClient` is the SDK's entry point.
 
 ## Create a client
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: signedInUser.id,
+    endUserID: endUserID,
+    timezone: TimeZone.current,
     clientTokenProvider: tokenProvider
 )
 ```
 
-## Public initializers
+## Initializers
 
-| Initializer | Use |
+| Parameters | Use |
 | --- | --- |
-| `endUserID: String, clientTokenProvider: JanuaryClientTokenProvider, timezone?` | Automatic refresh through an async closure for the required user |
-| `endUserID: String, clientTokenProvider: JanuaryTokenProvider, timezone?` | Automatic refresh through a named provider for the required user |
-| `clientToken, endUserID: String, timezone?` | App-managed fixed token for the required user; recreate the client to replace it |
-| `developmentAPIKey, endUserID: String, timezone?` | Supported local-development authentication only; never ship an API key in an app |
+| `endUserID, timezone?, clientTokenProvider: any JanuaryTokenProvider, tokenRetryPolicy?` | Production: a named provider type that calls your token endpoint |
+| `endUserID, timezone?, clientTokenProvider: JanuaryClientTokenProvider, tokenRetryPolicy?` | Production: the same, as an `async` closure |
+| `clientToken, endUserID, timezone?` | One token your app manages; create a new client to replace it |
+| `developmentAPIKey, endUserID, timezone?` | Local Debug builds only ([local development](../getting-started/authentication.md#local-development)) |
 
-Public initializers target `https://partners.january.ai`. There is no public base-URL or token-endpoint override.
+Every initializer requires a non-empty `endUserID`; a blank one throws an `.authentication` error with the code `invalid_end_user_id`. [User identity and timezone](../concepts/user-identity-and-timezone.md) covers `endUserID` and `timezone`.
 
-Production integrations should prefer `JanuaryTokenProvider`, which obtains
-short-lived client tokens from the app's authenticated backend. The
-`developmentAPIKey` initializer exists only for local testing and emits a runtime
-warning when initialized with a nonempty key. Release builds reject it at compile
-time. It must not be used in a production or distributed build.
-
-Every public initializer requires the signed-in user's stable `endUserID`.
-
-All initializers resolve an omitted or blank timezone to
-`TimeZone.current`. The SDK converts the value to its identifier for requests.
+Every initializer targets `https://partners.january.ai`. There's no public base-URL or token-endpoint override.
 
 ## Resource methods
 
+These are the methods on a `JanuaryClient`'s resources. Each resource also has request-value forms, such as `create(_ request: CreateFoodLogRequest)`; the resource pages list them.
+
 | Resource | Method | Purpose |
 | --- | --- | --- |
+| `foods` | `autocomplete(_:)` | Type-ahead suggestions |
 | `foods` | `search(_:)` | Search foods by name |
-| `foods` | `autocomplete(_:)` | Return type-ahead suggestions |
-| `foods` | `get(id:endUserID:)` | Hydrate a food with all servings |
-| `foods` | `lookupBarcode(_:)` | Look up UPC/EAN/GTIN codes |
-| `foods` | `suggestAlternatives(_:)` | Find dietary alternatives |
+| `foods` | `lookupBarcode(_:)` | Look up a UPC, EAN, or GTIN barcode |
+| `foods` | `get(id:)` | Fetch the full food with every serving |
+| `foods` | `suggestAlternatives(_:)` | Find alternatives that fit dietary needs |
 | `restaurants` | `search(_:)` | Find nearby restaurants |
 | `restaurants` | `searchMenuItems(_:)` | Find nearby menu items |
-| `restaurants` | `getMenuItems(_:)` | Load a restaurant's menu by its search-result ID |
-| `foodAnalysis` | `analyzePhoto(_:)` | Analyze a food image |
+| `restaurants` | `getMenuItems(_:)` | Load a restaurant's menu by the ID from a restaurant search |
+| `foodAnalysis` | `analyzePhoto(_:)` | Analyze a meal photo |
 | `foodAnalysis` | `analyzeDescription(_:)` | Analyze a meal description |
-| `foodAnalysis` | `correct(_:)` | Correct a scan with text feedback |
-| `foodLogs` | `create(_:)` | Create a food log |
-| `foodLogs` | `list(_:)` | List food logs for a date range |
-| `foodLogs` | `getSummary(_:)` | Summarize food logs per day or week |
-| `foodLogs` | `get(_:)` | Get one food log by ID |
-| `foodLogs` | `update(_:)` | Update a food log |
-| `foodLogs` | `delete(_:)` | Delete a food log |
-| `glucose` | `predict(_:)` | Predict glucose impact |
-| `waterLogs` | `create(_:)` | Log an amount of water |
-| `waterLogs` | `list(_:)` | Daily water totals for a date range |
-| `waterLogs` | `delete(_:)` | Delete a water log |
-| `weightLogs` | `create(_:)` | Log a weight measurement |
-| `weightLogs` | `list(_:)` | Latest weight per day for a date range |
+| `foodAnalysis` | `correct(_:)` | Correct an analysis with a text instruction |
+| `foodLogs` | `create(foods:timestampUTC:name:)` | Create a food log |
+| `foodLogs` | `list(start:end:)` | List food logs for a date range |
+| `foodLogs` | `getSummary(start:end:groupBy:weekStart:)` | Summarize food logs per day or week |
+| `foodLogs` | `get(id:)` | Get one food log |
+| `foodLogs` | `update(id:foods:timestampUTC:name:)` | Update a food log |
+| `foodLogs` | `delete(id:)` | Delete a food log |
+| `waterLogs` | `create(amount:consumedAtUTC:)` | Log an amount of water |
+| `waterLogs` | `list(start:end:unit:)` | Daily water totals for a date range |
+| `waterLogs` | `delete(id:)` | Delete a water log |
+| `weightLogs` | `create(weight:measuredAtUTC:)` | Log a weight |
+| `weightLogs` | `list(start:end:)` | Each day's latest weight for a date range |
+| `glucose` | `predict(_:)` | Predict a glucose curve |
 
-All resource calls use Swift concurrency, are `async throws`, and may throw `JanuaryError` or preserve `CancellationError`.
-
-`JanuaryClient` applies its configured `PartnerUserContext` automatically to
-`foods`, `restaurants`, `foodAnalysis`, `foodLogs`, `glucose`, `waterLogs`, and
-`weightLogs`. There is no
-second user-client object and no need to repeat the ID in individual requests.
-The public client always targets January production and exposes no API-origin
-override.
+Every method is `async throws`. It throws `JanuaryError`, or `CancellationError` when its task is canceled ([Errors](error-handling.md)).
 
 ## Identifiers
 
-The SDK uses typed wrappers to prevent identifier mixups:
+The SDK wraps identifiers in types so they can't be mixed up: `PartnerUserID`, `FoodID`, and `ServingID`.
 
-* `PartnerUserID`
-* `FoodID`
-* `ServingID`
-
-## Principal response types
+## Response types
 
 | Operation | Response |
 | --- | --- |
 | Food autocomplete | `AutocompleteFoodsResponse` |
-| Food search or barcode | `FoodSearchResults` |
-| Food hydration | `FoodSearchItem` |
-| Natural-language meal or photo scan | `FoodScan` |
+| Food search or barcode lookup | `FoodSearchResults` |
+| Full food (`foods.get`) | `FoodSearchItem` |
+| Food analysis: photo, description, or correction | `FoodScan` |
+| Food alternatives | `SuggestFoodAlternativesResponse` |
 | Restaurant search | `SearchRestaurantsResponse` |
 | Menu-item search | `SearchRestaurantMenuItemsResponse` |
-| Restaurant menu lookup | `GetRestaurantMenuItemsResponse` |
-| Food-log create/get/update | `FoodLog` |
+| Restaurant menu | `GetRestaurantMenuItemsResponse` |
+| Food-log create, get, or update | `FoodLog` |
 | Food-log list | `ListFoodLogsResponse` |
 | Food-log summary | `FoodLogSummary` |
-| Glucose prediction | `GlucosePrediction` |
 | Water-log create | `WaterLog` |
 | Water-log list | `ListWaterLogsResponse` |
 | Weight-log create | `WeightLog` |
 | Weight-log list | `ListWeightLogsResponse` |
+| Glucose prediction | `GlucosePrediction` |

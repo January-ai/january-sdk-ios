@@ -1,4 +1,4 @@
-# Water and Weight Logs API
+# Water and weight logs API
 
 ## Operations
 
@@ -37,6 +37,8 @@ public struct ListWeightLogsRequest: Hashable, Sendable {
 }
 ```
 
+Amount, weight, and date limits are in [Validation limits](validation.md) and the [Water and weight logs](../guides/water-and-weight-logs.md) guide.
+
 ## Configured-client operations
 
 ```swift
@@ -50,9 +52,7 @@ public func create(weight: Weight, measuredAtUTC: String? = nil) async throws ->
 public func list(start: String, end: String) async throws -> ListWeightLogsResponse
 ```
 
-These methods automatically reuse the client's configured context. On a
-`JanuaryClient`, the request-value forms above also use the client's configured
-end-user ID and timezone in place of the request's `user`.
+These methods use the client's end-user ID and timezone. The request-value forms above do too: the client's values replace the request's `user`.
 
 ## Responses
 
@@ -71,8 +71,8 @@ Timestamps in responses are ISO 8601 in UTC with milliseconds. Dates are
 
 ## Errors
 
-Create validates the amount or weight range and an optional ISO-8601 timestamp
-before transport. Operations map declared 400, 401, 403, and 429 responses plus
+Create checks the amount or weight range and an optional ISO 8601 timestamp
+before sending. Operations map declared 400, 401, 403, and 429 responses plus
 other HTTP, transport, and decoding failures to `JanuaryError`. A response that
 carries an unknown unit is reported as a `.decoding` error. The API's
 `daily_water_limit_exceeded` and `date_range_too_large` codes arrive as

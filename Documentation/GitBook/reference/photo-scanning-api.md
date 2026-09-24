@@ -35,20 +35,20 @@ public struct CorrectPhotoScanRequest: Hashable, Sendable {
 }
 ```
 
-The string image can be a public URL string or data URI. The `Data` initializer normalizes orientation, preserves aspect ratio, bounds the longest edge, compresses to JPEG, and creates the data URI. When `reasoningEffort` is `nil`, the request leaves the choice to the API, which uses the reasoning-based analyzer. `.none` selects the standard analyzer, and `.xhigh` asks for the reasoning-based one explicitly. Both return the same result shape at the same cost.
+The `image` string is a public URL or a data URI. The `imageData` initializer orients the image, scales its longest edge down to `maxDimension`, compresses it to JPEG, and builds the data URI; `PhotoScanImage.jpegData(from:)` and `PhotoScanImage.dataURI(from:)` do the same preparation on their own. When `reasoningEffort` is `nil`, the request leaves the choice to the API, which uses the reasoning-based analyzer. `.none` selects the standard analyzer, and `.xhigh` asks for the reasoning-based one explicitly. Both return the same result shape at the same cost.
 
 `CorrectPhotoScanRequest` takes the complete prior `FoodScan`, unchanged, and a plain-language `instruction`. The `init(mealName:detections:userInput:endUserID:)` initializer is deprecated.
 
 ## Response models
 
-`FoodScan.detections` is a nonoptional array. `mealName` is optional; `totalNutrients` is not. `glucoseImpact` is deprecated and always `nil`: food analysis no longer returns a glucose impact, so use `glucose.predict` instead. Each `FoodDetection` contains a `DetectedFood` and optional `ConfidenceScore` (`high`, `medium`, or `low`).
+`FoodScan.detections` is a nonoptional array. `mealName` is optional; `totalNutrients` is not. `glucoseImpact` is deprecated and always `nil`; use `glucose.predict` for a glucose impact. Each `FoodDetection` contains a `DetectedFood` and optional `ConfidenceScore` (`high`, `medium`, or `low`).
 
-`DetectedFood` has `id`, `name`, `brandName`, `nutrients`, `serving`, and `quantity`. `serving` is the selected catalog serving (`ServingSummary` with `id`, `quantity`, `unit`, where `quantity` is the size of one serving) and `quantity` is how many of that serving were eaten. `id`, `serving.id`, and `quantity` are optionals in Swift; unwrap them and pass `FoodSelection(id: id, serving: ServingSelection(id: servingID, quantity: quantity))` to log the detection as is (see [Food logs](../guides/food-logs.md#select-a-food-and-serving)). `nutrients` are already scaled to `quantity`.
+`DetectedFood` has `id`, `name`, `brandName`, `nutrients`, `serving`, and `quantity`. `serving` is the selected catalog serving (`ServingSummary` with `id`, `quantity`, `unit`, where `quantity` is the size of one serving) and `quantity` is how many of that serving were eaten. `id`, `serving.id`, and `quantity` are optionals in Swift; unwrap them and pass `FoodSelection(id: id, serving: ServingSelection(id: servingID, quantity: quantity))` to log the detection as is (see [Food logs](../guides/food-logs.md#log-an-analyzed-meal)). `nutrients` are already scaled to `quantity`.
 
 Food alternatives (`foods.suggestAlternatives`) return `AlternativeFood` values with `servings: [ServingSummary]` to read the nutrition against.
 
 ## Errors
 
-Scan maps 413 to `.validation` and 504 to `.timeout`; correction also maps 504 to `.timeout`. Both map 400, 401, 429, and other statuses to `JanuaryError`. Image preparation throws `PhotoScanImageError.invalidImage` or `.encodingFailed`.
+Photo analysis maps 413 to `.validation`, and every operation maps 504 to `.timeout`. Other API errors map to `JanuaryError` by status. Image preparation throws `PhotoScanImageError.invalidImage` or `.encodingFailed`.
 
-The native scanner types are documented separately in [Native food scanner](../guides/native-meal-scanner.md) because they are iOS-only.
+The camera scanner types are on the [Native food scanner](../guides/native-meal-scanner.md) page and in [Models and enums](models-and-enums.md#scanner-types).

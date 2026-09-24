@@ -1,129 +1,45 @@
-# First iOS request
+# First request
 
-This walkthrough creates a complete minimal SwiftUI app. It obtains a client token from an explicit partner-backend URL, searches for a food, hydrates the selected result, calculates a portion, and renders the result.
-
-Your partner token endpoint must already implement the
-[backend token endpoint](backend-token-endpoint.md) contract.
+Build a small SwiftUI app that gets a client token from your token endpoint, searches for a food, fetches its full details, computes a portion, and shows the result.
 
 ## 1. Create the Xcode project
 
-1. In Xcode, choose **File → New → Project**.
-2. Select **iOS → App**.
-3. Name it `JanuaryQuickstart`, choose **SwiftUI** for Interface and **Swift** for Language.
-4. Set the deployment target to iOS 15 or later.
-5. Choose **File → Add Package Dependencies**.
-6. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-7. Select the latest release shown by Xcode.
-8. Add the `January` product to the `JanuaryQuickstart` target.
+1. In Xcode, choose **File → New → Project → iOS → App**.
+2. Name it `JanuaryQuickstart`, with **SwiftUI** for Interface, **Swift** for Language, and iOS 15 or later as the deployment target.
+3. [Add the SDK](installation.md) to the `JanuaryQuickstart` target.
 
-## 2. Add required scheme configuration
+## 2. Set the scheme's environment variables
 
-Edit the `JanuaryQuickstart` scheme and add these Run environment variables:
+Choose **Product → Scheme → Edit Scheme → Run → Arguments** and add these environment variables:
 
 ```text
-PARTNER_TOKEN_URL=https://your-backend.example.com/january-token
-PARTNER_APP_SESSION_TOKEN=your-app-session-token
-JANUARY_END_USER_ID=your-stable-user-id
+JANUARY_PARTNER_TOKEN_URL=https://your-backend.example.com/january/client-token
+JANUARY_PARTNER_SESSION_TOKEN=your-app-session-token
+JANUARY_END_USER_ID=acme-user-8271
 ```
 
-`PARTNER_TOKEN_URL` has no default. Replace these values with your configured backend endpoint, a valid session credential, and the stable ID for the signed-in app user. January's private server-side token-issuance credentials never belong in the app.
+Use your token endpoint's URL, a valid session token for it, and the end-user ID your backend mints tokens for.
 
-Use the same stable, non-identifying partner user ID that your backend binds to
-the token. The configured client keeps request context together, but the client
-token remains authoritative for identity and the SDK removes `January-End-User-ID`
-from January requests.
+{% hint style="info" %}
+No backend yet? Start the [token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay), set `JANUARY_PARTNER_TOKEN_URL=http://localhost:8787/api/january/client-token`, and leave out `JANUARY_PARTNER_SESSION_TOKEN`.
+{% endhint %}
 
-## 3. Add the app source
+## 3. Add the source
 
-Replace `JanuaryQuickstartApp.swift` with:
-
-```swift
-import SwiftUI
-
-@main
-struct JanuaryQuickstartApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-    }
-}
-```
-
-Replace `ContentView.swift` with:
+Add a file named `BackendTokenProvider.swift` containing the `BackendTokenProvider` from [Authentication](authentication.md#write-the-token-provider). Leave `JanuaryQuickstartApp.swift` as Xcode created it, and replace `ContentView.swift` with:
 
 ```swift
 import Foundation
 import January
 import SwiftUI
 
-enum QuickstartError: LocalizedError {
-    case missingEnvironment(String)
-    case invalidURL(String)
-    case invalidResponse
-    case tokenRequestFailed(Int)
-    case noFoods
-
-    var errorDescription: String? {
-        switch self {
-        case .missingEnvironment(let name):
-            return "Set \(name) in the Xcode scheme."
-        case .invalidURL(let value):
-            return "Invalid partner token URL: \(value)"
-        case .invalidResponse:
-            return "The partner token endpoint returned an invalid response."
-        case .tokenRequestFailed(let status):
-            return "The partner token endpoint returned HTTP \(status)."
-        case .noFoods:
-            return "January returned no matching foods."
-        }
-    }
-}
-
-struct PartnerBackendTokenProvider: JanuaryTokenProvider {
-    let endpoint: URL
-    let appSessionToken: String
-
-    func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
-        // This calls your server to mint a new January client token.
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue(
-            "Bearer \(appSessionToken)",
-            forHTTPHeaderField: "Authorization"
-        )
-        request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
-
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: request)
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch {
-            throw JanuaryTokenProviderError(
-                "The partner token endpoint is unavailable.",
-                retryable: true
-            )
-        }
-        guard let http = response as? HTTPURLResponse else {
-            throw QuickstartError.invalidResponse
-        }
-        guard (200..<300).contains(http.statusCode) else {
-            if http.statusCode == 408 || http.statusCode == 429 || http.statusCode >= 500 {
-                throw JanuaryTokenProviderError(
-                    "The partner token endpoint is temporarily unavailable.",
-                    retryable: true
-                )
-            }
-            throw QuickstartError.tokenRequestFailed(http.statusCode)
-        }
-        return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
-    }
+struct QuickstartError: LocalizedError {
+    let errorDescription: String?
+    init(_ message: String) { errorDescription = message }
 }
 
 @MainActor
-final class QuickstartViewModel: ObservableObject {
+final class QuickstartModel: ObservableObject {
     enum State {
         case loading
         case loaded(name: String, servings: Int, calories: Double)
@@ -131,44 +47,26 @@ final class QuickstartViewModel: ObservableObject {
     }
 
     @Published private(set) var state: State = .loading
+    private var client: JanuaryClient?
 
     func load() async {
         state = .loading
         do {
-            let environment = ProcessInfo.processInfo.environment
-            guard let rawURL = environment["PARTNER_TOKEN_URL"] else {
-                throw QuickstartError.missingEnvironment("PARTNER_TOKEN_URL")
-            }
-            guard let endpoint = URL(string: rawURL) else {
-                throw QuickstartError.invalidURL(rawURL)
-            }
-            guard let appSessionToken = environment["PARTNER_APP_SESSION_TOKEN"] else {
-                throw QuickstartError.missingEnvironment("PARTNER_APP_SESSION_TOKEN")
-            }
-            guard let endUserID = environment["JANUARY_END_USER_ID"] else {
-                throw QuickstartError.missingEnvironment("JANUARY_END_USER_ID")
-            }
-            let provider = PartnerBackendTokenProvider(
-                endpoint: endpoint,
-                appSessionToken: appSessionToken
-            )
-            let january = try JanuaryClient(
-                endUserID: endUserID,
-                clientTokenProvider: provider
-            )
+            let client = try self.client ?? makeClient()
+            self.client = client
 
-            let results = try await january.foods.search(
+            let results = try await client.foods.search(
                 .init(query: "greek yogurt", category: .branded, limit: 10)
             )
             guard let match = results.items.first else {
-                throw QuickstartError.noFoods
+                state = .failed("January returned no matching foods.")
+                return
             }
 
-            let food = try await january.foods.get(id: match.id)
+            let food = try await client.foods.get(id: match.id)
             let portion = try food.portion(quantity: 1)
-
             state = .loaded(
-                name: food.name,
+                name: food.name ?? "Unnamed food",
                 servings: food.servings.count,
                 calories: portion.nutrition.calories?.value ?? 0
             )
@@ -178,10 +76,31 @@ final class QuickstartViewModel: ObservableObject {
             state = .failed(error.localizedDescription)
         }
     }
+
+    private func makeClient() throws -> JanuaryClient {
+        let environment = ProcessInfo.processInfo.environment
+        guard let rawURL = environment["JANUARY_PARTNER_TOKEN_URL"],
+              let tokenEndpoint = URL(string: rawURL) else {
+            throw QuickstartError("Set JANUARY_PARTNER_TOKEN_URL in the Xcode scheme.")
+        }
+        guard let endUserID = environment["JANUARY_END_USER_ID"] else {
+            throw QuickstartError("Set JANUARY_END_USER_ID in the Xcode scheme.")
+        }
+        let sessionToken = environment["JANUARY_PARTNER_SESSION_TOKEN"] ?? ""
+
+        return try JanuaryClient(
+            endUserID: endUserID,
+            timezone: TimeZone.current,
+            clientTokenProvider: BackendTokenProvider(
+                tokenEndpoint: tokenEndpoint,
+                appSessionToken: { sessionToken }
+            )
+        )
+    }
 }
 
 struct ContentView: View {
-    @StateObject private var model = QuickstartViewModel()
+    @StateObject private var model = QuickstartModel()
 
     var body: some View {
         VStack(spacing: 16) {
@@ -210,31 +129,19 @@ struct ContentView: View {
 }
 ```
 
-## 4. Build and run
+The model creates the client once and reuses it on **Try Again**, as a real app should ([Client lifecycle](../concepts/client-lifecycle.md)).
 
-Select an iOS Simulator and press **Run**, or build from the project directory:
+## 4. Run it
 
-```sh
-xcodebuild \
-  -project JanuaryQuickstart.xcodeproj \
-  -scheme JanuaryQuickstart \
-  -sdk iphonesimulator \
-  -destination 'generic/platform=iOS Simulator' \
-  CODE_SIGNING_ALLOWED=NO \
-  build
-```
-
-Scheme environment variables are injected when Xcode runs the app. The command above proves the app compiles; use **Run** to exercise the configured token endpoint.
-
-## Expected UI
-
-The screen first shows **Connecting…**. A successful request then shows:
+Choose an iOS Simulator and press **Run**. The screen shows **Connecting…**, then:
 
 ```text
 January SDK
-<hydrated food name>
-<one or more> serving options
-<numeric value> calories
+<food name>
+<number> serving options
+<number> calories
 ```
 
-On failure, the screen shows the localized error and a **Try Again** button. See [Errors](../reference/error-handling.md) and [Troubleshooting](../reference/troubleshooting.md).
+On failure, it shows the error message and a **Try Again** button. An error from your token endpoint shows the provider's message, such as "Your token endpoint returned HTTP 401." If the endpoint can't be reached, the SDK retries for about 45 seconds before showing the error. See [Errors](../reference/error-handling.md) and [Troubleshooting](../reference/troubleshooting.md).
+
+Next: [Example app](example-app.md), or skip to [Core concepts](https://docs.january.ai/ios-sdk/concepts).

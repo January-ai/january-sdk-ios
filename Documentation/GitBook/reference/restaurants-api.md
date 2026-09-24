@@ -36,7 +36,7 @@ public struct SearchRestaurantsRequest: Hashable, Sendable {
 `SearchRestaurantMenuItemsRequest` has the same initializer shape.
 
 `GetRestaurantMenuItemsRequest` loads a menu from a restaurant ID returned by
-`search`. It defaults to the largest supported page and the first offset:
+`search`. It defaults to a 100-item page, the SDK's maximum, and the first offset:
 
 ```swift
 public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
@@ -55,11 +55,8 @@ public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
 
 `SearchRestaurantMenuItemsResponse` has `totalCount: Int` and `items: [RestaurantMenuItem]`. Menu items include ID/name, restaurant name, optional nutrition, image, glycemic data, distance, and `[ServingOption]`.
 
-`GetRestaurantMenuItemsResponse` contains only `items: [RestaurantMenuEntry]`,
-with no `totalCount`. Advance `offset` by the number of returned items while a
-full page comes back; an empty page ends the menu, including for a restaurant
-with no menu on record. An unknown restaurant returns `404`.
+`GetRestaurantMenuItemsResponse` contains only `items: [RestaurantMenuEntry]`, with no `totalCount`; see [paging a menu](../guides/restaurants.md#load-a-restaurant-menu).
 
 ## Errors
 
-The SDK validates query length, coordinates, radius, and limit before transport. API responses map 400, 401, 429, and other status codes to `JanuaryError`. See [Validation limits](validation.md).
+The SDK checks the query length, coordinates, radius, limit, and offset before sending ([Validation limits](validation.md)). An unknown restaurant ID fails with `.notFound`. Other API errors map to `JanuaryError` by status.

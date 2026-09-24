@@ -1,25 +1,28 @@
-# Install the iOS SDK
+# Installation
 
-## Requirements
+Check the [requirements](../README.md#requirements) first. Releases before 1.0 can break the API in a minor version, so allow patch updates only.
 
-* Xcode 15 or later
-* Swift 5.9 or later
-* iOS 15 or later
+## Swift Package Manager
 
-## Add the package in Xcode
+1. In Xcode, choose **File → Add Package Dependencies**.
+2. Enter `https://github.com/January-ai/january-sdk-ios.git`.
+3. Set **Dependency Rule** to **Up to Next Minor Version** from `0.3.1`.
+4. Add the `January` product to your app target.
 
-1. Open your app project.
-2. Choose **File → Add Package Dependencies**.
-3. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-4. Select the latest release shown by Xcode.
-5. Add the `January` product to your app target.
-6. Import January in your app:
+In a `Package.swift` manifest:
 
 ```swift
-import January
+dependencies: [
+    .package(url: "https://github.com/January-ai/january-sdk-ios.git", .upToNextMinor(from: "0.3.1")),
+],
+targets: [
+    .target(name: "YourApp", dependencies: [
+        .product(name: "January", package: "january-sdk-ios"),
+    ]),
+]
 ```
 
-## Add the pod with CocoaPods
+## CocoaPods
 
 Add the `January` pod to your `Podfile`:
 
@@ -31,7 +34,12 @@ target "YourApp" do
 end
 ```
 
-Then run `pod install --repo-update`, open the generated `.xcworkspace`, and
-`import January`.
+Then run `pod install --repo-update` and open the generated `.xcworkspace`.
 
-Continue to [Backend token endpoint](backend-token-endpoint.md).
+## Import the SDK
+
+```swift
+import January
+```
+
+Next: [Backend token endpoint](backend-token-endpoint.md).

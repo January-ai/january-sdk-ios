@@ -1,64 +1,31 @@
 # Testing your integration
 
-Test the app/backend boundary separately from January resource behavior.
+Test your token provider on its own, then the token lifecycle against a real endpoint.
 
-## Token provider contract
+## Token provider
 
-Verify that your provider:
+Check that your provider:
 
-1. sends the configured authentication to your configured backend or testing-relay URL;
-2. sends `January-End-User-ID` when testing the relay contract;
-3. accepts both `expiresIn` and `expires_in` responses;
-4. rejects non-2xx responses;
-5. never logs token response bodies; and
-6. has no fallback endpoint.
+1. posts to the configured URL with the app session in `Authorization`;
+2. sends `January-End-User-ID`, which the token relay needs;
+3. decodes January's token response unchanged;
+4. throws `JanuaryTokenProviderError` for every failure, with `retryable: true` only for network errors, timeouts, and HTTP 408, 429, and 5xx;
+5. never logs token responses; and
+6. has no fallback URL.
 
-Use `URLProtocol` or an injected `URLSession` configuration to test the provider without a live server.
+Use a `URLProtocol` subclass or an injected `URLSession` configuration to test it without a live server.
 
-## Refresh behavior
+## Token lifecycle
 
-In an integration environment, use a short-lived server token or a controlled clock to verify:
+To see refresh happen quickly, have your endpoint mint tokens with `ttl_seconds: 300` (on the [token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay), set `TOKEN_TTL_SECONDS=300`). The SDK then asks for a new token after about 240 seconds. Check that:
 
-* proactive refresh inside the 60-second leeway;
-* one provider call for concurrent cold-cache requests;
-* bounded 1, 2, 4, 8-second retry scheduling;
-* one January API replay after `401 token_expired`; and
-* no refresh loop for other authentication codes.
+* the provider is called again before the token expires;
+* concurrent calls on a cold start make one provider call;
+* a provider marked retryable is retried with backoff and then fails; and
+* other authentication errors don't cause a refresh loop.
 
-## Repository checks
-
-From a clone of the [SDK repository](https://github.com/January-ai/january-sdk-ios):
-
-```sh
-node scripts/check-coverage.mjs
-```
-
-This runs the complete `JanuarySDKTests` target on the first available iPhone Simulator with code coverage enabled. The tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
-
-## Partner-backend integration
-
-Run the optional live integration test against your configured token endpoint
-by supplying the same authorization and test-user configuration used by your
-app:
-
-```sh
-PARTNER_TOKEN_URL=https://your-backend.example.com/january-token \
-PARTNER_APP_SESSION_TOKEN=your-app-session-token \
-JANUARY_END_USER_ID=your-test-user \
-node scripts/check-coverage.mjs
-```
-
-The test calls the partner backend, decodes its short-lived token response, and
-uses that token through `JanuaryClient` for a real food search. It returns
-immediately during ordinary test runs when any required value is absent.
-
-## Local lifecycle verification
-
-In a local Debug app, `JanuaryDevelopmentTokenProvider` can verify the complete
-token lifecycle without a partner backend. Token lifetime is managed
-internally. To test server-expiry replay deterministically, use the SDK's mocked
-transport tests.
+The expected behavior is in [Retries and concurrency](retries-and-concurrency.md).
 
 ## Consumer build
 
-Keep a minimal app or package that depends on the same SDK release as production. Its build should import `January`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
+Keep a small app or package that depends on the same SDK release as production. It should import `January`, create a provider-backed client, and compile representative calls. That catches product-name, access-control, deployment-target, and concurrency problems when you update the SDK.

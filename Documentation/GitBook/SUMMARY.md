@@ -14,7 +14,7 @@
 
 * [Client lifecycle](concepts/client-lifecycle.md)
 * [User identity and timezone](concepts/user-identity-and-timezone.md)
-* [Food hydration and portions](concepts/food-hydration-and-portions.md)
+* [Food details and portions](concepts/food-hydration-and-portions.md)
 
 ## Guides
 
@@ -22,10 +22,10 @@
 * [Restaurants](guides/restaurants.md)
 * [Food analysis](guides/photo-scanning.md)
 * [Native food scanner](guides/native-meal-scanner.md)
-* [Voice capture](guides/voice-capture.md)
 * [Food logs](guides/food-logs.md)
 * [Water and weight logs](guides/water-and-weight-logs.md)
 * [Glucose prediction](guides/glucose-prediction.md)
+* [Voice capture](guides/voice-capture.md)
 
 ## Reference
 
@@ -34,8 +34,8 @@
 * [Foods API](reference/foods-api.md)
 * [Restaurants API](reference/restaurants-api.md)
 * [Food analysis API](reference/photo-scanning-api.md)
-* [Food Logs API](reference/food-logs-api.md)
-* [Water and Weight Logs API](reference/water-and-weight-logs-api.md)
+* [Food logs API](reference/food-logs-api.md)
+* [Water and weight logs API](reference/water-and-weight-logs-api.md)
 * [Glucose API](reference/glucose-api.md)
 * [Models and enums](reference/models-and-enums.md)
 * [Validation limits](reference/validation.md)

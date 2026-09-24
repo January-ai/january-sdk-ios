@@ -1,19 +1,17 @@
 # Native food scanner
 
-{% hint style="info" %}
-The January SDK is iOS-only and supports iOS 15 or later. The ready-made scanner uses native SwiftUI, UIKit, AVFoundation, and Vision APIs.
-{% endhint %}
+The food scanner is a ready-made full-screen camera. In photo mode it runs [food analysis](photo-scanning.md) on the meal; in barcode mode it looks up the barcode and fetches the full food (`foods.get`) for the first match.
 
 ## Add camera permission
 
-Add a user-facing camera purpose string to the host app's `Info.plist`:
+Add a camera purpose string to your app's `Info.plist`:
 
 ```xml
 <key>NSCameraUsageDescription</key>
 <string>Scan meals and food barcodes.</string>
 ```
 
-The scanner validates this entry before presenting. Missing configuration throws `JanuaryFoodScannerConfigurationError.missingCameraUsageDescription`.
+Call `try JanuaryFoodScanner.validateHostConfiguration()` before presenting the scanner; it throws `JanuaryFoodScannerConfigurationError.missingCameraUsageDescription` when the string is missing. If you skip the check, the scanner shows an alert instead of the camera.
 
 ## SwiftUI
 
@@ -35,9 +33,9 @@ struct ScannerHost: View {
             onResult: { result in
                 switch result {
                 case .photo(let image, let analysis):
-                    print(image.pixelWidth, analysis.mealName as Any)
+                    print(image.pixelWidth, analysis.mealName ?? "")
                 case .barcode(let value, let food):
-                    print(value, food.name, food.servings.count)
+                    print(value, food.name ?? "", food.servings.count)
                 }
             },
             onCancel: { dismiss() }
@@ -46,9 +44,7 @@ struct ScannerHost: View {
 }
 ```
 
-The meal result includes the orientation-normalized, aspect-preserving JPEG sent to January and the `FoodScan`. Barcode mode performs the barcode lookup and then hydrates the first match with `get` before returning it.
-
-With client-token authentication, January derives identity from the token. You do not need to pass `endUserID` to the scanner; if supplied, the SDK removes that header before sending the request.
+A photo result includes the oriented, resized JPEG that was sent to January and the `FoodScan`. A barcode result includes the barcode and the full food.
 
 ## UIKit
 
@@ -72,8 +68,6 @@ extension UIViewController {
 }
 ```
 
-The view controller uses full-screen presentation. The configuration can enable either mode alone and can customize maximum image dimension and JPEG compression quality.
+The view controller presents full screen. The configuration can enable either mode alone and set the maximum image dimension and JPEG compression quality. Camera capture needs a physical device.
 
-## Simulator behavior
-
-Camera capture requires a physical device. The repository demo supplies a sample-meal path for simulator testing; that sample behavior belongs to the demo, not the SDK scanner API.
+Next: [Food logs](food-logs.md).

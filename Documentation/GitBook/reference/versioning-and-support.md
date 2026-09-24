@@ -2,29 +2,26 @@
 
 ## Distribution
 
-The iOS SDK is distributed as versioned Swift Package Manager releases and as
-the `January` CocoaPods pod. Install the latest release as described on
-[Installation](../getting-started/installation.md). Pin a release version for
-production builds instead of tracking `main`.
+The SDK is released as versioned Swift Package Manager tags and as the `January` CocoaPods pod. Before 1.0, a minor release can include breaking changes, so allow patch updates only: **Up to Next Minor Version** in Xcode, or `~> 0.3.1` in CocoaPods ([Installation](../getting-started/installation.md)). Don't track `main`.
 
 ## Updating the SDK
 
-When January publishes a new release:
+When January publishes a release:
 
-1. review the SDK and documentation changes;
-2. update the pinned dependency in a branch;
-3. run your consumer build and token-provider tests;
-4. exercise the user flows you ship; and
-5. promote the release through your normal release process.
+1. read the [changelog](changelog.md);
+2. update the dependency on a branch;
+3. run your consumer build and token provider tests ([Testing your integration](testing.md));
+4. try the user flows you ship; and
+5. release through your normal process.
 
-## Support request
+## Support requests
 
 Include:
 
-* installed SDK release;
-* Xcode, Swift, and platform version;
-* failing public operation;
-* `JanuaryError.category`, `code`, `httpStatus`, and `requestID`; and
-* minimal reproduction steps.
+* the SDK release you use;
+* your Xcode, Swift, and iOS versions;
+* the failing SDK call and the time it failed;
+* the error's `category`, `code`, `httpStatus`, and `message`; and
+* the smallest steps that reproduce it.
 
-Never include server-side credentials, client tokens, meal photos, user health profiles, or complete food-log payloads. Use the support channel supplied by your January partner contact.
+Never include API keys, client tokens, meal photos, health profiles, or complete food logs. Send the request to your January contact.

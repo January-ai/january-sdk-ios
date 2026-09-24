@@ -1,42 +1,25 @@
 # Platform and security
 
-## Availability
+## Platforms
 
-| Capability | iOS 15+ |
-| --- | --- |
-| Core client and all API resources | Yes |
-| `PhotoScanImage` preparation | Yes |
-| `JanuaryFoodScannerView` | Yes |
-| `JanuaryFoodScanner.makeViewController` | Yes |
-| `VoiceCaptureSession` | Yes |
+Every SDK feature, including the food scanner and voice capture, runs on iOS 15 and later ([requirements](../README.md#requirements)). The SDK doesn't support macOS, Mac Catalyst, tvOS, watchOS, or visionOS.
 
-The repository demo uses the latest tab-bar APIs and targets iOS 26 independently of the SDK deployment target.
+## Credentials
 
-The SDK supports iOS 15 and later only. It does not support macOS, Mac Catalyst,
-tvOS, watchOS, or visionOS.
-
-## Credential handling
-
-* Keep January's server-side token-issuance credentials outside the app and SDK integration.
-* Keep client tokens in memory and out of logs and persistent storage.
-* Inject the partner-backend URL; do not ship a fallback endpoint.
-* Authenticate the app to the partner backend with the app's existing session.
-* Rebuild the client when the signed-in app account changes.
+* Keep your API key on your backend. The only exception is [local development](../getting-started/authentication.md#local-development) in a Debug build.
+* The SDK keeps client tokens in memory. Don't write them to disk or logs.
+* Configure your token endpoint's URL explicitly; don't ship a fallback URL.
+* Authenticate the token request with the app's existing session. The [token endpoint rules](https://docs.january.ai/docs/authentication#your-token-endpoint) cover the backend side.
+* Create a new client when a different account signs in ([Client lifecycle](../concepts/client-lifecycle.md)).
 
 ## User and health data
 
-Meal images, food logs, glucose profiles, CGM readings, and predictions may be sensitive. Minimize collection and retention, obtain the permissions appropriate to your product, and exclude these values from general-purpose analytics and crash reports.
-
-Use partner-owned opaque IDs rather than email addresses or names. Client tokens already carry the January end-user identity.
+Meal photos, food logs, glucose profiles, CGM readings, and predictions can be sensitive. Collect and keep as little as you can, get the permissions your product needs, and keep these values out of analytics and crash reports. Use opaque end-user IDs, never email addresses or names.
 
 ## Camera privacy
 
-The iOS native scanner requires `NSCameraUsageDescription`. Present a clear purpose string that matches the actual feature. Do not request camera permission before the user initiates scanning.
+The food scanner needs `NSCameraUsageDescription`. Write a purpose string that matches the feature, and don't ask for camera access before the user starts scanning.
 
 ## Microphone and speech privacy
 
-Voice capture requires both `NSMicrophoneUsageDescription` and
-`NSSpeechRecognitionUsageDescription`. `VoiceCaptureSession` requests access
-only after `startRecording()` is called. Captured audio stays in a temporary
-local file only while Apple Speech is transcribing it, then the SDK deletes the
-file. The SDK does not send voice audio or transcripts to January.
+Voice capture needs both `NSMicrophoneUsageDescription` and `NSSpeechRecognitionUsageDescription`. `VoiceCaptureSession` asks for access only when you call `startRecording()`. Recorded audio stays in a temporary local file only while Apple Speech transcribes it; then the SDK deletes the file. The SDK doesn't send audio or transcripts to January.

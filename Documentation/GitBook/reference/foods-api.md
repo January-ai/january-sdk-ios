@@ -1,6 +1,6 @@
 # Foods API
 
-All methods are `async throws`. Declared API errors map to `JanuaryError`; task cancellation remains `CancellationError`.
+All methods are `async throws`. They throw `JanuaryError`, or `CancellationError` when the task is canceled.
 
 ## Operations
 
@@ -31,19 +31,16 @@ public func suggestAlternatives(
 
 | Request | Required | Defaults |
 | --- | --- | --- |
-| `AutocompleteFoodsRequest` | `query` | `category: nil`, `limit: 8`, `endUserID: nil` |
+| `AutocompleteFoodsRequest` | `query` | `category: nil`, `limit: 8` (1–20), `endUserID: nil` |
 | `SearchFoodsRequest` | `query` | `category: nil`, `limit: 10` (1–50), `offset: 0`, `endUserID: nil` |
 | `LookupFoodByBarcodeRequest` | `upc` | `endUserID: nil` |
 | `SuggestFoodAlternativesRequest` | `foodID` | empty restriction/preference arrays, `endUserID: nil` |
 
 ## Responses
 
-`AutocompleteFoodsResponse.items` contains `FoodSuggestion` values with `id`, `name`, optional brand/image/nutrition. `FoodSearchResults` contains `totalCount` and `[FoodSearchItem]`. `get` returns one complete `FoodSearchItem` with all servings.
+`AutocompleteFoodsResponse.items` contains `FoodSuggestion` values with an `id` and an optional `name`, brand, image, and nutrition. `FoodSearchResults` contains `totalCount` and `[FoodSearchItem]`. `get` returns the full `FoodSearchItem`, with every serving. `name` is optional on both types.
 
-`FoodScan` exposes an optional meal name, total nutrients, a nonoptional
-`[FoodDetection]`, and deprecated `glucoseImpact`, which is always `nil` because
-food analysis no longer returns it. Alternatives return
-`SuggestFoodAlternativesResponse.alternatives: [AlternativeFood]`.
+Alternatives return `SuggestFoodAlternativesResponse.alternatives: [AlternativeFood]`. The `FoodScan` result of food analysis is on the [Food analysis API](photo-scanning-api.md#response-models) page.
 
 ## Categories
 
@@ -61,6 +58,6 @@ public enum FoodCategory: String, Codable, CaseIterable, Sendable {
 
 ## Errors
 
-Local validation covers query, limit, offset, and barcode shape. API responses may map 400 to `.validation`, 401 to `.authentication`, 404 to `.notFound` where declared, 429 to `.rateLimited`, and other statuses through the stable category mapper.
+The SDK checks the query, limit, offset, and barcode before sending ([Validation limits](validation.md)). API errors map to categories by status: 400 to `.validation`, 401 to `.authentication`, 403 to `.authorization`, 404 to `.notFound` (`get` and barcode lookup), and 429 to `.rateLimited`.
 
-Always use `get` after selecting a discovery result and before presenting servings.
+Fetch the full food with `get` after the user picks a search result and before you show servings.

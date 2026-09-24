@@ -45,11 +45,11 @@ Without a serving ID, portion selection uses the primary serving or the first se
 
 `NutrientAmount` contains `value: Double` and `unit: String`. `NutritionFacts` exposes optional calories, protein, carbohydrates, net carbohydrates, total fat, trans fat, saturated fat, fiber, total/added sugars, cholesterol, calcium, iron, potassium, sodium, and vitamin D.
 
-`CompleteScanNutritionFacts` is the scan-oriented subset: calories, protein, carbohydrates, net carbohydrates, total fat, saturated fat, fiber, total/added sugars, and sodium.
+`CompleteScanNutritionFacts` is the subset food analysis returns: calories, protein, carbohydrates, net carbohydrates, total fat, saturated fat, fiber, total/added sugars, and sodium.
 
 ## Food models
 
-`FoodSearchItem` includes typed ID, name, optional brand, optional structured and compatibility nutrition fields, glycemic values, optional photo URL, and `[ServingOption]`, each with a nonoptional `ServingID`. `AlternativeFood.id` and a logged food's `LoggedFood.id` are nonoptional `FoodID` values, and `RestaurantMenuItem.id` is always present. `FoodSuggestion` is deliberately smaller. `DetectedFood` represents scan/meal parsing results; it carries the food `id`, the selected `serving` (`ServingSummary`, with the serving's `weightGrams` when known), and the `quantity` eaten. The API always returns all three, but they are optionals in Swift, so unwrap them before logging. `FoodLogSummaryGrouping` (`day`, `week`), `WeekStart` (`monday`, `sunday`), and `AnalysisEffort` (`none`, `xhigh`) are the remaining request enums.
+`FoodSearchItem` includes a typed ID, an optional name and brand, structured and compatibility nutrition fields, glycemic values, an optional photo URL, and `[ServingOption]`, each with a nonoptional `ServingID`. `AlternativeFood.id` and a logged food's `LoggedFood.id` are nonoptional `FoodID` values, and `RestaurantMenuItem.id` is always present. `FoodSuggestion` is smaller: an ID, an optional name, and optional brand, image, and nutrition. `DetectedFood` is one food from food analysis. It carries the food `id`, the selected `serving` (`ServingSummary`, with the serving's `weightGrams` when known), and the `quantity` eaten. All three are optionals in Swift, and `quantity` is `nil` when no usable portion was found, so unwrap them before logging. `FoodLogSummaryGrouping` (`day`, `week`), `WeekStart` (`monday`, `sunday`), and `AnalysisEffort` (`none`, `xhigh`) are the remaining request enums.
 
 ## Dietary enums
 
@@ -89,8 +89,8 @@ of years.
 
 `ErrorCategory` values are `authentication`, `authorization`, `validation`, `notFound`, `rateLimited`, `server`, `transport`, `timeout`, and `decoding`.
 
-`JanuaryError` exposes `category`, optional `code`, `message`, optional `httpStatus`, optional `requestID`, and optional `retryAfterSeconds`.
+`JanuaryError` exposes `category`, an optional `code`, `message`, and an optional `httpStatus` ([Errors](error-handling.md#properties)). Its `requestID` and `retryAfterSeconds` are always `nil` in 0.3.1.
 
 ## Scanner types
 
-On iOS, `JanuaryFoodScannerMode` has `photo` and `barcode`. `JanuaryFoodScannerConfiguration` defaults to both modes, photo first, maximum dimension 1,000, and compression quality 0.7. `JanuaryFoodScannerResult` is either `.photo(image:analysis:)` or `.barcode(value:food:)`.
+`JanuaryFoodScannerMode` has `photo` and `barcode`. `JanuaryFoodScannerConfiguration` defaults to both modes, photo first, maximum dimension 1,000, and compression quality 0.7. `JanuaryFoodScannerResult` is either `.photo(image:analysis:)` or `.barcode(value:food:)`.

@@ -1,4 +1,4 @@
-# Food Logs API
+# Food logs API
 
 ## Operations
 
@@ -88,8 +88,7 @@ public func update(
 public func delete(id: String) async throws -> DeleteFoodLogResponse
 ```
 
-These methods are on `JanuaryClient.foodLogs` and automatically reuse the
-client's configured context.
+These methods are on `JanuaryClient.foodLogs` and use the client's end-user ID and timezone. The request-value forms above do too: the client's values replace the request's `user`.
 
 ## Responses
 
@@ -99,11 +98,8 @@ client's configured context.
 `FoodLog`; a successful delete returns no response body.
 `DeleteFoodLogResponse` is a type alias for `Void`.
 
-`getSummary` aggregates the logs in the inclusive range (at most 366 days) into `buckets`, one per local calendar day or per week, each with `logsCount`, `daysWithLogs`, and summed `nutrients`. Empty periods are still returned with zero counts. `totals` covers the whole range and `averagePerLoggedDay` divides the totals by the number of days that have a log. `nutrients` is sparse: read `logsCount` to tell an empty bucket from one whose logs had no nutrition data. `weekStart` is `nil` when grouping by day.
+`list` covers at most 60 days. `getSummary` adds up the logs in the inclusive range (at most 366 days) into `buckets`, one per local calendar day or per week, each with `logsCount`, `daysWithLogs`, and summed `nutrients`. Empty periods are still returned with zero counts. `totals` covers the whole range and `averagePerLoggedDay` divides the totals by the number of days that have a log. `nutrients` is sparse: read `logsCount` to tell an empty bucket from one whose logs had no nutrition data. `weekStart` is `nil` when grouping by day.
 
 ## Errors
 
-Create validates an optional timestamp as ISO 8601 before transport. Get and
-update return `.notFound` for a declared 404. Operations map declared 400, 401,
-403, and 429 responses plus other HTTP/transport/decoding failures to
-`JanuaryError`.
+Create and update check an optional `timestampUTC` as ISO 8601, and update rejects an empty update, before sending. Get and update fail with `.notFound` for an unknown ID. A range that's too long fails with `.validation` and the code `date_range_too_large`. Other API errors map to `JanuaryError` by status.

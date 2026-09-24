@@ -1,65 +1,46 @@
 # User identity and timezone
 
-January client tokens are bound to one end user. With client-token authentication, the SDK removes `January-End-User-ID` from outgoing January requests so the app cannot contradict the token's identity.
+Every `JanuaryClient` has an end-user ID and a timezone, set when you create it.
 
-## Partner-owned identifiers
+## End-user ID
 
-Pass the stable string identifier from your own system when creating the client:
+The end-user ID (`endUserID`) is your own stable, opaque ID for the signed-in user, such as `acme-user-8271`. Never use an email address, a name, or other personal data ([terms](https://docs.january.ai/docs/authentication)).
 
-```swift
-let partnerUserID = account.stableID
-```
+The SDK passes it to your token provider's `fetchClientToken(for:)`, and your backend mints the token for the user its session proves. With a client token, the token decides which user every call acts for: the SDK removes the `January-End-User-ID` header from its calls to January, so a client can't act for anyone but its token's user. With `developmentAPIKey`, the SDK sends the end-user ID in that header on food, water, and weight log calls instead.
 
-Do not use an email address, display name, or other directly identifying value. Keep the mapping in your system.
+Request types such as `SearchFoodsRequest` still take an optional `endUserID`; leave it out. A `JanuaryClient` always uses its own end-user ID and timezone. To act for another user, create another client.
 
-## Required identity
+## Timezone
 
-`endUserID` is the required stable string from your user system. Create one
-client after authentication and let the SDK use the device's current timezone:
+The timezone sets the calendar days for food-log lists and summaries and for water and weight lists. Glucose predictions are sent with it too. Pass the device timezone:
 
 ```swift
 let client = try JanuaryClient(
-    endUserID: account.stableID,
-    clientTokenProvider: tokenProvider
-)
-
-let logs = try await client.foodLogs.list(
-    start: "2026-08-01",
-    end: "2026-08-31"
-)
-
-let foods = try await client.foods.search(
-    .init(query: "greek yogurt")
-)
-```
-
-You may also explicitly select a Foundation `TimeZone`:
-
-```swift
-let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    timezone: .current,
+    endUserID: endUserID,
+    timezone: TimeZone.current,
     clientTokenProvider: tokenProvider
 )
 ```
 
-When `timezone` is omitted, the SDK uses `TimeZone.current`. The SDK sends its
-IANA identifier as the `timezone` query parameter of food-, water-, and
-weight-log lists and food-log summaries, where it defines the local calendar
-days, and as the `timezone` field of a glucose prediction.
+If you leave `timezone` out, the SDK uses the device timezone at the moment you create the client. Either way, the timezone doesn't follow later changes, so create a new client when the device timezone changes ([Client lifecycle](client-lifecycle.md#when-to-replace-it)).
 
-Request models retain optional identity fields for source compatibility, but
-new integrations should configure the general client instead of passing an
-end-user ID to every operation. Recreate the client when the signed-in account
-changes.
+## Days and dates
 
-## Client-token behavior
+Creates take the time an entry happened: `timestampUTC`, `consumedAtUTC`, or `measuredAtUTC`, as an ISO 8601 date-time with any offset. Responses return it in UTC. Lists and summaries take inclusive `yyyy-MM-dd` dates and group entries into calendar days in the client's timezone ([days and timezones](https://docs.january.ai/rest-api/api-overview#days-and-timezones)).
 
-The end-user identity comes from the client token, so the SDK removes
-`January-End-User-ID` before calling January. A client cannot change the user bound to
-that token. Its timezone is sent when the operation supports it, and
-its partner user ID remains useful for compatible request context and local
-development authentication. Your backend must derive the authenticated user
-before requesting the client token.
+Build those dates in the same timezone:
 
-The SDK does not persist `PartnerUserContext`.
+```swift
+let dayFormatter = DateFormatter()
+dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+dayFormatter.calendar = Calendar(identifier: .gregorian)
+dayFormatter.timeZone = TimeZone.current
+dayFormatter.dateFormat = "yyyy-MM-dd"
+
+let today = dayFormatter.string(from: Date())
+let todaysLogs = try await client.foodLogs.list(start: today, end: today)
+```
+
+The 24 L daily water cap is the exception: it counts UTC days ([Log water](../guides/water-and-weight-logs.md#log-water)).
+
+Next: [Food details and portions](food-hydration-and-portions.md).
