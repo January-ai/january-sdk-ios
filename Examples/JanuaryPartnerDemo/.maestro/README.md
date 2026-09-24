@@ -2,10 +2,11 @@
 
 Maestro flows that drive the demo app against the local fixture server, one
 flow per user journey, mirroring the React Native SDK's suite (same flow names,
-same kebab-case accessibility identifiers). They run on every pull request,
-split across four simulator shards, and locally against any booted simulator.
-Flows tagged `live` run the same app against the January API through a token
-relay; they never run in CI (see [Live flows](#live-flows)).
+same kebab-case accessibility identifiers). They run on every pull request
+that changes more than documentation, split across four simulator shards, and
+locally against any booted simulator. Flows tagged `live` run the same app
+against the January API through a token relay; in CI they run only nightly
+(see [Live flows](#live-flows) and [In CI](#in-ci)).
 
 ## Run locally
 
@@ -139,4 +140,12 @@ app once, then `ui-test-ios` runs four shards through
 `.github/scripts/ios-ui-suite.sh`. Failed flows are rerun once and named in a
 workflow warning; each shard uploads its JUnit report and Maestro's failure
 screenshots and view hierarchies as `maestro-ios-N`. The `ui-tests` job
-summarizes the shards.
+summarizes the shards. A pull request that changes only documentation skips
+the builds and the shards; the coverage and documentation checks still run,
+and `ui-tests` passes.
+
+Every night at 07:17 UTC, and on a manual run of the workflow, the same
+pipeline runs on `main`. When the repository has a `JANUARY_API_KEY` secret,
+`ui-test-ios (live)` also starts the token relay on the runner and runs
+`run-live.mjs` as the end user `ci-nightly-ios` (or the `JANUARY_LIVE_END_USER`
+repository variable); without the secret it is skipped.
