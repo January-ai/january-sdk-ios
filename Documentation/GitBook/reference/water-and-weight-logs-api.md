@@ -40,16 +40,19 @@ public struct ListWeightLogsRequest: Hashable, Sendable {
 ## Configured-client operations
 
 ```swift
+// JanuaryClient.waterLogs
 public func create(amount: WaterAmount, consumedAtUTC: String? = nil) async throws -> WaterLog
 public func list(start: String, end: String, unit: VolumeUnit = .fluidOunces) async throws -> ListWaterLogsResponse
 public func delete(id: String) async throws -> DeleteWaterLogResponse
 
+// JanuaryClient.weightLogs
 public func create(weight: Weight, measuredAtUTC: String? = nil) async throws -> WeightLog
 public func list(start: String, end: String) async throws -> ListWeightLogsResponse
 ```
 
-These methods are on `JanuaryClient.waterLogs` and `JanuaryClient.weightLogs`
-and automatically reuse the client's configured context.
+These methods automatically reuse the client's configured context. On a
+`JanuaryClient`, the request-value forms above also use the client's configured
+end-user ID and timezone in place of the request's `user`.
 
 ## Responses
 

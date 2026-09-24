@@ -49,16 +49,17 @@ Add a nonempty `NSCameraUsageDescription` string to the host app's `Info.plist`.
 
 ## Demo refuses to start
 
-The partner-backend path requires both `PARTNER_TOKEN_URL` and
-`PARTNER_APP_SESSION_TOKEN`. Set `JANUARY_END_USER_ID` to the stable test-user ID
-you want the demo to use; when omitted, the demo uses `local-ios-user`. The token
-endpoint must authenticate the demo user and return the documented client-token
-response.
+The token-provider path requires `JANUARY_PARTNER_TOKEN_URL` in the Xcode Run
+scheme, plus `JANUARY_PARTNER_SESSION_TOKEN` when the endpoint requires
+authorization (a local relay does not). Set `JANUARY_END_USER_ID` to the stable
+test-user ID you want the demo to use; when omitted, the demo uses
+`january-sdk-demo-user`. The token endpoint must return the documented
+client-token response.
 
-For a local Debug-only token exchange, set `JANUARY_DEMO_API_KEY` instead of the
-partner-backend variables. `JANUARY_END_USER_ID` is optional and
-`JANUARY_DEMO_TOKEN_TTL_SECONDS` defaults to `300`. Release builds disable this
-mode. Never commit the key or distribute a build containing it.
+For the local Debug-only API-key path, remove the token-endpoint variables and
+set `JANUARY_API_KEY` instead. Release builds disable this mode. Never commit
+the key or distribute a build containing it. See
+[Example app](../getting-started/example-app.md).
 
 ## Requests are rate limited
 
@@ -66,6 +67,6 @@ Read `retryAfterSeconds` from `JanuaryError` when available and delay the retry.
 
 ## Support diagnostics
 
-Capture the failing operation, SDK revision, platform version, `JanuaryError.category`, `code`, `httpStatus`, and `requestID`. Do not include client tokens or user health data.
+Capture the failing operation, SDK version, platform version, `JanuaryError.category`, `code`, `httpStatus`, and `requestID`. Do not include client tokens or user health data.
 
 Send those diagnostics through your January partner support channel. See [Versioning and support](versioning-and-support.md).

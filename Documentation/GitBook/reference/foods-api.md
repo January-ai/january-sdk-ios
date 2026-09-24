@@ -40,7 +40,10 @@ public func suggestAlternatives(
 
 `AutocompleteFoodsResponse.items` contains `FoodSuggestion` values with `id`, `name`, optional brand/image/nutrition. `FoodSearchResults` contains `totalCount` and `[FoodSearchItem]`. `get` returns one complete `FoodSearchItem` with all servings.
 
-`FoodScan` contains optional meal name, optional total nutrients, `[FoodDetection]`, and optional glucose impact. Alternatives return `[FoodAlternative]`.
+`FoodScan` exposes an optional meal name, total nutrients, a nonoptional
+`[FoodDetection]`, and deprecated `glucoseImpact`, which is always `nil` because
+food analysis no longer returns it. Alternatives return
+`SuggestFoodAlternativesResponse.alternatives: [AlternativeFood]`.
 
 ## Categories
 

@@ -41,20 +41,16 @@ let scan = try await client.foodAnalysis.analyzePhoto(
 For a ready-made native SwiftUI flow, present `JanuaryFoodScannerView`. It
 supports photo and barcode modes and returns analyzed meal images or fully hydrated barcode food records. See [Native food scanner](native-meal-scanner.md).
 
-The response can contain a meal name, detected foods, total nutrients, confidence values, and glucose impact.
+The response contains detected foods and total nutrients, and can contain a meal name and confidence values. Food analysis does not return a glucose impact; use [glucose prediction](glucose-prediction.md) for that.
 
 ## Correct a result
 
 ```swift
 let corrected = try await client.foodAnalysis.correct(
-    .init(
-        mealName: scan.mealName,
-        detections: scan.detections,
-        userInput: "Remove the fries and rename this grilled chicken sandwich."
-    )
+    .init(analysis: scan, instruction: "Remove the fries and rename this grilled chicken sandwich.")
 )
 ```
 
-`detections` is always an array; it may be empty. `mealName`, total nutrients, and glucose impact are optional.
+`detections` is always an array; it may be empty. `mealName` is optional.
 
 Pass the analysis back exactly as the API returned it: the correction needs every detection's food ID, serving ID, serving quantity, and quantity, and rejects a detection missing one of them before transport. A detection's serving `weightGrams` is forwarded when the API reported it.

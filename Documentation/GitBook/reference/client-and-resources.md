@@ -17,8 +17,8 @@ let client = try JanuaryClient(
 | --- | --- |
 | `endUserID: String, clientTokenProvider: JanuaryClientTokenProvider, timezone?` | Automatic refresh through an async closure for the required user |
 | `endUserID: String, clientTokenProvider: JanuaryTokenProvider, timezone?` | Automatic refresh through a named provider for the required user |
-| `clientToken, endUserID?, timezone?` | App-managed fixed token; recreate the client to replace it |
-| `developmentAPIKey, endUserID?, timezone?` | Supported local-development authentication only; never ship an API key in an app |
+| `clientToken, endUserID: String, timezone?` | App-managed fixed token for the required user; recreate the client to replace it |
+| `developmentAPIKey, endUserID: String, timezone?` | Supported local-development authentication only; never ship an API key in an app |
 
 Public initializers target `https://partners.january.ai`. There is no public base-URL or token-endpoint override.
 
@@ -26,8 +26,9 @@ Production integrations should prefer `JanuaryTokenProvider`, which obtains
 short-lived client tokens from the app's authenticated backend. The
 `developmentAPIKey` initializer exists only for local testing and emits a runtime
 warning when initialized with a nonempty key. Release builds reject it at compile
-time. A stable `PartnerUserID` is optional. It must not
-be used in a production or distributed build.
+time. It must not be used in a production or distributed build.
+
+Every public initializer requires the signed-in user's stable `endUserID`.
 
 All initializers resolve an omitted or blank timezone to
 `TimeZone.current`. The SDK converts the value to its identifier for requests.
@@ -49,6 +50,8 @@ All initializers resolve an omitted or blank timezone to
 | `foodAnalysis` | `correct(_:)` | Correct a scan with text feedback |
 | `foodLogs` | `create(_:)` | Create a food log |
 | `foodLogs` | `list(_:)` | List food logs for a date range |
+| `foodLogs` | `getSummary(_:)` | Summarize food logs per day or week |
+| `foodLogs` | `get(_:)` | Get one food log by ID |
 | `foodLogs` | `update(_:)` | Update a food log |
 | `foodLogs` | `delete(_:)` | Delete a food log |
 | `glucose` | `predict(_:)` | Predict glucose impact |
@@ -85,8 +88,10 @@ The SDK uses typed wrappers to prevent identifier mixups:
 | Natural-language meal or photo scan | `FoodScan` |
 | Restaurant search | `SearchRestaurantsResponse` |
 | Menu-item search | `SearchRestaurantMenuItemsResponse` |
-| Food-log create/update | `FoodLog` |
+| Restaurant menu lookup | `GetRestaurantMenuItemsResponse` |
+| Food-log create/get/update | `FoodLog` |
 | Food-log list | `ListFoodLogsResponse` |
+| Food-log summary | `FoodLogSummary` |
 | Glucose prediction | `GlucosePrediction` |
 | Water-log create | `WaterLog` |
 | Water-log list | `ListWaterLogsResponse` |

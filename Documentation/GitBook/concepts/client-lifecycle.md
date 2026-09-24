@@ -31,8 +31,8 @@ Do not recreate a provider-backed client for ordinary token refresh. The SDK cac
 
 ## Resource values
 
-The client covers `foods`, `restaurants`, `foodAnalysis`, `foodLogs`, and
-`glucose`. Any configured partner user context and the resolved timezone are
+The client covers `foods`, `restaurants`, `foodAnalysis`, `foodLogs`,
+`glucose`, `waterLogs`, and `weightLogs`. Any configured partner user context and the resolved timezone are
 automatically reused across request models.
 
 With client-token authentication, the token is authoritative for identity. The

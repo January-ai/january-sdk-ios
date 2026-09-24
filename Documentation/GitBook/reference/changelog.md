@@ -29,7 +29,7 @@ See [Versioning and support](versioning-and-support.md) before installing or upd
 ## 0.1.0 - 2026-09-03
 
 * Reusable microphone capture, live audio metering, and Apple Speech transcription
-* Native Swift 5.9 package for iOS 15+
+* Native Swift 5.9 package for iOS 15+, distributed through Swift Package Manager and CocoaPods
 * No third-party runtime dependencies
 * Typed `async`/`await` resource APIs
 * Food, restaurant, photo-scanning, food-log, and glucose-prediction coverage

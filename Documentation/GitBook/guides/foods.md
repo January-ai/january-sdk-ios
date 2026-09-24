@@ -87,7 +87,7 @@ let meal = try await client.foodAnalysis.analyzeDescription(
 )
 ```
 
-The response contains detections and, when available, total nutrients for the described meal.
+The response contains detections and total nutrients for the described meal.
 
 ## Suggest alternatives
 
