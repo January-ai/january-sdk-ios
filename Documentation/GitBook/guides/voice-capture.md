@@ -1,8 +1,8 @@
 # Voice capture
 
 `VoiceCaptureSession` records AAC audio from the microphone and transcribes it
-with Apple Speech. It does not call January's servers and does
-not require a `JanuaryClient` or authentication.
+with Apple Speech. It does not call January's servers and does not require a
+`JanuaryClient` or authentication.
 
 ## Add privacy descriptions
 
@@ -70,13 +70,13 @@ struct VoiceSearchField: View {
                 Button("Cancel") { voiceCapture.cancel() }
             }
         }
-        .alert("Microphone Access Denied", isPresented: $showPermissionAlert) {
+        .alert("Voice Input Is Off", isPresented: $showPermissionAlert) {
             Button("Settings") {
                 openURL(URL(string: UIApplication.openSettingsURLString)!)
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Please enable microphone and speech recognition access in Settings.")
+            Text("Allow microphone and speech recognition access in Settings.")
         }
     }
 }
@@ -85,20 +85,32 @@ struct VoiceSearchField: View {
 `audioLevel` is normalized from `0...1` for waveform or level-meter UI.
 `recordingDuration` reports the current length in seconds.
 
-Permission prompts appear only on the first request. If the user has already
-denied microphone or Speech access, present an alert with a Settings action as
-shown above; iOS will not display the system prompt again. Keep other recording
-and transcription failures on a normal retryable error path rather than sending
-the user to Settings.
+## Permission behavior
+
+| System status | SDK behavior | Host-app behavior |
+| --- | --- | --- |
+| Not determined | Requests access after `startRecording()` | Let the system prompt complete |
+| Authorized | Starts recording | Show the active recording UI |
+| Microphone denied | Throws `microphonePermissionDenied` | Show an alert with Cancel and Settings actions |
+| Speech denied or restricted | Throws `speechRecognitionPermissionDenied` | Show an alert with Cancel and Settings actions |
+| Unknown future status | Treats access as denied | Use the same Settings alert |
+
+iOS displays each system permission prompt only once. After denial or
+restriction, send the user to the app's Settings page; do not repeatedly request
+permission. Keep recording and transcription failures on a normal retryable
+error path rather than sending the user to Settings.
 
 ## Captured audio lifecycle
 
-`stopAndTranscribe()` returns a `VoiceCaptureResult` containing the transcript,
-and recording duration. The SDK deletes its temporary AAC file immediately after
-Apple Speech finishes transcription, before `stopAndTranscribe()` returns. It
-also deletes the file after failed or cancelled transcription.
+`stopAndTranscribe()` returns a `VoiceCaptureResult` containing only the
+transcript and recording duration. The SDK deletes its temporary AAC file
+immediately after Apple Speech finishes transcription, before
+`stopAndTranscribe()` returns. It also deletes the file after failed or canceled
+transcription.
 
 Call `cancel()` while recording or transcribing to stop work and delete the
 in-progress file. Permission denial, unavailable speech recognition, an empty
 transcript, and recording or transcription failures are represented by stable
 `VoiceCaptureError` cases.
+
+Next: [Reference](https://docs.january.ai/ios-sdk/reference).

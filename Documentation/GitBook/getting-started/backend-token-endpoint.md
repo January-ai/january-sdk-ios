@@ -1,59 +1,21 @@
 # Backend token endpoint
 
-Public SDK authentication begins with a short-lived client token. Put January's private token-issuance integration behind your own authenticated backend.
+The app gets client tokens from an endpoint on your backend. The endpoint is the same for every January SDK: build it from [Your token endpoint](https://docs.january.ai/docs/authentication#your-token-endpoint).
 
-```mermaid
-sequenceDiagram
-    participant App as iOS app
-    participant Backend as Your backend
-    participant January
+{% hint style="info" %}
+No backend yet? Run the [token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay) and continue to [Authentication](authentication.md). Come back before launch.
+{% endhint %}
 
-    App->>Backend: Request a client token<br/>using the app session
-    Backend->>January: Exchange private server credentials
-    January-->>Backend: Short-lived client token
-    Backend-->>App: token + expiresIn
-    App->>January: API request<br/>Authorization: Bearer ct-…
-    January-->>App: API response
-```
+## What the iOS SDK reads
 
-## What your backend owns
+Return January's `201` body unchanged. The SDK reads `token` and `expires_in` (it also accepts `expiresIn`) and ignores the other fields.
 
-Your backend must:
+## Scopes
 
-1. Authenticate the caller using your existing app session.
-2. Derive the partner-owned user ID on the server; do not trust an arbitrary user ID from the device.
-3. Complete the private server-side January token exchange.
-4. Request a short-lived token scoped to that user.
-5. Return the stable token response to the app.
+A `JanuaryClient` uses one token for every call it makes, so mint the token with the scopes of every feature your app uses ([scope table](https://docs.january.ai/rest-api/authentication#client-token-scopes)). A call outside them fails with `403 scope_insufficient`.
 
-```json
-{
-  "token": "ct-…",
-  "expiresIn": 1800
-}
-```
+## Enable client tokens
 
-The SDK's `JanuaryClientToken` decoder also accepts `expires_in` when your backend relays January's snake-case response unchanged.
+Minting fails with `403 forbidden` until **Enable client tokens** is on in the [Developer Dashboard → Client tokens](https://dashboard.january.ai/dashboard/client-tokens).
 
-The token is the authority for end-user identity on January requests. The iOS
-app must not be able to exchange its session for a token belonging to another
-user.
-
-## Endpoint location is app configuration
-
-January's SDK cannot know your backend host, path, HTTP method, or session-authentication mechanism. Inject that configuration into your `JanuaryTokenProvider`; the SDK intentionally provides no token-endpoint URL or fallback.
-
-Fail during app configuration when the endpoint is absent. A fallback URL turns a clear startup problem into a confusing runtime or security failure.
-
-## Security rules
-
-* Never return server-side token-issuance credentials to the app.
-* Never log server-side credentials or client tokens.
-* Use HTTPS outside local simulator development.
-* Authenticate and authorize every token request.
-* Keep token responses out of analytics and crash-report breadcrumbs.
-* Return a lifetime greater than 60 seconds; the SDK rejects already-expired or nearly expired credentials.
-
-The endpoint implementation is partner-specific. The stable SDK boundary is the response body and the provider protocol, not a hard-coded URL.
-
-Next, implement [Authentication](authentication.md) in the app.
+Next: [Authentication](authentication.md).

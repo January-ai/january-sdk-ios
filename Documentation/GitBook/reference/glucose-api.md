@@ -24,8 +24,7 @@ public struct PredictGlucoseRequest: Hashable, Sendable {
 }
 ```
 
-`JanuaryClient.glucose` replaces request-level identity and timezone values with
-the context configured on the client.
+`JanuaryClient.glucose` sends the client's timezone and ignores the request's `endUserID` and `timezone`.
 
 ## Profile
 
@@ -46,19 +45,19 @@ The legacy `gender:height:weight:` initializer interprets raw height as inches a
 
 ## Optional history
 
-`CgmReading` requires an ISO-8601 timestamp string and numeric value. `ConsumedHistoricalFood` requires timestamp, `FoodID`, and `ConsumedHistoricalServing`. Invalid timestamp strings fail locally with `.validation`.
+`CgmReading` requires an ISO 8601 timestamp string and a numeric value. `ConsumedHistoricalFood` requires timestamp, `FoodID`, and `ConsumedHistoricalServing`. Invalid timestamp strings fail locally with `.validation`.
 
 ## Response
 
 `GlucosePrediction` exposes:
 
 * `prediction: [GlucosePredictionPoint]`;
-* `impact: GlucoseImpact`;
+* `impact: GlucoseImpact?`;
 * `chart: GlucoseChart`;
-* compatibility projections `curve`, `scoring`, `minimum`, and `maximum`.
+* the older aliases `curve`, `scoring`, `minimum`, and `maximum`.
 
-`GlucoseImpact` is open to future server values through `RawRepresentable`; compare known constants `.lowImpact`, `.mediumImpact`, and `.highImpact` without assuming they are exhaustive.
+`GlucosePredictionPoint` has `minutes` after `startTime` and the predicted `value` in mg/dL. `GlucoseChart` has optional `min` and `max`: suggested y-axis bounds in mg/dL, not the curve's lowest and highest points. `GlucoseImpact` is a `RawRepresentable` struct that can carry values added later; compare against `.lowImpact`, `.mediumImpact`, and `.highImpact` without assuming they're the only ones. See [Read the result](../guides/glucose-prediction.md#read-the-result).
 
 ## Errors
 
-Predict maps declared 400 to `.validation`, 401 to `.authentication`, 429 to `.rateLimited`, and 504 to `.timeout`. Other statuses and transport/decoding failures map through `JanuaryError`.
+Predict checks that `age` is a whole number and that history timestamps are ISO 8601 before sending. It maps 400 to `.validation`, 401 to `.authentication`, 403 to `.authorization`, 429 to `.rateLimited`, and 504 to `.timeout`; other API errors map to `JanuaryError` by status.

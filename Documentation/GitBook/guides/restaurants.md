@@ -1,17 +1,8 @@
 # Restaurants
 
-Use the `restaurants` resource to discover nearby restaurants or search their menu items.
+Use `client.restaurants` to find nearby restaurants, search their menu items, and load one restaurant's menu. These examples use the `client` from [Authentication](../getting-started/authentication.md).
 
-Configure the signed-in user once on the client:
-
-```swift
-let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    clientTokenProvider: tokenProvider
-)
-```
-
-With client-token authentication, January derives identity from the token and the SDK removes the `January-End-User-ID` header.
+The SDK doesn't read the device location. Get coordinates from Core Location, which needs `NSLocationWhenInUseUsageDescription` in your `Info.plist`.
 
 ## Search restaurants
 
@@ -27,7 +18,7 @@ let restaurants = try await client.restaurants.search(
 )
 
 for restaurant in restaurants.items {
-    print(restaurant.name, restaurant.distance as Any)
+    print(restaurant.name ?? "", restaurant.distance as Any)
 }
 ```
 
@@ -43,12 +34,11 @@ let menuItems = try await client.restaurants.searchMenuItems(
 )
 ```
 
-Menu-item results may include nutrition, serving choices, photos, restaurant names, and distance.
+Menu-item results can include nutrition, serving choices, photos, restaurant names, and distance.
 
-## Load one restaurant's menu
+## Load a restaurant menu
 
-Use the ID returned by restaurant search to load that restaurant's menu without
-repeating the search text or location:
+Pass the ID from a restaurant search to `getMenuItems` to load that restaurant's menu without repeating the search text or location:
 
 ```swift
 var offset = 0
@@ -72,18 +62,15 @@ repeat {
 } while true
 ```
 
-The response contains only `items`, with no `totalCount`; keep paging while a
-full page comes back. An empty page ends the menu, including for a restaurant
-with no menu on record. An unknown restaurant returns `404`.
+The response has only `items`, with no `totalCount`, so keep paging while full pages come back. An empty page ends the menu, including for a restaurant with no menu on record. An unknown restaurant fails with `.notFound`; in a discovery UI, fall back to `searchMenuItems` with the user's original query and location.
 
 ## Input limits
 
-* Restaurant ID: nonblank
+* Restaurant ID: not blank
 * Query: 1–256 characters
-* Latitude: −90 through 90
-* Longitude: −180 through 180
-* Radius: 1–50,000
+* Latitude: −90 through 90; longitude: −180 through 180, in decimal degrees
+* Radius: 1–50,000 meters; default 8,000 (about 5 miles)
 * Limit: 1–100
-* Menu offset: 0 or greater
+* Menu offset: 0 or more
 
-Coordinate values are decimal degrees, and radius is expressed in meters. Both request types default to `8_000` meters (approximately 5 miles) when `radius` is omitted. The current SDK accepts values from 1 through 50,000 meters.
+Next: [Food analysis](photo-scanning.md).

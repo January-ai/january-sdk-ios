@@ -1,72 +1,56 @@
 # Troubleshooting
 
-## Xcode cannot resolve the package
+## Xcode can't resolve the package
 
-Confirm that:
+Check that:
 
 1. the package URL is exactly `https://github.com/January-ai/january-sdk-ios.git`;
-2. Xcode selected the latest release described on [Installation](../getting-started/installation.md); and
-3. the `January` product is linked to the correct target.
+2. the dependency rule allows the release you want ([Installation](../getting-started/installation.md)); and
+3. the `January` product is linked to your app target.
 
-If Xcode resolves the package but says **Unable to load the Read Me**, choose
-**File > Packages > Reset Package Caches**, then **File > Packages > Resolve
-Package Versions**. The repository contains a root `README.md`; this message
-does not indicate a missing package README.
+If Xcode resolves the package but says **Unable to load the Read Me**, choose **File → Packages → Reset Package Caches**, then **File → Packages → Resolve Package Versions**.
 
 ## Authentication or authorization errors
 
-Inspect `JanuaryError.category`, `code`, `httpStatus`, and `requestID` without logging credentials.
+Check `JanuaryError.category`, `code`, `httpStatus`, and `message`, without logging credentials.
 
-For client-token integrations, confirm that the app configured its own partner
-backend URL, that the response contains a non-empty `token` and an `expiresIn`
-greater than 60 seconds, and that the backend authenticates the current app user.
-There is intentionally no default token endpoint in the SDK.
+| What you see | Cause |
+| --- | --- |
+| `.authentication`, code `client_token_provider_failed` | Your token provider failed; `message` is the provider's. Check your token endpoint's URL and response. |
+| `.transport`, "The request to the January API failed.", before any request reaches January | Your token provider threw an error that isn't a `JanuaryTokenProviderError` ([token provider failures](error-handling.md#token-provider-failures)). |
+| `.authentication`, code `invalid_client_token_expiration` | Your endpoint returned a token with 60 seconds or less to live. Return January's response unchanged. |
+| `.authorization`, code `scope_insufficient` | The token lacks the scope for this call. Mint it with the scopes of every feature your app uses ([scopes](../getting-started/backend-token-endpoint.md#scopes)). |
+| `403 forbidden` when your backend mints a token | **Enable client tokens** is off ([Backend token endpoint](../getting-started/backend-token-endpoint.md#enable-client-tokens)). |
+| `.authentication`, code `token_invalid` or `token_revoked` | The token isn't valid. The SDK refreshes only on `token_expired`. |
 
-Only `token_expired` triggers automatic refresh and one replay. `token_invalid`, `token_revoked`, and authorization errors require an integration or session fix.
+## Water or weight calls fail with `scope_insufficient` in development
 
-## Token provider is called repeatedly
+`JanuaryDevelopmentTokenProvider` doesn't request the water and weight scopes in 0.3.1. Use the [token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay) instead.
 
-The SDK refreshes one minute before expiration. A token whose reported lifetime
-is 60 seconds or less is rejected as already or nearly expired. Concurrent calls
-share one refresh, and only `401` with `code: "token_expired"` triggers a refresh
-and one API replay.
+## The token provider is called often
 
-## Food search validation errors
+Frequent calls usually mean your endpoint returns short-lived tokens. The SDK asks for a new token only on the schedule in [Token lifecycle](retries-and-concurrency.md#token-lifecycle) and after `401 token_expired`.
 
-Name searches require 1–256 characters, a limit from 1–50, and an offset of 0 or more. Natural-language searches allow up to 512 characters.
+## Validation errors
 
-## Restaurant validation errors
+Check the input against [Validation limits](validation.md).
 
-Check coordinate ranges, radius, and result limit. See [Restaurants](../guides/restaurants.md#input-limits).
+## Food analysis fails with content too large
 
-## Photo scan fails with content too large
+Reduce the image's dimensions or JPEG quality before you send it. Don't retry the same image.
 
-Reduce the source image dimensions or JPEG quality before building the data URI. Do not retry the same oversized payload.
+## The food scanner reports a missing camera usage description
 
-## Native scanner reports missing camera usage description
+Add a non-empty `NSCameraUsageDescription` string to your app's `Info.plist`. Camera capture needs a physical device.
 
-Add a nonempty `NSCameraUsageDescription` string to the host app's `Info.plist`. The ready-made scanner is iOS-only; camera capture requires a physical device.
+## The example app won't start
 
-## Demo refuses to start
-
-The token-provider path requires `JANUARY_PARTNER_TOKEN_URL` in the Xcode Run
-scheme, plus `JANUARY_PARTNER_SESSION_TOKEN` when the endpoint requires
-authorization (a local relay does not). Set `JANUARY_END_USER_ID` to the stable
-test-user ID you want the demo to use; when omitted, the demo uses
-`january-sdk-demo-user`. The token endpoint must return the documented
-client-token response.
-
-For the local Debug-only API-key path, remove the token-endpoint variables and
-set `JANUARY_API_KEY` instead. Release builds disable this mode. Never commit
-the key or distribute a build containing it. See
-[Example app](../getting-started/example-app.md).
+Set `JANUARY_PARTNER_TOKEN_URL` in the Xcode Run scheme, plus `JANUARY_PARTNER_SESSION_TOKEN` when the endpoint requires a session (a local relay doesn't). `JANUARY_END_USER_ID` defaults to `january-sdk-demo-user`. See [Example app](../getting-started/example-app.md).
 
 ## Requests are rate limited
 
-Read `retryAfterSeconds` from `JanuaryError` when available and delay the retry. Avoid tight automatic retry loops.
+Retry only `code == "rate_limited"`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` reset next month; don't retry them. The SDK doesn't expose the `Retry-After` header in 0.3.1.
 
 ## Support diagnostics
 
-Capture the failing operation, SDK version, platform version, `JanuaryError.category`, `code`, `httpStatus`, and `requestID`. Do not include client tokens or user health data.
-
-Send those diagnostics through your January partner support channel. See [Versioning and support](versioning-and-support.md).
+Collect the failing operation, the SDK version, the iOS version, the time of the failure, and the error's `category`, `code`, `httpStatus`, and `message`. Don't include client tokens, API keys, or user health data. Send them to your January contact ([Versioning and support](versioning-and-support.md)).

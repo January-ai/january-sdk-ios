@@ -1,47 +1,43 @@
 # Food analysis
 
-Use the `foodAnalysis` resource to analyze a meal image and submit natural-language corrections.
+Use `client.foodAnalysis` to analyze a meal photo or a description, and to correct a result. These examples use the `client` from [Authentication](../getting-started/authentication.md).
 
 {% hint style="warning" %}
-Meal images and inferred nutrition may be sensitive user data. Obtain appropriate consent, minimize retention, and never write image contents or results to application logs.
+Meal photos and their nutrition can be sensitive. Get the user's consent, keep as little as you can, and never write image contents or results to logs.
 {% endhint %}
 
-Configure the signed-in user once on the client:
+An analysis can take tens of seconds. Show progress, and don't retry a `.timeout` automatically.
+
+## Analyze a photo
+
+Pass the image bytes. The request orients the image, scales its longest edge down to 1,000 pixels, and compresses it to JPEG:
 
 ```swift
-let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    clientTokenProvider: tokenProvider
+let request = try ScanFoodPhotoRequest(imageData: imageData)
+let scan = try await client.foodAnalysis.analyzePhoto(request)
+```
+
+To get `imageData` from the photo library, call `loadTransferable(type: Data.self)` on a `PhotosPicker` item (iOS 16 and later), or `loadDataRepresentation(forTypeIdentifier: UTType.image.identifier)` on a `PHPickerViewController` result's item provider (iOS 15).
+
+For an image at a public URL, pass the URL string instead:
+
+```swift
+let scan = try await client.foodAnalysis.analyzePhoto(.init(image: imageURL.absoluteString))
+```
+
+For a ready-made camera screen, use the [native food scanner](native-meal-scanner.md).
+
+## Analyze a description
+
+```swift
+let meal = try await client.foodAnalysis.analyzeDescription(
+    .init(query: "one banana and a bowl of oatmeal")
 )
 ```
 
-With client-token authentication, January derives identity from the token and the SDK removes the `January-End-User-ID` header.
+## Read the result
 
-## Scan a public image URL
-
-```swift
-let scan = try await client.foodAnalysis.analyzePhoto(
-    .init(image: publicImageURL.absoluteString)
-)
-```
-
-## Scan image data
-
-Use `PhotoScanImage` to normalize orientation, preserve aspect ratio, limit the
-longest edge to 1,000 pixels, compress to JPEG, and create a data URI:
-
-```swift
-let dataURI = try PhotoScanImage.dataURI(from: imageData)
-
-let scan = try await client.foodAnalysis.analyzePhoto(
-    .init(image: dataURI)
-)
-```
-
-For a ready-made native SwiftUI flow, present `JanuaryFoodScannerView`. It
-supports photo and barcode modes and returns analyzed meal images or fully hydrated barcode food records. See [Native food scanner](native-meal-scanner.md).
-
-The response contains detected foods and total nutrients, and can contain a meal name and confidence values. Food analysis does not return a glucose impact; use [glucose prediction](glucose-prediction.md) for that.
+Both calls return a `FoodScan`: `detections` (always an array, possibly empty), `totalNutrients`, and an optional `mealName`. Each detection's `food` has the food `id`, the selected `serving`, and the `quantity` eaten, so you can [log it](food-logs.md#log-an-analyzed-meal) without another lookup. Food analysis doesn't return a glucose impact; use [glucose prediction](glucose-prediction.md) for that.
 
 ## Correct a result
 
@@ -51,6 +47,6 @@ let corrected = try await client.foodAnalysis.correct(
 )
 ```
 
-`detections` is always an array; it may be empty. `mealName` is optional.
+Pass the analysis back exactly as it was returned. The SDK rejects, before sending, a detection that's missing its food ID, serving ID, serving quantity, or quantity. A detection's serving `weightGrams` is sent when the API reported it.
 
-Pass the analysis back exactly as the API returned it: the correction needs every detection's food ID, serving ID, serving quantity, and quantity, and rejects a detection missing one of them before transport. A detection's serving `weightGrams` is forwarded when the API reported it.
+Next: [Native food scanner](native-meal-scanner.md).

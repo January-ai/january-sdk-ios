@@ -1,22 +1,12 @@
 # Glucose prediction
 
-Use the `glucose` resource to predict a personalized glucose curve for selected foods.
+Use `client.glucose` to predict a user's glucose curve after a meal. These examples use the `client` from [Authentication](../getting-started/authentication.md); each prediction uses the client's timezone.
 
 {% hint style="warning" %}
-Glucose predictions and profile inputs are health data. Do not place request or response values in analytics, crash reports, or general-purpose logs.
+Glucose predictions and profile inputs are health data. Keep request and response values out of analytics, crash reports, and general-purpose logs.
 {% endhint %}
 
-## Create a prediction
-
-Configure the client so the same identity and timezone are applied to each prediction:
-
-```swift
-let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    timezone: .current,
-    clientTokenProvider: tokenProvider
-)
-```
+## Predict
 
 ```swift
 let request = PredictGlucoseRequest(
@@ -35,23 +25,31 @@ let request = PredictGlucoseRequest(
 let prediction = try await client.glucose.predict(request)
 ```
 
-The result contains:
+`foods` takes the `FoodSelection` from a [portion](../concepts/food-hydration-and-portions.md) or an [analyzed meal](food-logs.md#log-an-analyzed-meal). You can also pass recent `cgmData` (`CgmReading`) and `consumedFoods` (`ConsumedHistoricalFood`).
 
-* `curve` — predicted curve data
-* `scoring` — low, medium, or high impact
-* `minimum` — predicted minimum value
-* `maximum` — predicted maximum value
+## Read the result
 
-You can optionally provide recent `CgmReading` values and `ConsumedHistoricalFood` entries when available.
+* `prediction`: one `GlucosePredictionPoint` every 15 minutes from `startTime`, with `minutes` after `startTime` and the predicted glucose `value` in mg/dL.
+* `impact`: a `GlucoseImpact?`, such as `.lowImpact`, `.mediumImpact`, or `.highImpact`. It can be `nil`, or a value added in a later release, so don't assume those three are the only ones.
+* `chart.min` and `chart.max`: suggested y-axis bounds in mg/dL, not the lowest or highest point of the curve. They mark a fixed target range; `chart.max` is 180 when `healthConditions` includes `.type2Diabetes`, and 140 otherwise.
 
-`Height` accepts inches or centimeters; `Weight` accepts pounds or kilograms.
-For imperial height, present separate feet and inches controls, then convert to
-total inches for the request—for example, `feet * 12 + inches`. Let users toggle
-between feet plus inches and centimeters, and between pounds and kilograms. Do
-not present a single raw-inch field.
+```swift
+for point in prediction.prediction {
+    print(point.minutes, point.value) // minutes after startTime, mg/dL
+}
+if prediction.impact == .highImpact {
+    showHighImpactNote()
+}
+```
+
+`curve`, `scoring`, `minimum`, and `maximum` are older aliases for `prediction`, `impact`, `chart.min`, and `chart.max`.
+
+## Height and weight
+
+`Height` takes inches or centimeters, and `Weight` takes pounds or kilograms. For imperial height, show separate feet and inches fields and send the total in inches (`feet * 12 + inches`), not a single inches field. Let users switch between feet and inches and centimeters, and between pounds and kilograms.
 
 {% hint style="info" %}
-Predictions are informational and must not be presented as diagnosis or medical treatment guidance.
+Predictions are informational. Don't present them as a diagnosis or as treatment guidance.
 {% endhint %}
 
-With client-token authentication, January derives identity from the token and the SDK removes the `January-End-User-ID` header. The configured client still applies the timezone.
+Next: [Voice capture](voice-capture.md).

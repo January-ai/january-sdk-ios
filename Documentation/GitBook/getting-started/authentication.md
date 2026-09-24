@@ -1,199 +1,142 @@
 # Authentication
 
-Use a `JanuaryTokenProvider` in every production or distributed application. Its `fetchClientToken(for:)` method receives the required end-user ID, makes an authenticated API call to your backend, and returns that backend response directly as `JanuaryClientToken`.
+A `JanuaryClient` gets client tokens from a token provider, which calls your [backend token endpoint](backend-token-endpoint.md). The SDK keeps each token in memory and asks the provider for a new one shortly before it expires ([token lifecycle](../reference/retries-and-concurrency.md)).
 
-{% hint style="danger" %}
-Production apps must use short-lived client tokens. Server-side token issuance and its credentials stay outside the app and SDK integration. API-key authentication is available only for local development and must never be shipped.
-{% endhint %}
-
-## Call your backend for a client token
-
-This provider is an example API request to **your server**, not to January. Your server authenticates the signed-in app user, mints a new short-lived January client token, and returns `{ "token": "ct-…", "expiresIn": 1800 }`.
+## Write the token provider
 
 ```swift
 import Foundation
 import January
 
-struct PartnerBackendTokenProvider: JanuaryTokenProvider {
+struct BackendTokenProvider: JanuaryTokenProvider {
     let tokenEndpoint: URL
-    let appSessionToken: String
+    /// Returns the current app session token. The SDK calls the provider for
+    /// the life of the client, so read the session fresh on every call.
+    let appSessionToken: @Sendable () async throws -> String
 
     func fetchClientToken(for endUserID: String) async throws -> JanuaryClientToken {
-        // This calls your server to mint a new January client token.
         var request = URLRequest(url: tokenEndpoint)
         request.httpMethod = "POST"
-        request.setValue(
-            "Bearer \(appSessionToken)",
-            forHTTPHeaderField: "Authorization"
-        )
+        do {
+            request.setValue("Bearer \(try await appSessionToken())", forHTTPHeaderField: "Authorization")
+        } catch {
+            throw JanuaryTokenProviderError("The app session is unavailable.")
+        }
+        // Only the token relay reads this header. Your production endpoint
+        // takes the user from the session and ignores it.
         request.setValue(endUserID, forHTTPHeaderField: "January-End-User-ID")
 
         let data: Data
         let response: URLResponse
         do {
             (data, response) = try await URLSession.shared.data(for: request)
-        } catch is CancellationError {
-            throw CancellationError()
         } catch {
-            throw JanuaryTokenProviderError("Your token endpoint is unavailable.", retryable: true)
+            // Network errors and timeouts are worth retrying.
+            throw JanuaryTokenProviderError("Your token endpoint is unreachable.", retryable: true)
         }
-        guard let http = response as? HTTPURLResponse else {
-            throw JanuaryTokenProviderError("Your token endpoint returned an invalid response.")
-        }
-        guard (200..<300).contains(http.statusCode) else {
+
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200..<300).contains(status) else {
             throw JanuaryTokenProviderError(
-                "Your token endpoint rejected the request.",
-                retryable: http.statusCode == 408 || http.statusCode == 429 || http.statusCode >= 500
+                "Your token endpoint returned HTTP \(status).",
+                retryable: status == 408 || status == 429 || status >= 500
             )
         }
 
-        return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
+        do {
+            return try JSONDecoder().decode(JanuaryClientToken.self, from: data)
+        } catch {
+            throw JanuaryTokenProviderError("Your token endpoint returned an unreadable token response.")
+        }
     }
 }
 ```
 
-Change the HTTP method and authentication header only if your backend uses a different contract. `JanuaryClientToken` accepts both `expiresIn` and `expires_in`.
+Throw `JanuaryTokenProviderError` for every failure, as this provider does. The SDK retries the ones marked `retryable: true` with backoff. When the provider fails for good, the call throws an `.authentication` error with the code `client_token_provider_failed`. Any other error type reaches your code as a generic `.transport` or `.decoding` error without your message ([Errors](../reference/error-handling.md#token-provider-failures)).
 
-## Inject configuration and create the client
-
-Resolve the endpoint from required app configuration. Do not provide a guessed or localhost default in production code.
+## Create the client
 
 ```swift
 func makeJanuaryClient(
     tokenEndpoint: URL,
-    appSessionToken: String,
     endUserID: String,
-    timezone: TimeZone? = nil
+    appSessionToken: @escaping @Sendable () async throws -> String
 ) throws -> JanuaryClient {
-    let provider = PartnerBackendTokenProvider(
-        tokenEndpoint: tokenEndpoint,
-        appSessionToken: appSessionToken
-    )
-    return try JanuaryClient(
+    try JanuaryClient(
         endUserID: endUserID,
-        timezone: timezone,
-        clientTokenProvider: provider
+        timezone: TimeZone.current,
+        clientTokenProvider: BackendTokenProvider(
+            tokenEndpoint: tokenEndpoint,
+            appSessionToken: appSessionToken
+        )
     )
 }
 ```
 
-`JanuaryClient` always targets January's production Partner API through its documented client-token initializers. It exposes no API-origin override.
+Read the token endpoint URL from your app's configuration, and fail at startup when it's missing rather than falling back to a default. Create one client per signed-in account and reuse it ([Client lifecycle](../concepts/client-lifecycle.md)). The [end-user ID and timezone](../concepts/user-identity-and-timezone.md) are fixed for the client's life.
 
-The required stable user ID and the resolved timezone are configured once on
-the general client, so all resources are available directly:
+To manage tokens yourself instead, create the client from one token with `JanuaryClient(clientToken:endUserID:timezone:)`. The SDK can't refresh that token, so create a new client before it expires.
 
-```swift
-let results = try await client.foods.search(.init(query: "greek yogurt"))
-```
+## Local development
 
-With client-token authentication, the token remains authoritative for identity.
-The SDK removes `January-End-User-ID` before calling January, so the configured context
-cannot override the user bound to the token. The configured timezone—or
-`TimeZone.current` when omitted—is applied to supported operations.
+Three options let you run the app before your token endpoint exists:
 
-## Token lifecycle
-
-The provider response must contain a non-empty token and an `expiresIn` value greater than 60 seconds. The SDK then:
-
-* stores the token in memory only;
-* refreshes it 60 seconds before its reported expiration;
-* shares one in-flight refresh across concurrent requests;
-* retries provider failures explicitly marked retryable with the configured bounded policy; and
-* invalidates and replaces a token after January returns `401` with `code: "token_expired"`.
-
-After `token_expired`, the original January operation is replayed at most once. Other January authentication errors are returned immediately. See [Retries and concurrency](../reference/retries-and-concurrency.md).
-
-## Customize provider retries
-
-The default is nine total provider calls: one initial attempt and eight retries. Nominal delays are 1, 2, 4, 8, 8, 8, 8, and 8 seconds with ±20% jitter and an 8-second cap.
-
-```swift
-let client = try JanuaryClient(
-    endUserID: endUserID,
-    clientTokenProvider: provider,
-    tokenRetryPolicy: JanuaryTokenRetryPolicy(
-        maximumAttempts: 9,
-        initialDelay: 1,
-        multiplier: 2,
-        maximumDelay: 8,
-        jitterRatio: 0.2
-    )
-)
-```
-
-Pass `.none` as `tokenRetryPolicy` to make a single provider attempt. Ordinary
-errors and `JanuaryTokenProviderError(retryable: false)` stop immediately.
-
-## App-managed fixed token
-
-If your app deliberately owns the entire token lifecycle, it may create a client from one short-lived token and recreate the client when the token changes:
-
-```swift
-let client = try JanuaryClient(
-    clientToken: clientTokenValue,
-    endUserID: endUserID
-)
-```
-
-The SDK cannot refresh this fixed-token client.
-
-## Local development client-token exchange
-
-Use `JanuaryDevelopmentTokenProvider` when you need to exercise minting,
-caching, proactive refresh, and `token_expired` replay before your partner
-backend is available.
+| Option | What changes in the app | Use it to |
+| --- | --- | --- |
+| [Token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay) | Only the provider's URL: `http://localhost:8787/api/january/client-token` from the Simulator | Run the production token flow. Prefer this option. |
+| `JanuaryDevelopmentTokenProvider` | The provider, which mints tokens with your API key | Exercise token minting and refresh without running the relay |
+| `developmentAPIKey` | The initializer, which sends your API key on every call | Make calls with no client tokens at all |
 
 {% hint style="danger" %}
-This helper sends a January API key from the app process and is only for a local
-Debug build. Never commit the key, include it in a distributed binary, or ship
-this configuration. Production apps must use a backend-backed
-`JanuaryTokenProvider`.
+`JanuaryDevelopmentTokenProvider` and `developmentAPIKey` put your `sk-…` API key in the app process. Use them only in a local Debug build. Load the key from the Xcode scheme, never commit it, and never ship a build that contains it. Release builds don't compile either one, and the SDK logs a warning to the Xcode console (without the key) whenever you use one.
 {% endhint %}
+
+Set `JANUARY_API_KEY` under **Product → Scheme → Edit Scheme → Run → Arguments → Environment Variables**. An empty key fails with an `.authentication` error.
+
+### Development token provider
+
+`JanuaryDevelopmentTokenProvider` mints 5-minute tokens with your API key, so the SDK refreshes them about every 4 minutes. Keep the production provider in the `#else` branch:
 
 ```swift
 #if DEBUG
-guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
-      let rawUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
-    fatalError("Set the local January development credentials in the Xcode scheme.")
-}
-
-let provider = try JanuaryDevelopmentTokenProvider(apiKey: apiKey)
 let client = try JanuaryClient(
-    endUserID: rawUserID,
-    clientTokenProvider: provider
+    endUserID: endUserID,
+    timezone: TimeZone.current,
+    clientTokenProvider: JanuaryDevelopmentTokenProvider(
+        apiKey: ProcessInfo.processInfo.environment["JANUARY_API_KEY"] ?? ""
+    )
+)
+#else
+let client = try makeJanuaryClient(
+    tokenEndpoint: tokenEndpoint,
+    endUserID: endUserID,
+    appSessionToken: { try await session.accessToken() }
 )
 #endif
 ```
 
-Token lifetime is managed internally. When your backend becomes available,
-replace this helper with your own provider; the `JanuaryClient` construction
-and resource calls stay the same.
-
-## Local development API-key authentication
-
-{% hint style="danger" %}
-`developmentAPIKey` is only for local testing. Do not use it in production, include an API key in a distributed app, or commit one to source control. Use `JanuaryTokenProvider` for production.
+{% hint style="warning" %}
+In 0.3.1 this provider's tokens don't include the `water_logs:*` or `weight_logs:*` scopes, so water and weight calls fail with `403 scope_insufficient`. Use the token relay to test them.
 {% endhint %}
 
-Load the key from local Xcode scheme configuration instead of putting it in Swift source:
+### Development API key
+
+`developmentAPIKey` skips client tokens and sends your API key on every call:
 
 ```swift
-import Foundation
-import January
-
-guard let apiKey = ProcessInfo.processInfo.environment["JANUARY_API_KEY"],
-      let endUserID = ProcessInfo.processInfo.environment["JANUARY_END_USER_ID"] else {
-    fatalError("Set the local January development credentials in the Xcode scheme.")
-}
+#if DEBUG
 let client = try JanuaryClient(
-    developmentAPIKey: apiKey,
-    endUserID: endUserID
+    developmentAPIKey: ProcessInfo.processInfo.environment["JANUARY_API_KEY"] ?? "",
+    endUserID: endUserID,
+    timezone: TimeZone.current
 )
+#else
+let client = try makeJanuaryClient(
+    tokenEndpoint: tokenEndpoint,
+    endUserID: endUserID,
+    appSessionToken: { try await session.accessToken() }
+)
+#endif
 ```
 
-This initializer is supported for local Debug testing and is not deprecated. Supplying a nonempty key writes a warning to the Xcode console at runtime without logging the key itself. Release builds reject the initializer at compile time, preventing the development key from being shipped. An empty or whitespace-only value fails validation without logging a warning.
-
-The end-user ID is required. Use your own stable, non-identifying string for
-the user exercising the SDK. Do not use the SDK developer's personal ID, an
-email address, or a display name. An omitted timezone defaults to
-`TimeZone.current`.
+Next: [First request](quick-start.md).

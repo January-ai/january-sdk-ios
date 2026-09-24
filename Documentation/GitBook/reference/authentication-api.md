@@ -9,6 +9,8 @@ public struct JanuaryClient: Sendable {
     public let foodAnalysis: FoodAnalysisResource
     public let foodLogs: FoodLogsResource
     public let glucose: GlucoseResource
+    public let waterLogs: WaterLogsResource
+    public let weightLogs: WeightLogsResource
 
     public init(
         endUserID: String,
@@ -28,6 +30,7 @@ public struct JanuaryClient: Sendable {
         timezone: TimeZone? = nil
     ) throws
 
+    // Debug builds only.
     public init(
         developmentAPIKey: String,
         endUserID: String,
@@ -36,9 +39,7 @@ public struct JanuaryClient: Sendable {
 }
 ```
 
-The client-token initializers target January production. `clientToken` rejects an empty value and cannot refresh itself.
-
-`developmentAPIKey` is supported for local Debug testing and emits a runtime console warning for a nonempty key. The SDK never includes the key in that warning. Release builds reject the initializer at compile time. Its `endUserID` is required. Never ship an API key in a production or distributed app; use `JanuaryTokenProvider` instead.
+`clientToken` rejects an empty value, and the SDK can't refresh it. `developmentAPIKey` is for local development only ([local development](../getting-started/authentication.md#local-development)).
 
 ## Token provider
 
@@ -65,18 +66,14 @@ public struct JanuaryTokenProviderError: Error, LocalizedError, Sendable {
 }
 ```
 
-`JanuaryClientToken` encodes `expiresIn` and decodes either `expiresIn` or `expires_in`. Tokens must be nonempty and report more than 60 seconds of remaining lifetime.
+`JanuaryClientToken` decodes January's token response unchanged: it reads `token` and either `expires_in` or `expiresIn`. It encodes `expiresIn`.
 
-Throw `JanuaryTokenProviderError` with `retryable: true` only for transient
-failures such as timeouts, rate limits, and server errors. The SDK applies its
-bounded provider retry policy only to that explicit error. The default
-`retryable` value is `false`; ordinary errors, permanent authentication or
-validation failures, malformed token responses, and `CancellationError` stop
-immediately.
+Throw `JanuaryTokenProviderError` from your provider for every failure, with `retryable: true` only for transient ones: network errors, timeouts, and HTTP 408, 429, and 5xx. [Errors](error-handling.md#token-provider-failures) shows what each kind of failure becomes, and [Retries and concurrency](retries-and-concurrency.md) covers caching, refresh, and retries.
 
-## Local development token provider
+## Development token provider
 
 ```swift
+// Debug builds only.
 public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
     public init(apiKey: String) throws
 
@@ -84,12 +81,7 @@ public struct JanuaryDevelopmentTokenProvider: JanuaryTokenProvider {
 }
 ```
 
-This provider exercises the production client-token lifecycle without a partner
-backend. Token lifetime is managed internally. It emits a runtime warning that
-never contains the key. Release builds reject its
-initializer at compile time. It is strictly for a local Debug build. Never distribute an app containing a
-January API key; production apps implement `JanuaryTokenProvider` against their
-authenticated backend.
+It mints 300-second tokens with your API key, for the scopes `foods:read`, `food_analysis:write`, `food_logs:read`, `food_logs:write`, `glucose:read`, and `restaurants:read`. See [local development](../getting-started/authentication.md#development-token-provider).
 
 ## Retry policy
 
@@ -114,7 +106,7 @@ public struct JanuaryTokenRetryPolicy: Hashable, Sendable {
 }
 ```
 
-Invalid policy values fail a precondition. See [Retries and concurrency](retries-and-concurrency.md).
+Invalid values fail a precondition. See [provider retries](retries-and-concurrency.md#provider-retries).
 
 ## User context
 
@@ -126,9 +118,4 @@ public struct PartnerUserContext: Hashable, Sendable {
 }
 ```
 
-Configure the optional end-user ID and timezone directly on `JanuaryClient`.
-Its `foods`, `restaurants`, `foodAnalysis`, `foodLogs`, and `glucose` resources
-reuse that context automatically. Client-token authentication removes the
-end-user header because the token already carries identity. An omitted or blank
-timezone resolves to `TimeZone.current`. The SDK sends its `identifier` only at
-the HTTP boundary.
+Request-value forms of the log operations take a `PartnerUserContext` as `user`. On a `JanuaryClient`, the client's required end-user ID and timezone replace it. The client's `foods`, `restaurants`, `foodAnalysis`, `foodLogs`, `glucose`, `waterLogs`, and `weightLogs` resources all use them ([User identity and timezone](../concepts/user-identity-and-timezone.md)). An omitted `timezone` resolves to `TimeZone.current`.

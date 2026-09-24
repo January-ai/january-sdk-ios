@@ -1,93 +1,52 @@
 # Foods
 
-Use the `foods` resource to autocomplete and search the food database, retrieve a full food record, look up a barcode, or request alternatives.
-
-Configure the signed-in user's stable ID once when creating the client:
-
-```swift
-let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    clientTokenProvider: tokenProvider
-)
-```
-
-With client-token authentication, January derives the end-user identity from the token. The configured client keeps call sites consistent, while the SDK removes the `January-End-User-ID` header before sending the request.
+Use `client.foods` to autocomplete and search the food database, look up a barcode, fetch a full food, and suggest alternatives. These examples use the `client` from [Authentication](../getting-started/authentication.md). [Food details and portions](../concepts/food-hydration-and-portions.md) explains how the steps fit together.
 
 ## Autocomplete
 
 ```swift
-let suggestions = try await client.foods.autocomplete(
-    .init(query: "ban", limit: 8)
-)
+let suggestions = try await client.foods.autocomplete(.init(query: "ban", limit: 8))
 ```
 
-Autocomplete returns lightweight query suggestions for type-ahead interfaces.
-Selecting one should place its name in the search field and run `search`. Search
-results are discovery records; call `get(id:)` before opening
-a serving picker so the selected food contains every available serving.
+A suggestion is search text, not a food with servings. When the user picks one, search for its name:
 
 ```swift
-if let suggestion = suggestions.items.first {
-    let results = try await client.foods.search(
-        .init(query: suggestion.name, limit: 10)
-    )
-    // Render `results`; do not open a serving picker from the suggestion itself.
-}
+guard let name = suggestions.items.first?.name else { return }
+let results = try await client.foods.search(.init(query: name, limit: 10))
 ```
 
-Autocomplete accepts only `.generic` and `.branded`. Name search additionally supports `.recipe`.
+Autocomplete's `category` filter takes `.generic` or `.branded`.
 
 ## Search by name
 
 ```swift
-let results = try await client.foods.search(
-    .init(
-        query: "banana",
-        limit: 10
-    )
-)
+let results = try await client.foods.search(.init(query: "banana", category: .generic, limit: 10))
 ```
 
-Filter with `.generic`, `.branded`, or `.recipe` through the request's `category` property.
+`category` is `.generic`, `.branded`, or `.recipe`; leave it out to search every category. Page with `offset`.
 
-## Get servings and calculate a portion
+## Fetch the full food and compute a portion
 
 ```swift
 guard let match = results.items.first else { return }
 
 let food = try await client.foods.get(id: match.id)
 let portion = try food.portion(quantity: 1.5)
-
 print(portion.nutrition.calories?.value ?? 0)
 ```
-
-The full food record contains every available serving. `FoodPortion` validates
-the selected serving and quantity, scales every nutrient, weight, and glycemic
-load locally, and exposes `selection` for food-log and glucose-prediction
-requests. Macronutrients do not require another network request when the user
-changes the serving or quantity.
 
 ## Look up a barcode
 
 ```swift
-let results = try await client.foods.lookupBarcode(
-    .init(upc: "049000006346")
-)
+do {
+    let results = try await client.foods.lookupBarcode(.init(upc: "049000006346"))
+    showFoods(results.items)
+} catch let error as JanuaryError where error.category == .notFound {
+    offerTextSearch() // Not in the database.
+}
 ```
 
-The barcode must contain 6–14 ASCII digits.
-
-## Parse natural language
-
-```swift
-let meal = try await client.foodAnalysis.analyzeDescription(
-    .init(
-        query: "one banana and a bowl of oatmeal"
-    )
-)
-```
-
-The response contains detections and total nutrients for the described meal.
+A barcode is 6–14 digits. Coverage is US-only: a code issued elsewhere (for example GS1 prefixes 73, 64, 54, or 93) comes back as `.notFound`, so fall back to text search.
 
 ## Suggest alternatives
 
@@ -101,6 +60,8 @@ let response = try await client.foods.suggestAlternatives(
 )
 ```
 
-When no restrictions or preferences apply, omit them or pass empty arrays.
+Leave out `dietRestrictions` and `dietPreferences`, or pass empty arrays, when none apply.
 
-See [Validation limits](../reference/validation.md) for query and barcode constraints.
+To analyze a meal description instead, see [Food analysis](photo-scanning.md#analyze-a-description). Input limits are in [Validation limits](../reference/validation.md).
+
+Next: [Restaurants](restaurants.md).

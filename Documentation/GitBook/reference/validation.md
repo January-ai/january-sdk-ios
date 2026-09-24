@@ -1,6 +1,6 @@
 # Validation limits
 
-The SDK rejects these invalid inputs before transport where validation is implemented locally. The Partner API may apply additional contract rules.
+The SDK checks these inputs before it sends a request. Most failures throw a `JanuaryError` with the `.validation` category; portion inputs throw `FoodPortionError`, and the scanner settings are clamped instead. The January API can apply more rules of its own.
 
 | Input | Accepted value |
 | --- | --- |
@@ -16,15 +16,15 @@ The SDK rejects these invalid inputs before transport where validation is implem
 | Longitude | −180 through 180 |
 | Restaurant radius | 1 through 50,000 meters |
 | Restaurant limit | Integer from 1 through 100 |
-| Food-log `timestampUTC` | ISO-8601 date-time |
+| Food-log `timestampUTC` | ISO 8601 date-time |
 | Food-log update | At least one of `foods`, `timestampUTC`, `name` |
 | Water amount | 1 through 811.5 fl oz, 0.1 through 101.4 cup, or 30 through 24,000 ml |
 | Weight-log weight | 10 through 1,000 lb, or 4.5 through 453.6 kg |
-| Water and weight `consumedAtUTC` / `measuredAtUTC` | ISO-8601 date-time |
+| Water and weight `consumedAtUTC` / `measuredAtUTC` | ISO 8601 date-time |
 | Glucose profile `age` | Whole number of years |
-| Photo-scan correction | Every detection carries its food ID, serving ID, serving quantity, and quantity |
-| CGM and historical-food timestamp | ISO-8601 date-time |
-| Provider token | Nonempty with finite `expiresIn` greater than 60 seconds |
+| Food analysis correction | Every detection carries its food ID, serving ID, serving quantity, and quantity |
+| CGM and historical-food timestamp | ISO 8601 date-time |
+| Provider token | Not empty, with a finite `expiresIn` greater than 60 seconds (an `.authentication` error) |
 | Portion quantity | Finite, greater than 0, and no greater than 10,000 |
 | Scanner maximum dimension | Clamped to at least 1 pixel |
 | Scanner JPEG quality | Clamped to 0 through 1 |
@@ -38,7 +38,7 @@ let height = Height(value: 178, unit: .centimeters)
 let weight = Weight(value: 80, unit: .kilograms)
 ```
 
-Supported height units are inches and centimeters. Supported weight units are pounds and kilograms. The demo presents imperial height as feet plus inches, then converts that display to total inches for the request.
+Height takes inches or centimeters, and weight takes pounds or kilograms.
 
 ## Local portion errors
 
@@ -49,4 +49,4 @@ Supported height units are inches and centimeters. Supported weight units are po
 * `invalidServing`
 * `invalidQuantity`
 
-Hydrate the food before calculating a portion to avoid attempting selection from an incomplete discovery record.
+Fetch the full food (`foods.get`) before computing a portion, so every serving is available.

@@ -1,25 +1,12 @@
 # Food logs
 
-Use the `foodLogs` resource to create, list, get, update, and delete entries for
-a partner-owned user.
+Use `client.foodLogs` to create, list, summarize, get, update, and delete a user's meals. These examples use the `client` from [Authentication](../getting-started/authentication.md).
 
-Provide the signed-in user's stable ID once. The SDK passes it to the token
-provider and defaults the timezone to the device's current identifier:
+Lists and summaries take inclusive `yyyy-MM-dd` dates in the client's timezone ([days and dates](../concepts/user-identity-and-timezone.md#days-and-dates)). A list covers at most 60 days and a summary at most 366; a longer range fails with the code `date_range_too_large`.
 
-```swift
-let client = try JanuaryClient(
-    endUserID: partnerUserID,
-    clientTokenProvider: tokenProvider
-)
+## Choose a food and serving
 
-let logs = try await client.foodLogs.list(start: "2026-08-01", end: "2026-08-31")
-```
-
-With client-token authentication, the token supplies the end-user identity and the SDK removes the `January-End-User-ID` header. The client sends the configured `TimeZone` or `TimeZone.current` when none was supplied. With local development-key authentication, any configured ID and the resolved timezone are sent.
-
-## Select a food and serving
-
-Search returns discovery records. Hydrate the selected food with `get(id:)`, then create a validated portion from one of its servings:
+Fetch the full food, then build a portion from one of its servings:
 
 ```swift
 let food = try await client.foods.get(id: selectedFoodID)
@@ -27,11 +14,11 @@ let portion = try food.portion(servingID: selectedServingID, quantity: 1)
 let selectedFood = portion.selection
 ```
 
-`portion.selection` is the exact `FoodSelection` accepted by Food Logs and glucose prediction.
+`portion.selection` is the `FoodSelection` that food logs and glucose predictions take.
 
-A photo or description analysis returns each detection's food `id`, selected
-`serving`, and the `quantity` eaten, so a `DetectedFood` logs without another
-lookup. These properties are optional in Swift; unwrap them:
+### Log an analyzed meal
+
+A [food analysis](photo-scanning.md) detection has its food `id`, selected `serving`, and the `quantity` eaten, so it logs without another lookup. They're optionals in Swift; unwrap them:
 
 ```swift
 let selections = scan.detections.compactMap { detection -> FoodSelection? in
@@ -47,15 +34,27 @@ let selections = scan.detections.compactMap { detection -> FoodSelection? in
 ```swift
 let log = try await client.foodLogs.create(
     foods: [selectedFood],
-    timestampUTC: ISO8601DateFormatter().string(from: Date()),
+    timestampUTC: ISO8601DateFormatter().string(from: eatenAt),
     name: "Breakfast"
 )
 ```
 
+`timestampUTC` is when the meal was eaten, as ISO 8601 with any offset; leave it out to mean now. Creates aren't idempotent: after a timed-out create, list the day before you retry ([retries](../reference/retries-and-concurrency.md#retrying-creates)).
+
+## List
+
+```swift
+do {
+    let logs = try await client.foodLogs.list(start: "2026-08-01", end: "2026-08-31")
+    showLogs(logs.items)
+} catch let error as JanuaryError where error.code == "date_range_too_large" {
+    showInputError("Choose 60 days or fewer.")
+}
+```
+
 ## Summarize a range
 
-Ask for a summary instead of paging through logs when a screen needs weekly or
-daily totals:
+Ask for a summary instead of adding up logs yourself when a screen shows daily or weekly totals:
 
 ```swift
 let summary = try await client.foodLogs.getSummary(
@@ -67,23 +66,9 @@ for week in summary.buckets {
 let dailyAverage = summary.averagePerLoggedDay.nutrients
 ```
 
-## List
-
-Dates use `yyyy-MM-dd`:
-
-```swift
-let logs = try await client.foodLogs.list(
-    start: "2026-08-01",
-    end: "2026-08-31"
-)
-```
-
-The start and end dates are inclusive calendar dates in the supplied timezone. Timestamps use ISO 8601.
-
 ## Get one log
 
-`FoodLog.id` is optional in Swift; unwrap it before reading, updating, or
-deleting a log:
+`FoodLog.id` is optional in Swift, because a listed log can rarely have none. Unwrap it before you get, update, or delete the log:
 
 ```swift
 guard let logID = log.id else { return }
@@ -92,8 +77,7 @@ let savedLog = try await client.foodLogs.get(id: logID)
 
 ## Update
 
-Only fields supplied in the request are changed. An update that supplies no
-field is rejected before transport with a `.validation` error.
+Only the fields you pass change. An update that passes none fails with `.validation` before it's sent.
 
 ```swift
 let updated = try await client.foodLogs.update(
@@ -108,4 +92,6 @@ let updated = try await client.foodLogs.update(
 try await client.foodLogs.delete(id: logID)
 ```
 
-A successful delete returns nothing; the API responds with `204 No Content`.
+A successful delete returns nothing.
+
+Next: [Water and weight logs](water-and-weight-logs.md).
