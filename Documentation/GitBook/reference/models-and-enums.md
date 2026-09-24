@@ -4,12 +4,14 @@
 
 ```swift
 public struct FoodID: RawRepresentable, Codable, Hashable, Sendable {
-    public let rawValue: Int64
+    public let rawValue: String
+    public init(rawValue: String)
     public init(rawValue: Int64)
 }
 
 public struct ServingID: RawRepresentable, Codable, Hashable, Sendable {
-    public let rawValue: Int64
+    public let rawValue: String
+    public init(rawValue: String)
     public init(rawValue: Int64)
 }
 

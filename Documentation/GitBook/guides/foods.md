@@ -35,7 +35,7 @@ if let suggestion = suggestions.items.first {
 }
 ```
 
-Autocomplete accepts only `.general` and `.branded`. Name search additionally supports `.recipe`.
+Autocomplete accepts only `.generic` and `.branded`. Name search additionally supports `.recipe`.
 
 ## Search by name
 
@@ -48,7 +48,7 @@ let results = try await client.foods.search(
 )
 ```
 
-Filter with `.general`, `.branded`, or `.recipe` through the request's `category` property.
+Filter with `.generic`, `.branded`, or `.recipe` through the request's `category` property.
 
 ## Get servings and calculate a portion
 

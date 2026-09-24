@@ -46,13 +46,15 @@ public func suggestAlternatives(
 
 ```swift
 public enum AutocompleteFoodCategory: String, Codable, Sendable {
-    case general, branded
+    case generic, branded
 }
 
 public enum FoodCategory: String, Codable, CaseIterable, Sendable {
-    case general, branded, recipe
+    case generic, branded, recipe
 }
 ```
+
+`general` remains as a deprecated alias of `generic` on both enums.
 
 ## Errors
 
