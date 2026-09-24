@@ -64,7 +64,7 @@ final class QuickstartModel: ObservableObject {
             }
 
             let food = try await client.foods.get(id: match.id)
-            let portion = try food.portion(quantity: 1)
+            let portion = try food.portion() // One primary serving
             state = .loaded(
                 name: food.name ?? "Unnamed food",
                 servings: food.servings.count,

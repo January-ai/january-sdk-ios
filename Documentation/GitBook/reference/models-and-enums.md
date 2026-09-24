@@ -39,7 +39,7 @@ public extension FoodSearchItem {
 }
 ```
 
-Without a serving ID, portion selection uses the primary serving or the first serving. Without a quantity, it uses that serving's declared quantity.
+Without a serving ID, portion selection uses the primary serving or the first serving. `quantity` is an amount in that serving's unit and defaults to one serving; `selection` sends the number of servings ([Quantity and servings](../concepts/food-hydration-and-portions.md#quantity-and-servings)).
 
 ## Nutrition
 
@@ -89,7 +89,7 @@ of years.
 
 `ErrorCategory` values are `authentication`, `authorization`, `validation`, `notFound`, `rateLimited`, `server`, `transport`, `timeout`, and `decoding`.
 
-`JanuaryError` exposes `category`, an optional `code`, `message`, and an optional `httpStatus` ([Errors](error-handling.md#properties)). Its `requestID` and `retryAfterSeconds` are always `nil` in 0.3.1.
+`JanuaryError` exposes `category`, an optional `code`, `message`, and an optional `httpStatus` ([Errors](error-handling.md#properties)). Its `requestID` and `retryAfterSeconds` are always `nil` in 0.3.2.
 
 ## Scanner types
 

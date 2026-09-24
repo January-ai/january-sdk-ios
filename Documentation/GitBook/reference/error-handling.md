@@ -44,8 +44,8 @@ Branch on `category`, and on `code` where it matters. Codes and when to retry th
 | `code` | The API's error code, such as `scope_insufficient`; `nil` for most local errors |
 | `message` | A developer-facing description |
 | `httpStatus` | The HTTP status, when the API responded |
-| `requestID` | Always `nil` in 0.3.1 |
-| `retryAfterSeconds` | Always `nil` in 0.3.1; the SDK doesn't read `Retry-After` |
+| `requestID` | Always `nil` in 0.3.2 |
+| `retryAfterSeconds` | Always `nil` in 0.3.2; the SDK doesn't read `Retry-After` |
 
 Think before showing `message` to users. Never log credentials, photo contents, nutrition details, or health-profile data while you diagnose an error.
 

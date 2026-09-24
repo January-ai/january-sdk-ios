@@ -10,11 +10,11 @@ Fetch the full food, then build a portion from one of its servings:
 
 ```swift
 let food = try await client.foods.get(id: selectedFoodID)
-let portion = try food.portion(servingID: selectedServingID, quantity: 1)
+let portion = try food.portion(servingID: selectedServingID) // One serving
 let selectedFood = portion.selection
 ```
 
-`portion.selection` is the `FoodSelection` that food logs and glucose predictions take.
+`portion.selection` is the `FoodSelection` that food logs and glucose predictions take. Leave `quantity` out for one serving; any other amount is in the serving's unit ([Quantity and servings](../concepts/food-hydration-and-portions.md#quantity-and-servings)).
 
 ### Log an analyzed meal
 
