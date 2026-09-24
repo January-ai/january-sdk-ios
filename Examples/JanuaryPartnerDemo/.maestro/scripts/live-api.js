@@ -27,6 +27,18 @@
 //   summary      DAY [EXPECT_LOGS]    output.live.logsCount: the day's logs_count, and
 //                                     output.live.dayTotalsText as the Tracking tab shows it
 //   cleanup      DAY NAME_PREFIX      deletes the day's food logs whose name starts with NAME_PREFIX
+//   find-food    QUERY                output.live.foodIndex: where the portion food is in the demo's
+//                                     search for QUERY (the same request its food picker makes)
+//   portion-log  DAY NAME SHEET_CALORIES [EXPECT_SERVINGS]
+//                                     checks the newest log named NAME: one food, the portion food's
+//                                     serving, EXPECT_SERVINGS servings (default 1), and calories
+//                                     within 2% of SHEET_CALORIES, what the serving sheet showed.
+//                                     output.live.portionCaloriesText is those calories as the app
+//                                     shows them; output.live.portionLogIDs, the day's logs named NAME
+//   delete-food-logs                  deletes output.live.portionLogIDs
+//
+// The portion food is PORTION_FOOD_ID and its serving PORTION_SERVING_ID, by default the API's
+// greek yogurt 70376084 and its 6 oz serving 34157706 (100 kcal a serving).
 //
 // DAY may be the Tracking day label ("Today, 2026-09-22"); its date is used.
 // Without DAY, checks use today in TIMEZONE.
@@ -53,6 +65,9 @@ const day = (function () {
   // Today in TIMEZONE, as YYYY-MM-DD.
   try { return new Intl.DateTimeFormat('en-CA', { timeZone: timezone }).format(new Date()); } catch (error) { return null; }
 })();
+
+const portionFoodID = typeof PORTION_FOOD_ID === 'string' && PORTION_FOOD_ID ? PORTION_FOOD_ID : '70376084';
+const portionServingID = typeof PORTION_SERVING_ID === 'string' && PORTION_SERVING_ID ? PORTION_SERVING_ID : '34157706';
 
 if (!output.live) output.live = {};
 
@@ -262,6 +277,55 @@ switch (check) {
         const response = request('DELETE', '/v1.2/food-logs/' + encodeURIComponent(log.id));
         if (!response.ok) throw new Error('Deleting food log ' + log.id + ' answered HTTP ' + response.status);
       });
+    break;
+  }
+  case 'find-food': {
+    const body = getJSON('/v1.2/foods?' + query({ query: QUERY, limit: 10, offset: 0 }));
+    let index = -1;
+    for (let position = 0; position < body.items.length; position += 1) {
+      if (String(body.items[position].id) === portionFoodID) { index = position; break; }
+    }
+    console.log('live-api search "' + QUERY + '": food ' + portionFoodID + (index < 0 ? ' is not in the ' + body.items.length + ' results' : ' is result ' + index));
+    if (index < 0) {
+      throw new Error('Food ' + portionFoodID + ' is not in the demo\'s results for ' + QUERY + ': '
+        + body.items.map(function (item) { return item.id + ' ' + item.name; }).join(', '));
+    }
+    output.live.foodIndex = index;
+    break;
+  }
+  case 'portion-log': {
+    const body = getJSON('/v1.2/food-logs?' + query({ start_date: requireDay(), end_date: day, timezone: timezone }));
+    const named = body.items
+      .filter(function (log) { return log.name === NAME; })
+      .sort(function (a, b) { return a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0; });
+    output.live.portionLogIDs = named.map(function (log) { return log.id; });
+    if (named.length === 0) throw new Error('No food log named ' + NAME + ' on ' + day);
+    if (named[0].foods.length !== 1) throw new Error('Expected 1 food in ' + NAME + ', the API has ' + named[0].foods.length);
+    const food = named[0].foods[0];
+    const calories = food.nutrients && food.nutrients.calories ? food.nutrients.calories.value : null;
+    console.log('live-api ' + NAME + ': food ' + food.food_id + ', serving ' + food.serving.id + ' ('
+      + food.serving.quantity + ' ' + food.serving.unit + '), ' + food.quantity + ' servings, ' + calories + ' kcal');
+    if (String(food.food_id) !== portionFoodID || String(food.serving.id) !== portionServingID) {
+      throw new Error('Expected food ' + portionFoodID + ' serving ' + portionServingID + ', the API logged food ' + food.food_id + ' serving ' + food.serving.id);
+    }
+    const servings = Number(typeof EXPECT_SERVINGS === 'string' && EXPECT_SERVINGS ? EXPECT_SERVINGS : 1);
+    if (Math.abs(food.quantity - servings) > 0.001) {
+      throw new Error('Expected ' + servings + ' serving(s) of ' + food.serving.quantity + ' ' + food.serving.unit + ', the API logged ' + food.quantity);
+    }
+    const sheet = Number(String(typeof SHEET_CALORIES === 'string' ? SHEET_CALORIES : '').replace(/,/g, ''));
+    if (!(sheet > 0)) throw new Error('Set SHEET_CALORIES to the calories the serving sheet showed, not "' + SHEET_CALORIES + '"');
+    if (calories === null || Math.abs(calories - sheet) > Math.max(1, sheet * 0.02)) {
+      throw new Error('The serving sheet showed ' + sheet + ' kcal; the API logged ' + calories + ' kcal');
+    }
+    output.live.portionCaloriesText = number(calories);
+    break;
+  }
+  case 'delete-food-logs': {
+    (output.live.portionLogIDs || []).forEach(function (id) {
+      const response = request('DELETE', '/v1.2/food-logs/' + encodeURIComponent(id));
+      if (!response.ok) throw new Error('Deleting food log ' + id + ' answered HTTP ' + response.status);
+    });
+    output.live.portionLogIDs = [];
     break;
   }
   case 'preflight':

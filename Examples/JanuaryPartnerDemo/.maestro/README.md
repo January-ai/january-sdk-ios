@@ -79,13 +79,16 @@ every pull request; it needs no simulator.
 
 ## Live flows
 
-Flows `90`–`96` are tagged `live`. They run the demo as a fresh install in
+Flows `90`–`97` are tagged `live`. They run the demo as a fresh install in
 client-token mode against the January API, exercise search, food detail,
 alternatives, barcode, meal description, photo scan and correction,
 restaurants and menus, glucose prediction, food logs, water, weight, and the
 Tracking charts, and check every change they make against the API with
 `scripts/live-api.js`, which gets a token for the same user from the same
-token endpoint and never prints it.
+token endpoint and never prints it. Flow `97` logs the API's greek yogurt
+(`70376084`, one 6 oz serving at 100 kcal) with its default portion and checks
+that the API logged one serving, with about the calories the serving sheet
+showed, and that the Logs screen shows them; it makes about 11 requests.
 
 They write to the end user you pass, so use a dedicated test user. The flows
 delete the food logs and water they create; weight logs cannot be deleted, so
@@ -97,6 +100,9 @@ cd january-token-relay && ./start.sh
 
 # Terminal 2: a Debug build installed on a booted simulator, as above
 node Examples/JanuaryPartnerDemo/.maestro/run-live.mjs --end-user your-test-user
+
+# One flow, e.g. the food-portion check
+node Examples/JanuaryPartnerDemo/.maestro/run-live.mjs --end-user your-test-user --only 97
 ```
 
 `run-live.mjs` checks with one token request and one API request that the API
@@ -107,7 +113,7 @@ instead of failing every later one. The weight flow runs last, so a run that
 stops earlier logs no weight. Screenshots of each step, Maestro's debug output,
 and a log of the API checks land in the output directory (`--output`).
 
-A complete run makes about 150 to 165 January API requests, including the
+A complete run makes about 160 to 175 January API requests, including the
 client tokens it requests (`--rehearse` counts them flow by flow), and at most
 about 35 in any minute; the food-log, water, and weight flows make most of
 them. Accounts also have a daily request allowance, so check yours before a

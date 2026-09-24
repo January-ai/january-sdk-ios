@@ -1,0 +1,102 @@
+appId: ai.january.partner.demo
+name: Live - a food whose serving is 6 oz logs one serving, with the calories its serving sheet showed
+tags:
+  - live
+---
+# The API's greek yogurt 70376084 has a primary serving of 6 oz at 100 kcal. Its default
+# portion is one serving, so the serving sheet, the API's log, and the Logs screen all show
+# about 100 kcal; sending the 6 oz as 6 servings would log about 600.
+# About 11 requests: 2 client tokens and 9 API requests.
+- runFlow: ../live-bootstrap.yaml
+# Where the food is in the demo's search, before the app makes any request.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: find-food
+      QUERY: greek yogurt
+- tapOn:
+    id: tab-food-logs
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-create
+- tapOn:
+    id: food-log-create
+- extendedWaitUntil:
+    visible:
+      id: food-log-editor
+    timeout: 15000
+- tapOn:
+    id: food-log-name
+- inputText: E2E iOS portion
+- pressKey: Enter
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-add-food
+- tapOn:
+    id: food-log-add-food
+- tapOn:
+    id: food-picker-input
+- inputText: greek yogurt
+- pressKey: Enter
+- extendedWaitUntil:
+    visible:
+      id: food-picker-result-0
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: food-picker-result-${output.live.foodIndex}
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: food-picker-result-${output.live.foodIndex}
+- extendedWaitUntil:
+    visible:
+      id: food-serving-sheet
+    timeout: 30000
+# The default portion: one 6 oz serving, about 100 kcal.
+- assertVisible: 6 oz
+- copyTextFrom:
+    text: "(9[0-9]|1[01][0-9])(\\.[0-9])?"
+- takeScreenshot: live-97-01-serving-sheet
+- tapOn:
+    id: food-serving-add
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: food-log-save
+- tapOn:
+    id: food-log-save
+- extendedWaitUntil:
+    notVisible:
+      id: food-log-editor
+    timeout: 30000
+# The API logged one serving, with the calories the serving sheet showed.
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: portion-log
+      NAME: E2E iOS portion
+      SHEET_CALORIES: ${maestro.copiedText}
+# The Logs screen shows those calories, not about 600.
+- scrollUntilVisible:
+    element:
+      text: .*E2E iOS portion.*
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    text: .*E2E iOS portion.*
+- extendedWaitUntil:
+    visible:
+      id: food-log-detail
+    timeout: 15000
+- assertVisible: ${output.live.portionCaloriesText}
+- assertVisible: 1 × 6 oz
+- assertNotVisible:
+    text: "(5[0-9]{2}|6[0-9]{2})(\\.[0-9])?"
+- takeScreenshot: live-97-02-food-log
+- runScript:
+    file: ../scripts/live-api.js
+    env:
+      CHECK: delete-food-logs

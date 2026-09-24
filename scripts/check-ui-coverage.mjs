@@ -300,7 +300,11 @@ const repeatedRows = Object.entries(interpolatedIdentifiers)
 
 /// The declared identifiers a flow's `id` selector reaches: the identifier
 /// itself, the row a repeated-row identifier stands for, or a regex match.
-function resolveReference(id, declared) {
+/// A JavaScript expression in the id picks a row at run time
+/// (`food-picker-result-${output.live.foodIndex}`), so it resolves like a row
+/// index.
+function resolveReference(reference, declared) {
+  const id = reference.replace(/\$\{[^}]*\}/g, "0");
   if (declared.has(id)) return [id];
   const row = repeatedRows.find(({ pattern }) => pattern.test(id));
   if (row) return [row.identifier];
