@@ -19,4 +19,19 @@
 import January
 ```
 
+## Add the pod with CocoaPods
+
+Add the `January` pod to your `Podfile`:
+
+```ruby
+platform :ios, "15.0"
+
+target "YourApp" do
+  pod "January", "~> 0.3.1"
+end
+```
+
+Then run `pod install --repo-update`, open the generated `.xcworkspace`, and
+`import January`.
+
 Continue to [Backend token endpoint](backend-token-endpoint.md).

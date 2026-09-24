@@ -14,7 +14,7 @@ The SDK rejects these invalid inputs before transport where validation is implem
 | Restaurant/menu query | 1 through 256 characters |
 | Latitude | −90 through 90 |
 | Longitude | −180 through 180 |
-| Restaurant radius | 1 through 17,000 meters |
+| Restaurant radius | 1 through 50,000 meters |
 | Restaurant limit | Integer from 1 through 100 |
 | Food-log `timestampUTC` | ISO-8601 date-time |
 | Food-log update | At least one of `foods`, `timestampUTC`, `name` |

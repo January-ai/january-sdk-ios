@@ -1,6 +1,6 @@
 # January SDK for iOS
 
-Build food discovery, nutrition, meal logging, and glucose-prediction experiences with native Swift models and `async`/`await` APIs.
+Build food discovery, nutrition, logging for meals, water, and weight, and glucose-prediction experiences with native Swift models and `async`/`await` APIs.
 
 ## What you can build
 
@@ -8,6 +8,7 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 * Restaurant and menu-item discovery
 * Meal-photo analysis, corrections, and an iOS-native camera/barcode scanner
 * Food-log creation and management
+* Water intake and body-weight logging with daily totals
 * Personalized glucose-impact predictions
 
 ## Requirements
@@ -18,7 +19,7 @@ Build food discovery, nutrition, meal logging, and glucose-prediction experience
 | SDK build tools | Xcode 15 or later and Swift 5.9 or later |
 | Runtime dependencies | None |
 | Demo app | Xcode 26 and an iOS 26 simulator or device, independently of the SDK requirements |
-| Distribution | Swift Package Manager using versioned repository releases |
+| Distribution | Swift Package Manager or CocoaPods, using versioned releases |
 | Production integration | A partner-controlled backend that issues short-lived January client tokens |
 
 ## Start here
@@ -44,11 +45,13 @@ let results = try await january.foods.search(.init(query: "greek yogurt"))
 
 | API | Purpose |
 | --- | --- |
-| `JanuaryClient` | Configures authentication, optional user context, and all resources |
+| `JanuaryClient` | Configures authentication, the end-user context, and all resources |
 | `foods` | Food discovery, hydration, barcode lookup, meal parsing, and alternatives |
 | `restaurants` | Nearby restaurant search, menu-item search, and menu lookup by restaurant ID |
 | `foodAnalysis` | Meal-photo analysis and corrections |
-| `foodLogs` | Food-log CRUD operations |
+| `foodLogs` | Food-log CRUD operations and summaries |
+| `waterLogs` | Water intake logs and daily totals |
+| `weightLogs` | Body-weight logs and latest daily weight |
 | `glucose` | Personalized glucose prediction |
 | `JanuaryFoodScannerView` | iOS-only ready-made camera and barcode flow |
 | `JanuaryError` | Stable error categories and request metadata |

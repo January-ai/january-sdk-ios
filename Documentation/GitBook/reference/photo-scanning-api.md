@@ -31,22 +31,19 @@ public struct ScanFoodPhotoRequest: Hashable, Sendable {
 }
 
 public struct CorrectPhotoScanRequest: Hashable, Sendable {
-    public init(
-        mealName: String? = nil,
-        detections: [FoodDetection],
-        userInput: String,
-        endUserID: PartnerUserID? = nil
-    )
+    public init(analysis: FoodScan, instruction: String, endUserID: PartnerUserID? = nil)
 }
 ```
 
 The string image can be a public URL string or data URI. The `Data` initializer normalizes orientation, preserves aspect ratio, bounds the longest edge, compresses to JPEG, and creates the data URI. When `reasoningEffort` is `nil`, the request leaves the choice to the API, which uses the reasoning-based analyzer. `.none` selects the standard analyzer, and `.xhigh` asks for the reasoning-based one explicitly. Both return the same result shape at the same cost.
 
+`CorrectPhotoScanRequest` takes the complete prior `FoodScan`, unchanged, and a plain-language `instruction`. The `init(mealName:detections:userInput:endUserID:)` initializer is deprecated.
+
 ## Response models
 
-`FoodScan.detections` is a nonoptional array. `mealName` is optional. Each `FoodDetection` contains a `DetectedFood` and optional `ConfidenceScore` (`high`, `medium`, or `low`).
+`FoodScan.detections` is a nonoptional array. `mealName` is optional; `totalNutrients` is not. `glucoseImpact` is deprecated and always `nil`: food analysis no longer returns a glucose impact, so use `glucose.predict` instead. Each `FoodDetection` contains a `DetectedFood` and optional `ConfidenceScore` (`high`, `medium`, or `low`).
 
-`DetectedFood` has `id`, `name`, `brandName`, `nutrients`, `serving`, and `quantity`. `serving` is the selected catalog serving (`ServingSummary` with `id`, `quantity`, `unit`, where `quantity` is the size of one serving) and `quantity` is how many of that serving were eaten, so `FoodSelection(id: food.id, serving: ServingSelection(id: food.serving.id, quantity: food.quantity))` logs the detection as is. `nutrients` are already scaled to `quantity`.
+`DetectedFood` has `id`, `name`, `brandName`, `nutrients`, `serving`, and `quantity`. `serving` is the selected catalog serving (`ServingSummary` with `id`, `quantity`, `unit`, where `quantity` is the size of one serving) and `quantity` is how many of that serving were eaten. `id`, `serving.id`, and `quantity` are optionals in Swift; unwrap them and pass `FoodSelection(id: id, serving: ServingSelection(id: servingID, quantity: quantity))` to log the detection as is (see [Food logs](../guides/food-logs.md#select-a-food-and-serving)). `nutrients` are already scaled to `quantity`.
 
 Food alternatives (`foods.suggestAlternatives`) return `AlternativeFood` values with `servings: [ServingSummary]` to read the nutrition against.
 

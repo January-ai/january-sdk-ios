@@ -40,19 +40,24 @@ public func suggestAlternatives(
 
 `AutocompleteFoodsResponse.items` contains `FoodSuggestion` values with `id`, `name`, optional brand/image/nutrition. `FoodSearchResults` contains `totalCount` and `[FoodSearchItem]`. `get` returns one complete `FoodSearchItem` with all servings.
 
-`FoodScan` contains optional meal name, optional total nutrients, `[FoodDetection]`, and optional glucose impact. Alternatives return `[FoodAlternative]`.
+`FoodScan` exposes an optional meal name, total nutrients, a nonoptional
+`[FoodDetection]`, and deprecated `glucoseImpact`, which is always `nil` because
+food analysis no longer returns it. Alternatives return
+`SuggestFoodAlternativesResponse.alternatives: [AlternativeFood]`.
 
 ## Categories
 
 ```swift
 public enum AutocompleteFoodCategory: String, Codable, Sendable {
-    case general, branded
+    case generic, branded
 }
 
 public enum FoodCategory: String, Codable, CaseIterable, Sendable {
-    case general, branded, recipe
+    case generic, branded, recipe
 }
 ```
+
+`general` remains as a deprecated alias of `generic` on both enums.
 
 ## Errors
 

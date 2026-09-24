@@ -1,6 +1,7 @@
 # Food logs
 
-Use the `foodLogs` resource to create, list, update, and delete entries for a partner-owned user.
+Use the `foodLogs` resource to create, list, get, update, and delete entries for
+a partner-owned user.
 
 Provide the signed-in user's stable ID once. The SDK passes it to the token
 provider and defaults the timezone to the device's current identifier:
@@ -28,15 +29,12 @@ let selectedFood = portion.selection
 
 `portion.selection` is the exact `FoodSelection` accepted by Food Logs and glucose prediction.
 
-A photo or description analysis returns a selected `serving` and, when the
-analyzer could size the portion, the `quantity` eaten, so such a `DetectedFood`
-logs without another lookup. `quantity` is `nil` when no usable portion was
-found; let the user pick a serving for that detection instead:
+A photo or description analysis returns each detection's food `id`, selected
+`serving`, and the `quantity` eaten, so a `DetectedFood` logs without another
+lookup. These properties are optional in Swift; unwrap them:
 
 ```swift
 let selections = scan.detections.compactMap { detection -> FoodSelection? in
-    // Skip a detection the API could not size rather than inventing a quantity;
-    // let the user pick a serving for it instead.
     guard let id = detection.food.id,
           let servingID = detection.food.serving.id,
           let quantity = detection.food.quantity else { return nil }
@@ -82,6 +80,16 @@ let logs = try await client.foodLogs.list(
 
 The start and end dates are inclusive calendar dates in the supplied timezone. Timestamps use ISO 8601.
 
+## Get one log
+
+`FoodLog.id` is optional in Swift; unwrap it before reading, updating, or
+deleting a log:
+
+```swift
+guard let logID = log.id else { return }
+let savedLog = try await client.foodLogs.get(id: logID)
+```
+
 ## Update
 
 Only fields supplied in the request are changed. An update that supplies no
@@ -89,7 +97,7 @@ field is rejected before transport with a `.validation` error.
 
 ```swift
 let updated = try await client.foodLogs.update(
-    id: log.id,
+    id: logID,
     name: "Post-workout breakfast"
 )
 ```
@@ -97,5 +105,7 @@ let updated = try await client.foodLogs.update(
 ## Delete
 
 ```swift
-let result = try await client.foodLogs.delete(id: log.id)
+try await client.foodLogs.delete(id: logID)
 ```
+
+A successful delete returns nothing; the API responds with `204 No Content`.

@@ -13,7 +13,7 @@ public func searchMenuItems(
 
 public func getMenuItems(
     _ request: GetRestaurantMenuItemsRequest
-) async throws -> SearchRestaurantMenuItemsResponse
+) async throws -> GetRestaurantMenuItemsResponse
 ```
 
 ## Requests and defaults
@@ -55,9 +55,10 @@ public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
 
 `SearchRestaurantMenuItemsResponse` has `totalCount: Int` and `items: [RestaurantMenuItem]`. Menu items include ID/name, restaurant name, optional nutrition, image, glycemic data, distance, and `[ServingOption]`.
 
-Advance `offset` by the number of returned items until it reaches `totalCount`
-or a page is empty. An unknown restaurant returns `404`; a restaurant without a
-menu returns an empty response.
+`GetRestaurantMenuItemsResponse` contains only `items: [RestaurantMenuEntry]`,
+with no `totalCount`. Advance `offset` by the number of returned items while a
+full page comes back; an empty page ends the menu, including for a restaurant
+with no menu on record. An unknown restaurant returns `404`.
 
 ## Errors
 

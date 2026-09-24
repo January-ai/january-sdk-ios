@@ -43,8 +43,10 @@ let client = try JanuaryClient(
 )
 ```
 
-When `timezone` is omitted, the SDK uses `TimeZone.current`. The SDK converts
-the value to its IANA identifier only when creating the request header.
+When `timezone` is omitted, the SDK uses `TimeZone.current`. The SDK sends its
+IANA identifier as the `timezone` query parameter of food-, water-, and
+weight-log lists and food-log summaries, where it defines the local calendar
+days, and as the `timezone` field of a glucose prediction.
 
 Request models retain optional identity fields for source compatibility, but
 new integrations should configure the general client instead of passing an

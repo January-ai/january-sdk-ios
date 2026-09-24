@@ -8,11 +8,11 @@ Examples/JanuaryPartnerDemo/JanuaryPartnerDemo.xcodeproj
 
 ## Requirements
 
-The demo is a January-owned integration harness, not a zero-configuration public sample. It requires Xcode 26, an iOS 26 simulator or device, repository access, and token-provider configuration. These demo requirements are independent of the SDK, which supports iOS 15 with Xcode 15 and Swift 5.9.
+The demo is an integration harness, not a zero-configuration sample. It requires Xcode 26, an iOS 26 simulator or device, and either a token endpoint or, in a local Debug build, a server API key. These demo requirements are independent of the SDK, which supports iOS 15 with Xcode 15 and Swift 5.9.
 
 ## Run the token-provider path
 
-Follow the root README to run the standalone January Token Relay. Then set
+Follow the [SDK README](https://github.com/January-ai/january-sdk-ios#quick-start-run-the-demo-with-client-tokens) to run the standalone January Token Relay. Then set
 `JANUARY_PARTNER_TOKEN_URL` and `JANUARY_END_USER_ID` in the Xcode Run scheme
 and run the app. The loopback relay does not require a session or relay token.
 
@@ -27,14 +27,13 @@ end-user identity from the signed-in app session.
 
 The public SDK targets January production and exposes no API-origin override.
 
-## Run the local Debug token-exchange path
+## Run the local Debug API-key path
 
-Before your backend is available, set `developmentAPIKey` and `endUserID` in the
-same `AppConfiguration` block, then run a Debug build.
-
-The demo creates `JanuaryDevelopmentTokenProvider`, mints short-lived client
-tokens, and then uses the same `JanuaryClient` caching and refresh path as the
-partner-backend mode. Never commit the key or distribute a build configured
+Before your backend or a token relay is available, remove the token-endpoint
+variables from the Xcode Run scheme, set `JANUARY_API_KEY` to your `sk-` server
+API key and `JANUARY_END_USER_ID` to a test user, then run a Debug build. The
+demo creates `JanuaryClient(developmentAPIKey:endUserID:timezone:)`, which
+sends the key directly. Never commit the key or distribute a build configured
 this way. Release builds disable this mode. The demo emits a build warning and
 the SDK logs a runtime warning whenever development authentication is used.
 

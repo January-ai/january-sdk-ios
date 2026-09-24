@@ -4,9 +4,10 @@ Use the `waterLogs` and `weightLogs` resources to record water intake and body
 weight for a partner-owned user and to read them back as one entry per local
 calendar day.
 
-Both resources take the same user context as food logs: provide the signed-in
-user's stable ID once when creating the client, and the SDK sends it with every
-request together with the configured timezone.
+Both resources use the client's configured user context, as food logs do:
+provide the signed-in user's stable ID once when creating the client. The SDK
+passes it to your token provider, and list requests use the configured timezone
+(or `TimeZone.current`) to define local calendar days.
 
 ```swift
 let client = try JanuaryClient(
@@ -19,9 +20,10 @@ let client = try JanuaryClient(
 
 An amount is 1–811.5 fluid ounces (`.fluidOunces`), 0.1–101.4 US cups
 (`.cups`, 8 fluid ounces each), or 30–24,000 milliliters (`.milliliters`). The
-API caps an end user at 24 liters per local day and refuses a log that would
-exceed it with the `daily_water_limit_exceeded` error code (a `.validation`
-error).
+API caps an end user's total at 24 liters (about 811 fluid ounces) per day,
+counted against the day of the entry's `consumedAtUTC`, and refuses a log that
+would exceed it with the `daily_water_limit_exceeded` error code (a
+`.validation` error).
 
 ```swift
 let log = try await client.waterLogs.create(amount: WaterAmount(value: 8, unit: .fluidOunces))
@@ -31,6 +33,10 @@ let glass = try await client.waterLogs.create(amount: WaterAmount(value: 1.5, un
 
 `consumedAtUTC` accepts an ISO-8601 date-time with any offset and defaults to
 now. The response reports `consumedAtUTC` in UTC with milliseconds.
+
+Creating a water log is not idempotent: a retried create records the water
+twice and counts twice toward the daily cap, so check `list` before retrying a
+timed-out create.
 
 ## Daily water totals
 
@@ -64,7 +70,7 @@ kept, and a day's listing shows the one with the latest `measuredAtUTC`, so
 logging again later the same day replaces what that day shows.
 
 ```swift
-let log = try await client.weightLogs.create(weight: Weight(value: 68.5, unit: .kilograms))
+let weightLog = try await client.weightLogs.create(weight: Weight(value: 68.5, unit: .kilograms))
 ```
 
 Creating a weight log is not idempotent: a retried request records a second
@@ -82,16 +88,19 @@ for day in weights.items {
 }
 ```
 
-Each entry is in the unit it was logged in. Only days with a weight appear, at
-most 100 days, oldest first.
+Each entry is in the unit it was logged in. Only days with a weight appear,
+oldest first. When more than 100 days have a weight, the most recent 100 are
+returned; `start` may be at most five years before today.
 
-## Explicit user context
+## Scopes
 
-Every operation also accepts a request value with an explicit
-`PartnerUserContext`, matching the food-log resource:
+Client tokens need the `water_logs:read`, `water_logs:write`,
+`weight_logs:read`, and `weight_logs:write` scopes for these operations.
 
-```swift
-let totals = try await client.waterLogs.list(
-    .init(start: "2026-09-01", end: "2026-09-30", unit: .fluidOunces, user: context)
-)
-```
+## Request values
+
+Each operation also has a request-value form (`CreateWaterLogRequest`,
+`ListWaterLogsRequest`, `DeleteWaterLogRequest`, `CreateWeightLogRequest`,
+`ListWeightLogsRequest`). On a `JanuaryClient`, the client's configured
+end-user ID and timezone replace the request's `user`; create a new client to
+act for a different user or timezone.

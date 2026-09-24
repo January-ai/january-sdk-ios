@@ -2,8 +2,8 @@
 
 ## Distribution
 
-The iOS SDK is distributed as versioned Swift Package Manager releases. Install
-the latest release shown by Xcode as described on
+The iOS SDK is distributed as versioned Swift Package Manager releases and as
+the `January` CocoaPods pod. Install the latest release as described on
 [Installation](../getting-started/installation.md). Pin a release version for
 production builds instead of tracking `main`.
 

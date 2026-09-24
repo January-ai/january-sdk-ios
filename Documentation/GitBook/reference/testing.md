@@ -27,18 +27,13 @@ In an integration environment, use a short-lived server token or a controlled cl
 
 ## Repository checks
 
-From an authorized checkout:
+From a clone of the [SDK repository](https://github.com/January-ai/january-sdk-ios):
 
 ```sh
 node scripts/check-coverage.mjs
 ```
 
-The example app also has an end-to-end suite of Maestro flows that exercise
-every screen against a local fixture server; see
-`Examples/JanuaryPartnerDemo/.maestro/README.md` in the repository for how to
-run it.
-
-This runs the SDK tests on an iPhone Simulator with code coverage enabled. The tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
+This runs the complete `JanuarySDKTests` target on the first available iPhone Simulator with code coverage enabled. The tests cover the public resource surface, transport mapping, validation, token decoding, caching, single-flight refresh, retry exhaustion, jitter bounds, cancellation, and `token_expired` replay.
 
 ## Partner-backend integration
 
@@ -56,22 +51,14 @@ node scripts/check-coverage.mjs
 The test calls the partner backend, decodes its short-lived token response, and
 uses that token through `JanuaryClient` for a real food search. It returns
 immediately during ordinary test runs when any required value is absent.
-The coverage script selects the first available iPhone Simulator, runs the
-complete `JanuarySDKTests` target with coverage enabled, and enforces the
-repository's coverage threshold. Swift Testing top-level test names are not
-reliable `xcodebuild` filters, so the documented command deliberately runs the
-complete target.
 
 ## Local lifecycle verification
 
 In a local Debug app, `JanuaryDevelopmentTokenProvider` can verify the complete
 token lifecycle without a partner backend. Token lifetime is managed
 internally. To test server-expiry replay deterministically, use the SDK's mocked
-transport tests rather than placing internal environment URLs in public source
-or documentation.
+transport tests.
 
 ## Consumer build
 
 Keep a minimal app or package that depends on the same SDK release as production. Its build should import `January`, construct a provider-backed client, and compile representative request examples. This catches product-name, module-name, access-control, deployment-target, and concurrency regressions that internal `@testable` tests cannot.
-
-When the repository becomes public, repeat this check from a clean machine without organization credentials.

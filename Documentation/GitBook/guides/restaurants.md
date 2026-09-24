@@ -66,14 +66,15 @@ repeat {
     consume(page.items)
     offset += page.items.count
 
-    if page.items.isEmpty || offset >= page.totalCount {
+    if page.items.count < limit {
         break
     }
 } while true
 ```
 
-An unknown restaurant returns `404`. An existing restaurant with no menu
-returns an empty `items` array.
+The response contains only `items`, with no `totalCount`; keep paging while a
+full page comes back. An empty page ends the menu, including for a restaurant
+with no menu on record. An unknown restaurant returns `404`.
 
 ## Input limits
 
@@ -81,8 +82,8 @@ returns an empty `items` array.
 * Query: 1–256 characters
 * Latitude: −90 through 90
 * Longitude: −180 through 180
-* Radius: 1–17,000
+* Radius: 1–50,000
 * Limit: 1–100
 * Menu offset: 0 or greater
 
-Coordinate values are decimal degrees, and radius is expressed in meters. Both request types default to `8_000` meters (approximately 5 miles) when `radius` is omitted. The current SDK accepts values from 1 through 17,000 meters.
+Coordinate values are decimal degrees, and radius is expressed in meters. Both request types default to `8_000` meters (approximately 5 miles) when `radius` is omitted. The current SDK accepts values from 1 through 50,000 meters.
