@@ -2,20 +2,30 @@
 public struct FoodPortion: Hashable, Sendable {
     public let foodID: FoodID
     public let serving: ServingOption
+    /// The amount eaten, in the serving's unit: 12 for 12 oz of a "6 oz" serving.
+    /// Defaults to the serving's own quantity, which is one serving.
     public let quantity: Double
     public let nutrition: NutritionFacts
     public let totalWeightGrams: Double?
     public let glycemicIndex: Double?
     public let glycemicLoad: Double?
 
+    /// The serving's own quantity, validated as finite and positive.
+    private let servingQuantity: Double
+
     /// The exact selection sent by food-log and glucose-prediction requests.
+    ///
+    /// Its quantity is the number of servings, `quantity` divided by the
+    /// serving's quantity: 12 oz of a "6 oz" serving is sent as 2.
     public var selection: FoodSelection {
         FoodSelection(
             id: foodID,
-            serving: ServingSelection(id: serving.id, quantity: quantity)
+            serving: ServingSelection(id: serving.id, quantity: quantity / servingQuantity)
         )
     }
 
+    /// Builds a portion of `food`. `servingID` defaults to the primary serving and
+    /// `quantity`, in the serving's unit, defaults to one serving.
     public static func from(
         _ food: FoodSearchItem,
         servingID: ServingID? = nil,
@@ -58,6 +68,7 @@ public struct FoodPortion: Hashable, Sendable {
         self.foodID = food.id
         self.serving = selected
         self.quantity = requestedQuantity
+        self.servingQuantity = servingQuantity
         self.nutrition = baseNutrition.scaled(by: scale)
         self.totalWeightGrams = selected.weightGrams.map {
             $0 * requestedQuantity / servingQuantity
@@ -75,6 +86,8 @@ public enum FoodPortionError: Error, Equatable, Sendable {
 }
 
 public extension FoodSearchItem {
+    /// A portion of this food. `servingID` defaults to the primary serving and
+    /// `quantity`, in the serving's unit, defaults to one serving.
     func portion(
         servingID: ServingID? = nil,
         quantity: Double? = nil

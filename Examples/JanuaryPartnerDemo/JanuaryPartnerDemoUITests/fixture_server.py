@@ -17,12 +17,19 @@ SERVINGS = [
     {"id": "11", "quantity": 1, "unit": "cup", "scaling_factor": 1, "weight_grams": 100, "is_primary": True},
     {"id": "12", "quantity": 1, "unit": "oz", "scaling_factor": 0.2835, "weight_grams": 28.35, "is_primary": False},
 ]
+# Modeled on the API's greek yogurt 70376084: one serving is 6 oz, and NUTRIENTS (100 kcal) is
+# per that serving, so a log of 6 servings would be 600 kcal.
+YOGURT_SERVINGS = [
+    {"id": "31", "quantity": 6, "unit": "oz", "scaling_factor": 1, "weight_grams": 170, "is_primary": True},
+]
+FOODS = {"101": ("Fixture oatmeal", SERVINGS), "102": ("Fixture lentils", SERVINGS), "103": ("Fixture greek yogurt", YOGURT_SERVINGS)}
 
-def food(identifier="101", name="Fixture oatmeal", full=True):
+def food(identifier="101", name=None, full=True):
+    default_name, servings = FOODS.get(str(identifier), FOODS["101"])
     return {
-        "id": str(identifier), "type": "generic", "name": name, "brand_name": "January fixture",
+        "id": str(identifier), "type": "generic", "name": name or default_name, "brand_name": "January fixture",
         "nutrients": NUTRIENTS, "glycemic_index": 52, "glycemic_load": 12,
-        "image_url": None, "barcode": "012345678905", "servings": SERVINGS if full else SERVINGS[:1],
+        "image_url": None, "barcode": "012345678905", "servings": servings if full else servings[:1],
     }
 
 PREDICTION = {
@@ -59,16 +66,29 @@ def logged_on(log, query):
     return start <= local_day(log["created_at"], query) <= end
 
 def food_log(name="Fixture breakfast", foods=None, created_at=None, log_id="opaque-log-1"):
-    """One saved log with the foods a create or update sent (food 102 is the lentils), or the oatmeal."""
+    """One saved log with the foods a create or update sent (food 102 is the lentils, 103 the
+    yogurt), or the oatmeal. Like the API, `quantity` is a number of the chosen serving, and each
+    food's nutrients are quantity × the per-serving nutrients × the serving's scaling_factor."""
     logged_foods = []
     for selection in foods or [{"food_id": "101", "serving_id": "11", "quantity": 1}]:
-        identifier = str(selection.get("food_id", "101"))
-        logged = food(identifier, "Fixture lentils" if identifier == "102" else "Fixture oatmeal")
-        logged.pop("servings"); logged.pop("type"); logged.pop("barcode")
-        logged.update({"food_id": logged.pop("id"), "quantity": selection.get("quantity", 1),
-                       "serving": {"id": str(selection.get("serving_id", "11")), "quantity": 1, "unit": "cup", "weight_grams": 100}})
+        logged = food(selection.get("food_id", "101"))
+        servings = logged.pop("servings"); logged.pop("type"); logged.pop("barcode")
+        serving = next((option for option in servings if option["id"] == str(selection.get("serving_id"))), servings[0])
+        quantity = selection.get("quantity", 1)
+        logged.update({"food_id": logged.pop("id"), "quantity": quantity,
+                       "nutrients": scaled_nutrients(quantity * serving["scaling_factor"]),
+                       "serving": {key: serving[key] for key in ("id", "quantity", "unit", "weight_grams")}})
         logged_foods.append(logged)
     return {"id": log_id, "name": name, "created_at": created_at or seeded_created_at(), "foods": logged_foods}
+
+def summed_nutrients(logs):
+    """Every logged food's nutrients added up, as the API totals a range."""
+    totals = {}
+    for log in logs:
+        for logged in log["foods"]:
+            for key, amount in logged["nutrients"].items():
+                totals.setdefault(key, {"value": 0, "unit": amount["unit"]})["value"] += amount["value"]
+    return totals
 
 STATE = {"rules": {}, "logs": [], "water": [], "weights": [], "history": False, "requests": [], "seeded_created_at": None, "next_log": 1}
 # Routes whose responses wait until a flow releases them (/__control?...&hold=true, then
@@ -107,9 +127,10 @@ def visible(entries, user):
     return [entry for entry in entries if entry.get("user") in (None, user)]
 
 def food_log_summary(query, user=None):
-    count = len([log for log in visible(STATE["logs"], user) if logged_on(log, query)]); days = 1 if count else 0
+    logs = [log for log in visible(STATE["logs"], user) if logged_on(log, query)]
+    count = len(logs); days = 1 if count else 0
     start = query.get("start_date", local_today(query)); end = query.get("end_date", start)
-    bucket = {"start_date": start, "end_date": end, "logs_count": count, "days_with_logs": days, "nutrients": scaled_nutrients(count) if count else {}}
+    bucket = {"start_date": start, "end_date": end, "logs_count": count, "days_with_logs": days, "nutrients": summed_nutrients(logs)}
     return {"group_by": query.get("group_by", "day"), "week_start": None, "timezone": query.get("timezone", "UTC"), "start_date": start, "end_date": end,
             "buckets": [bucket], "totals": {"logs_count": count, "days_with_logs": days, "nutrients": bucket["nutrients"]},
             "average_per_logged_day": {"nutrients": bucket["nutrients"]}}
@@ -196,9 +217,9 @@ class Handler(BaseHTTPRequestHandler):
         user = (self.headers.get("Authorization") or "").partition("-token.")[2] or None
         if path.endswith("/autocomplete"): result = {"items": [] if empty else suggestions(query.get("query", ""))}
         elif path.endswith("/alternatives"): result = {"alternatives": [] if empty else [food("102", "Fixture lentils")]}
-        elif path.endswith("/foods/101"): result = food()
-        elif path.endswith("/foods/102"): result = food("102", "Fixture lentils")
-        elif path.endswith("/foods"): result = {"items": [] if empty else [food(full=False)]}
+        elif path.rpartition("/foods/")[2] in FOODS: result = food(path.rpartition("/foods/")[2])
+        # A search for yogurt finds the greek yogurt; any other search finds the oatmeal.
+        elif path.endswith("/foods"): result = {"items": [] if empty else [food("103" if "yogurt" in query.get("query", "").lower() else "101", full=False)]}
         elif "/foods/barcode/" in path: result = food(full=False)
         elif path.endswith("/restaurants/cafe/menu-items"):
             direct = [{"id": str(identifier), "name": name, "nutrients": NUTRIENTS, "glycemic_index": None, "glycemic_load": None, "servings": SERVINGS} for identifier, name in [(101, "Fixture bowl"), (102, "Fixture soup")]]

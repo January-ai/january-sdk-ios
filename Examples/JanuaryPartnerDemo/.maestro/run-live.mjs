@@ -75,14 +75,17 @@ const say = (line) => {
   runLog.write(`${new Date().toISOString()} ${redacted}\n`);
 };
 
-const flows = readdirSync(flowsDirectory)
+// Weight logs cannot be deleted, so the weight flow runs last whatever its number.
+const weightLast = (name) => (name.includes("-live-weight") ? 1 : 0);
+const liveFlows = readdirSync(flowsDirectory)
   .filter((name) => /^9\d-live-.*\.yaml$/.test(name))
-  .sort()
-  .filter((name) => {
-    const number = Number(name.slice(0, 2));
-    if (options.only) return options.only.includes(number);
-    return options.from ? number >= options.from : true;
-  });
+  .sort((a, b) => weightLast(a) - weightLast(b) || a.localeCompare(b));
+const flowNumber = (name) => Number(name.slice(0, 2));
+// --from resumes at that flow in the running order, so a resumed run still ends with the weight flow.
+const fromIndex = options.from ? liveFlows.findIndex((name) => flowNumber(name) === options.from) : 0;
+const flows = options.only
+  ? liveFlows.filter((name) => options.only.includes(flowNumber(name)))
+  : fromIndex < 0 ? [] : liveFlows.slice(fromIndex);
 if (flows.length === 0) throw new Error("No live flows match the selection.");
 
 function resumeCommand(from) {
@@ -117,7 +120,7 @@ function runMaestro(flow) {
   const directory = path.join(output, path.basename(flow, ".yaml"));
   mkdirSync(directory, { recursive: true });
   const variables = [`END_USER_ID=${options.endUser}`, `TOKEN_URL=${tokenURL}`, `TIMEZONE=${timezone}`];
-  if (options.rehearse) variables.push(`API_URL=${fixtureOrigin}`, "SUGGEST_QUERY=fixture");
+  if (options.rehearse) variables.push(`API_URL=${fixtureOrigin}`, "SUGGEST_QUERY=fixture", "PORTION_FOOD_ID=103", "PORTION_SERVING_ID=31");
   const args = [
     ...(options.device ? ["--device", options.device] : []),
     "test", path.join(flowsDirectory, flow), "--include-tags", "live",
@@ -136,7 +139,9 @@ function runMaestro(flow) {
 }
 
 function rateLimited(result) {
-  const pattern = /RATE_LIMITED|HTTP 429|rate_limited|Too many requests/;
+  // Maestro's debug output repeats live-api.js's source, which names RATE_LIMITED and HTTP 429
+  // itself, so only the error it throws counts: "RATE_LIMITED: the January API refused GET ...".
+  const pattern = /RATE_LIMITED: the January API refused [^'\s]|rate_limited|Too many requests/;
   if (pattern.test(result.text)) return true;
   try {
     const debug = path.join(result.directory, "debug");
