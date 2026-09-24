@@ -87,6 +87,7 @@ public struct NutritionFacts: Codable, Hashable, Sendable {
 
 public struct ServingSelection: Codable, Hashable, Sendable {
     public var id: ServingID
+    /// How many of that serving were eaten: 2 for two "6 oz" servings.
     public var quantity: Double
     public init(id: ServingID, quantity: Double) { self.id = id; self.quantity = quantity }
 }

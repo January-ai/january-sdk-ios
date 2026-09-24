@@ -952,6 +952,7 @@ private struct FoodGlucoseSheet: View {
     let foodID: FoodID
     let foodName: String
     let serving: ServingOption
+    /// The amount eaten, in the serving's unit: 12 for 12 oz of a "6 oz" serving.
     let quantity: Double
     let endUserID: PartnerUserID?
 
@@ -962,6 +963,15 @@ private struct FoodGlucoseSheet: View {
     @State private var error: Error?
 
     private var timezone: TimeZone { TimeZone(identifier: userSession.timezone) ?? .current }
+
+    /// The number of servings the prediction sends: 12 oz of a "6 oz" serving is 2.
+    /// A serving without a usable quantity counts `quantity` as servings.
+    private var servingCount: Double {
+        guard let servingQuantity = serving.quantity, servingQuantity.isFinite, servingQuantity > 0 else {
+            return quantity
+        }
+        return quantity / servingQuantity
+    }
 
     private let profile = GlucosePredictionProfile(
         age: 42,
@@ -1130,7 +1140,7 @@ private struct FoodGlucoseSheet: View {
                 userProfile: profile,
                 foods: [FoodSelection(
                     id: foodID,
-                    serving: ServingSelection(id: servingID, quantity: quantity)
+                    serving: ServingSelection(id: servingID, quantity: servingCount)
                 )],
                 startTime: .now,
                 endUserID: endUserID,
