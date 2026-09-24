@@ -25,7 +25,7 @@ The SDK checks these inputs before it sends a request. Most failures throw a `Ja
 | Food analysis correction | Every detection carries its food ID, serving ID, serving quantity, and quantity |
 | CGM and historical-food timestamp | ISO 8601 date-time |
 | Provider token | Not empty, with a finite `expiresIn` greater than 60 seconds (an `.authentication` error) |
-| Portion quantity | Finite, greater than 0, and no greater than 10,000 |
+| Portion quantity, in the serving's unit | Finite, greater than 0, and no greater than 10,000 |
 | Scanner maximum dimension | Clamped to at least 1 pixel |
 | Scanner JPEG quality | Clamped to 0 through 1 |
 

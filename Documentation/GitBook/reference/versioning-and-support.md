@@ -2,7 +2,7 @@
 
 ## Distribution
 
-The SDK is released as versioned Swift Package Manager tags and as the `January` CocoaPods pod. Before 1.0, a minor release can include breaking changes, so allow patch updates only: **Up to Next Minor Version** in Xcode, or `~> 0.3.1` in CocoaPods ([Installation](../getting-started/installation.md)). Don't track `main`.
+The SDK is released as versioned Swift Package Manager tags and as the `January` CocoaPods pod. Before 1.0, a minor release can include breaking changes, so allow patch updates only: **Up to Next Minor Version** in Xcode, or `~> 0.3.2` in CocoaPods ([Installation](../getting-started/installation.md)). Don't track `main`.
 
 ## Updating the SDK
 

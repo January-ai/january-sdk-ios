@@ -116,7 +116,7 @@ let client = try makeJanuaryClient(
 ```
 
 {% hint style="warning" %}
-In 0.3.1 this provider's tokens don't include the `water_logs:*` or `weight_logs:*` scopes, so water and weight calls fail with `403 scope_insufficient`. Use the token relay to test them.
+In 0.3.2 this provider's tokens don't include the `water_logs:*` or `weight_logs:*` scopes, so water and weight calls fail with `403 scope_insufficient`. Use the token relay to test them.
 {% endhint %}
 
 ### Development API key

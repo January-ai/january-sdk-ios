@@ -25,7 +25,7 @@ Check `JanuaryError.category`, `code`, `httpStatus`, and `message`, without logg
 
 ## Water or weight calls fail with `scope_insufficient` in development
 
-`JanuaryDevelopmentTokenProvider` doesn't request the water and weight scopes in 0.3.1. Use the [token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay) instead.
+`JanuaryDevelopmentTokenProvider` doesn't request the water and weight scopes in 0.3.2. Use the [token relay](https://docs.january.ai/docs/authentication#develop-with-the-token-relay) instead.
 
 ## The token provider is called often
 
@@ -49,7 +49,7 @@ Set `JANUARY_PARTNER_TOKEN_URL` in the Xcode Run scheme, plus `JANUARY_PARTNER_S
 
 ## Requests are rate limited
 
-Retry only `code == "rate_limited"`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` reset next month; don't retry them. The SDK doesn't expose the `Retry-After` header in 0.3.1.
+Retry only `code == "rate_limited"`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` reset next month; don't retry them. The SDK doesn't expose the `Retry-After` header in 0.3.2.
 
 ## Support diagnostics
 

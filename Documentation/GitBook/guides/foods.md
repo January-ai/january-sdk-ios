@@ -31,9 +31,11 @@ let results = try await client.foods.search(.init(query: "banana", category: .ge
 guard let match = results.items.first else { return }
 
 let food = try await client.foods.get(id: match.id)
-let portion = try food.portion(quantity: 1.5)
+let portion = try food.portion() // One primary serving
 print(portion.nutrition.calories?.value ?? 0)
 ```
+
+To use another amount, pass `quantity` in the serving's unit, not a number of servings ([Quantity and servings](../concepts/food-hydration-and-portions.md#quantity-and-servings)).
 
 ## Look up a barcode
 

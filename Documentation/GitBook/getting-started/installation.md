@@ -6,14 +6,14 @@ Check the [requirements](../README.md#requirements) first. Releases before 1.0 c
 
 1. In Xcode, choose **File → Add Package Dependencies**.
 2. Enter `https://github.com/January-ai/january-sdk-ios.git`.
-3. Set **Dependency Rule** to **Up to Next Minor Version** from `0.3.1`.
+3. Set **Dependency Rule** to **Up to Next Minor Version** from `0.3.2`.
 4. Add the `January` product to your app target.
 
 In a `Package.swift` manifest:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/January-ai/january-sdk-ios.git", .upToNextMinor(from: "0.3.1")),
+    .package(url: "https://github.com/January-ai/january-sdk-ios.git", .upToNextMinor(from: "0.3.2")),
 ],
 targets: [
     .target(name: "YourApp", dependencies: [
@@ -30,7 +30,7 @@ Add the `January` pod to your `Podfile`:
 platform :ios, "15.0"
 
 target "YourApp" do
-  pod "January", "~> 0.3.1"
+  pod "January", "~> 0.3.2"
 end
 ```
 
