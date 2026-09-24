@@ -1,7 +1,7 @@
 import Foundation
 
 package enum SDKUserAgent {
-    package static let sdkVersion = "0.3.1"
+    package static let sdkVersion = "0.3.2"
 
     package static var current: String {
         let bundle = Bundle.main
