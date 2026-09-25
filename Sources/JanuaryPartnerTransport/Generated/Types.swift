@@ -14,6 +14,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key only.**
     ///
+    /// **Never consumes credits.**
+    ///
     /// Exchanges your partner API key for a short-lived token bound to one of your end users, so your mobile app can call the v1.2 API directly instead of through a proxy that holds your key.
     ///
     /// **This endpoint requires your API key (`sk-…`), so always call it from your backend** — behind whatever login already protects your own APIs. Never ship your API key in a mobile app in order to call this from the device: that puts a credential for your whole account in every copy of your app, which is the problem client tokens exist to solve.
@@ -28,6 +30,8 @@ package protocol APIProtocol: Sendable {
     /// Revoke an end user’s client tokens
     ///
     /// **API key only.**
+    ///
+    /// **Never consumes credits.**
     ///
     /// Revokes every outstanding client token for one end user. Safe to call repeatedly: it reports how many tokens it actually stopped, so an immediate second call reports 0.
     ///
@@ -46,7 +50,11 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key only.**
     ///
-    /// Your API credit allowance and consumption for the current calendar month (UTC). Each successful billable data operation consumes credits — how many depends on the operation and your plan — while requests that fail cost nothing and v1.1 calls are not counted. Checking your balance, creating client tokens, and revoking client tokens never consume credits. Reading your balance is also exempt from the request limits that bound the rest of the API, so it keeps answering once your allowance is spent or your request limit is reached — it carries only a cap of its own, 60 reads per minute unless we have agreed a different one with you. Read your balance when a request is rejected or on a schedule rather than before every call, and treat that balance — not a fixed per-call price — as the source of truth. When credits run out, v1.2 endpoints return `429` with code `credit_limit_exceeded` until the allowance resets — retrying does not help before then.
+    /// **Never consumes credits.**
+    ///
+    /// Your API credit allowance and consumption for the current **billing period**. `period_start`, `period_end` and `resets_at` state it.
+    ///
+    /// Each successful call costs the credits on the [price list](https://docs.january.ai/rest-api/credits-and-pricing). A call that costs more than you have left is refused before it runs, and once your credits are spent every v1.2 endpoint — the free ones included — returns `429` with code `credit_limit_exceeded` until `resets_at`; retrying does not help before then.
     ///
     /// - Remark: HTTP `GET /v1.2/credits`.
     /// - Remark: Generated from `#/paths//v1.2/credits/get(getCredits)`.
@@ -54,6 +62,8 @@ package protocol APIProtocol: Sendable {
     /// Search foods by name
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
@@ -66,6 +76,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -76,6 +88,8 @@ package protocol APIProtocol: Sendable {
     /// Suggest healthier alternatives for a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 4 credits per successful call.**
     ///
     /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
@@ -88,6 +102,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Exact lookup of the food a barcode names — one food, not a list. The `barcode` on the returned food is the database's normalized form and may differ from the digits you scanned in leading zeros, so display it rather than comparing it. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -98,6 +114,8 @@ package protocol APIProtocol: Sendable {
     /// Get a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 1 credit per successful call.**
     ///
     /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and food-analysis results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
     ///
@@ -110,6 +128,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. Every result is a restaurant — `type` is always `restaurant`. To search the dishes those restaurants serve, use `GET /v1.2/menu-items`.
     ///
     /// Callable with a client token carrying the `restaurants:read` scope.
@@ -120,6 +140,8 @@ package protocol APIProtocol: Sendable {
     /// List a restaurant's menu items
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// The menu of one restaurant, by the `id` a `GET /v1.2/restaurants` result carries — a listing, not a search. Items come ordered by name with the nutrition their menu source publishes; each carries one serving, and `GET /v1.2/foods/{food_id}` returns the complete list. Page a long menu with `limit` and `offset`: a page shorter than `limit` is the last one. To find dishes across restaurants near a location, use `GET /v1.2/menu-items`.
     ///
@@ -132,6 +154,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Search dishes across restaurants near (`latitude`, `longitude`), with the nutrition each menu source publishes. Use `radius_meters` to widen or narrow the search, e.g. `radius_meters=5000` for 5 kilometers; each result reports its own `distance_meters`. To find the restaurants themselves, use `GET /v1.2/restaurants`.
     ///
     /// Callable with a client token carrying the `restaurants:read` scope.
@@ -142,6 +166,8 @@ package protocol APIProtocol: Sendable {
     /// Analyze a food or label photo
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 10 credits per successful call.**
     ///
     /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
@@ -156,6 +182,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 5 credits per successful call.**
+    ///
     /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-analysis/image`. Text analyses return `meal_name: null` (the caller already has the words) and grade nothing, so every detection carries `confidence: null`. For keyword search over the food database, use `GET /v1.2/foods`.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
@@ -166,6 +194,8 @@ package protocol APIProtocol: Sendable {
     /// Correct an analysis in plain English
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 5 credits per successful call — one is free for every successful `POST /v1.2/food-analysis/image` in your billing period.**
     ///
     /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
@@ -178,6 +208,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Returns the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`; the range spans at most 60 days), ordered by timestamp. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `food_logs:read` scope.
@@ -188,6 +220,8 @@ package protocol APIProtocol: Sendable {
     /// Log foods for a user
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Creates a food log from food + serving ids (from search or food-analysis results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log, or fetch it again with GET /v1.2/food-logs/{log_id}. Not idempotent: verify with the list or get endpoint before retrying a timed-out create.
     ///
@@ -211,6 +245,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Fetches one food log by the id returned when it was created.
     ///
     /// Callable with a client token carrying the `food_logs:read` scope.
@@ -222,6 +258,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
     /// Callable with a client token carrying the `food_logs:write` scope.
@@ -232,6 +270,8 @@ package protocol APIProtocol: Sendable {
     /// Delete a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry.
     ///
@@ -299,6 +339,8 @@ package protocol APIProtocol: Sendable {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 3 credits per successful call.**
+    ///
     /// Predicts the glucose curve a meal will produce for the given profile and body.timezone (required — the IANA timezone the end user is in; the prediction depends on the meal's local time of day). Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Nothing is stored, so there is no end-user identity to send: the request acts as the partner itself.
     ///
     /// Callable with a client token carrying the `glucose:read` scope.
@@ -313,6 +355,8 @@ extension APIProtocol {
     /// Mint a client token
     ///
     /// **API key only.**
+    ///
+    /// **Never consumes credits.**
     ///
     /// Exchanges your partner API key for a short-lived token bound to one of your end users, so your mobile app can call the v1.2 API directly instead of through a proxy that holds your key.
     ///
@@ -336,6 +380,8 @@ extension APIProtocol {
     /// Revoke an end user’s client tokens
     ///
     /// **API key only.**
+    ///
+    /// **Never consumes credits.**
     ///
     /// Revokes every outstanding client token for one end user. Safe to call repeatedly: it reports how many tokens it actually stopped, so an immediate second call reports 0.
     ///
@@ -362,7 +408,11 @@ extension APIProtocol {
     ///
     /// **API key only.**
     ///
-    /// Your API credit allowance and consumption for the current calendar month (UTC). Each successful billable data operation consumes credits — how many depends on the operation and your plan — while requests that fail cost nothing and v1.1 calls are not counted. Checking your balance, creating client tokens, and revoking client tokens never consume credits. Reading your balance is also exempt from the request limits that bound the rest of the API, so it keeps answering once your allowance is spent or your request limit is reached — it carries only a cap of its own, 60 reads per minute unless we have agreed a different one with you. Read your balance when a request is rejected or on a schedule rather than before every call, and treat that balance — not a fixed per-call price — as the source of truth. When credits run out, v1.2 endpoints return `429` with code `credit_limit_exceeded` until the allowance resets — retrying does not help before then.
+    /// **Never consumes credits.**
+    ///
+    /// Your API credit allowance and consumption for the current **billing period**. `period_start`, `period_end` and `resets_at` state it.
+    ///
+    /// Each successful call costs the credits on the [price list](https://docs.january.ai/rest-api/credits-and-pricing). A call that costs more than you have left is refused before it runs, and once your credits are spent every v1.2 endpoint — the free ones included — returns `429` with code `credit_limit_exceeded` until `resets_at`; retrying does not help before then.
     ///
     /// - Remark: HTTP `GET /v1.2/credits`.
     /// - Remark: Generated from `#/paths//v1.2/credits/get(getCredits)`.
@@ -372,6 +422,8 @@ extension APIProtocol {
     /// Search foods by name
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
@@ -392,6 +444,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -410,6 +464,8 @@ extension APIProtocol {
     /// Suggest healthier alternatives for a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 4 credits per successful call.**
     ///
     /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
@@ -432,6 +488,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Exact lookup of the food a barcode names — one food, not a list. The `barcode` on the returned food is the database's normalized form and may differ from the digits you scanned in leading zeros, so display it rather than comparing it. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -450,6 +508,8 @@ extension APIProtocol {
     /// Get a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 1 credit per successful call.**
     ///
     /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and food-analysis results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
     ///
@@ -470,6 +530,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. Every result is a restaurant — `type` is always `restaurant`. To search the dishes those restaurants serve, use `GET /v1.2/menu-items`.
     ///
     /// Callable with a client token carrying the `restaurants:read` scope.
@@ -488,6 +550,8 @@ extension APIProtocol {
     /// List a restaurant's menu items
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// The menu of one restaurant, by the `id` a `GET /v1.2/restaurants` result carries — a listing, not a search. Items come ordered by name with the nutrition their menu source publishes; each carries one serving, and `GET /v1.2/foods/{food_id}` returns the complete list. Page a long menu with `limit` and `offset`: a page shorter than `limit` is the last one. To find dishes across restaurants near a location, use `GET /v1.2/menu-items`.
     ///
@@ -510,6 +574,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Search dishes across restaurants near (`latitude`, `longitude`), with the nutrition each menu source publishes. Use `radius_meters` to widen or narrow the search, e.g. `radius_meters=5000` for 5 kilometers; each result reports its own `distance_meters`. To find the restaurants themselves, use `GET /v1.2/restaurants`.
     ///
     /// Callable with a client token carrying the `restaurants:read` scope.
@@ -528,6 +594,8 @@ extension APIProtocol {
     /// Analyze a food or label photo
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 10 credits per successful call.**
     ///
     /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
@@ -550,6 +618,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 5 credits per successful call.**
+    ///
     /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-analysis/image`. Text analyses return `meal_name: null` (the caller already has the words) and grade nothing, so every detection carries `confidence: null`. For keyword search over the food database, use `GET /v1.2/foods`.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
@@ -568,6 +638,8 @@ extension APIProtocol {
     /// Correct an analysis in plain English
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 5 credits per successful call — one is free for every successful `POST /v1.2/food-analysis/image` in your billing period.**
     ///
     /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
@@ -588,6 +660,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Returns the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`; the range spans at most 60 days), ordered by timestamp. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `food_logs:read` scope.
@@ -606,6 +680,8 @@ extension APIProtocol {
     /// Log foods for a user
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Creates a food log from food + serving ids (from search or food-analysis results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log, or fetch it again with GET /v1.2/food-logs/{log_id}. Not idempotent: verify with the list or get endpoint before retrying a timed-out create.
     ///
@@ -645,6 +721,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Fetches one food log by the id returned when it was created.
     ///
     /// Callable with a client token carrying the `food_logs:read` scope.
@@ -663,6 +741,8 @@ extension APIProtocol {
     /// Update a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
@@ -684,6 +764,8 @@ extension APIProtocol {
     /// Delete a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry.
     ///
@@ -799,6 +881,8 @@ extension APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 3 credits per successful call.**
+    ///
     /// Predicts the glucose curve a meal will produce for the given profile and body.timezone (required — the IANA timezone the end user is in; the prediction depends on the meal's local time of day). Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Nothing is stored, so there is no end-user identity to send: the request acts as the partner itself.
     ///
     /// Callable with a client token carrying the `glucose:read` scope.
@@ -862,7 +946,7 @@ package enum Components {
             ///
             /// `POST /v1.2/food-analysis/image` adds four 400s about the image itself: `image_unreachable` (the URL could not be fetched), `image_corrupt` (the file could not be decoded), `image_format_unsupported` and `image_invalid_base64`. Each is fixed by the caller; the same image fails the same way again.
             ///
-            /// Retry only `rate_limited`, `internal_error`, `upstream_error`, `service_unavailable`, `upstream_timeout` and `client_token_revocation_incomplete`, with backoff — `not_implemented` is permanent until the feature ships, so its 5xx status is not a reason to retry it. Three more the status code alone gets wrong. **Two 429s must never be retried**, because both reopen only at the start of the next calendar month: `credit_limit_exceeded` (the monthly credit allowance) and `request_limit_exceeded` (the monthly request allowance). A client that backs off on every 429 will spin until then; neither sends `Retry-After`, and the message names the reset instant — `GET /v1.2/credits` returns it as the resets_at field. `rate_limited` is the 429 that *is* worth retrying: a per-endpoint limit, or the rolling 24-hour burst guard over the monthly ceiling, so its window is at most a day. And `token_expired` is refreshed, not retried — mint a new token, then retry once.
+            /// Retry only `rate_limited`, `internal_error`, `upstream_error`, `service_unavailable`, `upstream_timeout` and `client_token_revocation_incomplete`, with backoff — `not_implemented` is permanent until the feature ships, so its 5xx status is not a reason to retry it. Three more the status code alone gets wrong. **Two 429s must never be retried**, because both reopen only when your billing period resets: `credit_limit_exceeded` (the credit allowance for the period) and `request_limit_exceeded` (the request allowance for the period). A client that backs off on every 429 will spin until then; neither sends `Retry-After`, and the message names the reset instant — `GET /v1.2/credits` returns it as the resets_at field. `rate_limited` is the 429 that *is* worth retrying: a per-endpoint limit, or the rolling 24-hour burst guard over the request allowance, so its window is at most a day. And `token_expired` is refreshed, not retried — mint a new token, then retry once.
             ///
             /// New codes may be added over time; treat an unknown code according to its HTTP status class.
             ///
@@ -1051,7 +1135,7 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/CreditBalance/period_end`.
             package var periodEnd: Swift.String
-            /// When the allowance resets and `used_credits` returns to 0.
+            /// When the billing period ends and the next begins: `used_credits` and the free-call count return to 0 and the request allowance reopens.
             ///
             /// - Remark: Generated from `#/components/schemas/CreditBalance/resets_at`.
             package var resetsAt: Foundation.Date
@@ -1059,7 +1143,7 @@ package enum Components {
             ///
             /// - Remark: Generated from `#/components/schemas/CreditBalance/included_credits`.
             package var includedCredits: Swift.Int?
-            /// Credits used so far this period. Billable operations consume credits — how many depends on the operation and your plan — while failed calls cost nothing.
+            /// Credits used so far this period. Each successful call costs the credits on the price list; failed calls cost nothing.
             ///
             /// - Remark: Generated from `#/components/schemas/CreditBalance/used_credits`.
             package var usedCredits: Swift.Int
@@ -1073,9 +1157,9 @@ package enum Components {
             ///   - plan:
             ///   - periodStart: First day of the current billing period (UTC), inclusive.
             ///   - periodEnd: Last day of the current billing period (UTC), inclusive.
-            ///   - resetsAt: When the allowance resets and `used_credits` returns to 0.
+            ///   - resetsAt: When the billing period ends and the next begins: `used_credits` and the free-call count return to 0 and the request allowance reopens.
             ///   - includedCredits: Credits included in the plan for this period, or `null` when the plan has no ceiling.
-            ///   - usedCredits: Credits used so far this period. Billable operations consume credits — how many depends on the operation and your plan — while failed calls cost nothing.
+            ///   - usedCredits: Credits used so far this period. Each successful call costs the credits on the price list; failed calls cost nothing.
             ///   - remainingCredits: Credits left in this period, or `null` when the plan has no ceiling.
             package init(
                 plan: Components.Schemas.CreditPlan,
@@ -3376,6 +3460,8 @@ package enum Operations {
     ///
     /// **API key only.**
     ///
+    /// **Never consumes credits.**
+    ///
     /// Exchanges your partner API key for a short-lived token bound to one of your end users, so your mobile app can call the v1.2 API directly instead of through a proxy that holds your key.
     ///
     /// **This endpoint requires your API key (`sk-…`), so always call it from your backend** — behind whatever login already protects your own APIs. Never ship your API key in a mobile app in order to call this from the device: that puts a credential for your whole account in every copy of your app, which is the problem client tokens exist to solve.
@@ -3809,6 +3895,8 @@ package enum Operations {
     /// Revoke an end user’s client tokens
     ///
     /// **API key only.**
+    ///
+    /// **Never consumes credits.**
     ///
     /// Revokes every outstanding client token for one end user. Safe to call repeatedly: it reports how many tokens it actually stopped, so an immediate second call reports 0.
     ///
@@ -4246,7 +4334,11 @@ package enum Operations {
     ///
     /// **API key only.**
     ///
-    /// Your API credit allowance and consumption for the current calendar month (UTC). Each successful billable data operation consumes credits — how many depends on the operation and your plan — while requests that fail cost nothing and v1.1 calls are not counted. Checking your balance, creating client tokens, and revoking client tokens never consume credits. Reading your balance is also exempt from the request limits that bound the rest of the API, so it keeps answering once your allowance is spent or your request limit is reached — it carries only a cap of its own, 60 reads per minute unless we have agreed a different one with you. Read your balance when a request is rejected or on a schedule rather than before every call, and treat that balance — not a fixed per-call price — as the source of truth. When credits run out, v1.2 endpoints return `429` with code `credit_limit_exceeded` until the allowance resets — retrying does not help before then.
+    /// **Never consumes credits.**
+    ///
+    /// Your API credit allowance and consumption for the current **billing period**. `period_start`, `period_end` and `resets_at` state it.
+    ///
+    /// Each successful call costs the credits on the [price list](https://docs.january.ai/rest-api/credits-and-pricing). A call that costs more than you have left is refused before it runs, and once your credits are spent every v1.2 endpoint — the free ones included — returns `429` with code `credit_limit_exceeded` until `resets_at`; retrying does not help before then.
     ///
     /// - Remark: HTTP `GET /v1.2/credits`.
     /// - Remark: Generated from `#/paths//v1.2/credits/get(getCredits)`.
@@ -4507,7 +4599,7 @@ package enum Operations {
                     self.body = body
                 }
             }
-            /// Balance reads are capped at 60 per minute by default (`code: rate_limited`), and that is the only limit on your account that applies here — neither the monthly credit allowance nor the shared request limit does, so this 429 is never `credit_limit_exceeded`. Honor `Retry-After` when present, otherwise back off a few seconds; the window reopens one minute after your first read in it, so a retry shortly afterwards succeeds. A burst of traffic from a single IP can also be refused by the service-wide throttle, likewise with `Retry-After`.
+            /// Balance reads are capped at 60 per minute by default (`code: rate_limited`), and that is the only limit on your account that applies here — neither your credit allowance nor the shared request limit does, so this 429 is never `credit_limit_exceeded`. Honor `Retry-After` when present, otherwise back off a few seconds; the window reopens one minute after your first read in it, so a retry shortly afterwards succeeds. A burst of traffic from a single IP can also be refused by the service-wide throttle, likewise with `Retry-After`.
             ///
             /// - Remark: Generated from `#/paths//v1.2/credits/get(getCredits)/responses/429`.
             ///
@@ -4611,6 +4703,8 @@ package enum Operations {
     /// Search foods by name
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
@@ -4923,14 +5017,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -4972,10 +5066,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/get(searchFoods)/responses/429`.
             ///
@@ -5079,6 +5173,8 @@ package enum Operations {
     /// Autocomplete food names
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
     ///
@@ -5384,14 +5480,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/autocomplete/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -5433,10 +5529,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/autocomplete/get(autocompleteFoods)/responses/429`.
             ///
@@ -5540,6 +5636,8 @@ package enum Operations {
     /// Suggest healthier alternatives for a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 4 credits per successful call.**
     ///
     /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
@@ -5889,14 +5987,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/alternatives/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -5938,10 +6036,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/alternatives/post(suggestFoodAlternatives)/responses/429`.
             ///
@@ -6045,6 +6143,8 @@ package enum Operations {
     /// Look up a food by barcode
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Exact lookup of the food a barcode names — one food, not a list. The `barcode` on the returned food is the database's normalized form and may differ from the digits you scanned in leading zeros, so display it rather than comparing it. For free-text search, use `GET /v1.2/foods` instead.
     ///
@@ -6385,14 +6485,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{barcode}/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/barcode/{barcode}/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -6434,10 +6534,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/barcode/{barcode}/get(lookupFoodByBarcode)/responses/429`.
             ///
@@ -6541,6 +6641,8 @@ package enum Operations {
     /// Get a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 1 credit per successful call.**
     ///
     /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and food-analysis results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
     ///
@@ -6881,14 +6983,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/foods/{food_id}/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -6930,10 +7032,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/foods/{food_id}/get(getFood)/responses/429`.
             ///
@@ -7037,6 +7139,8 @@ package enum Operations {
     /// Search restaurants near a location
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. Every result is a restaurant — `type` is always `restaurant`. To search the dishes those restaurants serve, use `GET /v1.2/menu-items`.
     ///
@@ -7356,14 +7460,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/restaurants/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -7405,10 +7509,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/restaurants/get(searchRestaurants)/responses/429`.
             ///
@@ -7512,6 +7616,8 @@ package enum Operations {
     /// List a restaurant's menu items
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// The menu of one restaurant, by the `id` a `GET /v1.2/restaurants` result carries — a listing, not a search. Items come ordered by name with the nutrition their menu source publishes; each carries one serving, and `GET /v1.2/foods/{food_id}` returns the complete list. Page a long menu with `limit` and `offset`: a page shorter than `limit` is the last one. To find dishes across restaurants near a location, use `GET /v1.2/menu-items`.
     ///
@@ -7879,14 +7985,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/restaurants/{restaurant_id}/menu-items/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -7928,10 +8034,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/restaurants/{restaurant_id}/menu-items/get(getRestaurantMenuItems)/responses/429`.
             ///
@@ -8035,6 +8141,8 @@ package enum Operations {
     /// Search menu items near a location
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Search dishes across restaurants near (`latitude`, `longitude`), with the nutrition each menu source publishes. Use `radius_meters` to widen or narrow the search, e.g. `radius_meters=5000` for 5 kilometers; each result reports its own `distance_meters`. To find the restaurants themselves, use `GET /v1.2/restaurants`.
     ///
@@ -8354,14 +8462,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/menu-items/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/menu-items/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -8403,10 +8511,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/menu-items/get(searchRestaurantMenuItems)/responses/429`.
             ///
@@ -8510,6 +8618,8 @@ package enum Operations {
     /// Analyze a food or label photo
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 10 credits per successful call.**
     ///
     /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
@@ -8843,14 +8953,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-analysis/image/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-analysis/image/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -8892,10 +9002,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/image/post(scanFoodPhoto)/responses/429`.
             ///
@@ -9050,6 +9160,8 @@ package enum Operations {
     /// Analyze a meal description
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 5 credits per successful call.**
     ///
     /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-analysis/image`. Text analyses return `meal_name: null` (the caller already has the words) and grade nothing, so every detection carries `confidence: null`. For keyword search over the food database, use `GET /v1.2/foods`.
     ///
@@ -9330,14 +9442,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-analysis/text/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-analysis/text/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -9379,10 +9491,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/text/post(searchFoodsByNaturalLanguage)/responses/429`.
             ///
@@ -9486,6 +9598,8 @@ package enum Operations {
     /// Correct an analysis in plain English
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 5 credits per successful call — one is free for every successful `POST /v1.2/food-analysis/image` in your billing period.**
     ///
     /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
@@ -9766,14 +9880,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-analysis/corrections/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-analysis/corrections/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -9815,10 +9929,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-analysis/corrections/post(correctPhotoScan)/responses/429`.
             ///
@@ -9973,6 +10087,8 @@ package enum Operations {
     /// List a user's food logs in a date range
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Returns the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`; the range spans at most 60 days), ordered by timestamp. An empty list is a valid result.
     ///
@@ -10295,14 +10411,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -10344,10 +10460,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/get(listFoodLogs)/responses/429`.
             ///
@@ -10451,6 +10567,8 @@ package enum Operations {
     /// Log foods for a user
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Creates a food log from food + serving ids (from search or food-analysis results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log, or fetch it again with GET /v1.2/food-logs/{log_id}. Not idempotent: verify with the list or get endpoint before retrying a timed-out create.
     ///
@@ -10769,14 +10887,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -10818,10 +10936,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/post(createFoodLog)/responses/429`.
             ///
@@ -11271,14 +11389,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/summary/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -11320,10 +11438,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/summary/get(getFoodLogSummary)/responses/429`.
             ///
@@ -11427,6 +11545,8 @@ package enum Operations {
     /// Get a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Fetches one food log by the id returned when it was created.
     ///
@@ -11784,14 +11904,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -11833,10 +11953,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/get(getFoodLog)/responses/429`.
             ///
@@ -11940,6 +12060,8 @@ package enum Operations {
     /// Update a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
@@ -12306,14 +12428,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/PATCH/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -12355,10 +12477,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/patch(updateFoodLog)/responses/429`.
             ///
@@ -12462,6 +12584,8 @@ package enum Operations {
     /// Delete a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry.
     ///
@@ -12752,14 +12876,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/food-logs/{log_id}/DELETE/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -12801,10 +12925,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/food-logs/{log_id}/delete(deleteFoodLog)/responses/429`.
             ///
@@ -13237,14 +13361,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/water-logs/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -13286,10 +13410,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/water-logs/get(listWaterLogs)/responses/429`.
             ///
@@ -13690,14 +13814,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/water-logs/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -13739,10 +13863,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/water-logs/post(createWaterLog)/responses/429`.
             ///
@@ -14136,14 +14260,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/water-logs/{log_id}/DELETE/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -14185,10 +14309,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/water-logs/{log_id}/delete(deleteWaterLog)/responses/429`.
             ///
@@ -14614,14 +14738,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/weight-logs/GET/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -14663,10 +14787,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/weight-logs/get(listWeightLogs)/responses/429`.
             ///
@@ -15067,14 +15191,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/weight-logs/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -15116,10 +15240,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/weight-logs/post(createWeightLog)/responses/429`.
             ///
@@ -15223,6 +15347,8 @@ package enum Operations {
     /// Predict the glucose response to a meal
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 3 credits per successful call.**
     ///
     /// Predicts the glucose curve a meal will produce for the given profile and body.timezone (required — the IANA timezone the end user is in; the prediction depends on the meal's local time of day). Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Nothing is stored, so there is no end-user identity to send: the request acts as the partner itself.
     ///
@@ -15503,14 +15629,14 @@ package enum Operations {
             package struct TooManyRequests: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/headers`.
                 package struct Headers: Sendable, Hashable {
-                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    /// Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     ///
                     /// - Remark: Generated from `#/paths/v1.2/glucose/predictions/POST/responses/429/headers/Retry-After`.
                     package var retryAfter: Swift.String?
                     /// Creates a new `Headers`.
                     ///
                     /// - Parameters:
-                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two monthly refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
+                    ///   - retryAfter: Seconds to wait before retrying. Sent only with `rate_limited`, and only where the window is known — at most 24 hours. The two allowance refusals never carry it; use the reset instant in the message, or `resets_at` from `GET /v1.2/credits`.
                     package init(retryAfter: Swift.String? = nil) {
                         self.retryAfter = retryAfter
                     }
@@ -15552,10 +15678,10 @@ package enum Operations {
             /// Three different failures share this status, and the `code` is what tells them apart — two of them must not be retried.
             ///
             /// - `rate_limited` — a window short enough to wait out: a per-endpoint limit configured for your account, or the rolling 24-hour burst guard over the monthly ceiling. `Retry-After` carries the wait whenever it is known, and is at most a day.
-            /// - `request_limit_exceeded` — the monthly request allowance on your account is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
-            /// - `credit_limit_exceeded` — the monthly credit allowance is spent.
+            /// - `request_limit_exceeded` — the request allowance for your billing period is spent. The message names your plan where the plan set that number, and on the free tier, whose allowance the default *is*. A limit agreed with us, or the default standing in for a **paid** tier the catalog states no ceiling for, is given as a number without naming a plan.
+            /// - `credit_limit_exceeded` — this call costs more credits than you have left for the billing period, or they are spent. Never returned to an Enterprise account, whose usage past the allowance is billed as overage instead.
             ///
-            /// The last two reopen at the start of the next calendar month, the same instant as each other, and neither sends `Retry-After`: a wait of up to four weeks is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
+            /// The last two reopen when your billing period resets — the first of the month on Free, your renewal on Pro and Startup, the end of your contract term on Enterprise — the same instant as each other, and neither sends `Retry-After`: a wait of up to a month or more is not something to sleep on, and it does not survive a 32-bit timer. The message names the reset instant, and `GET /v1.2/credits` returns it as `resets_at` along with your balance — that endpoint keeps answering when both of these refuse.
             ///
             /// - Remark: Generated from `#/paths//v1.2/glucose/predictions/post(predictGlucose)/responses/429`.
             ///
