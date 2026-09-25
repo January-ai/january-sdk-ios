@@ -22,7 +22,7 @@ By default the SDK calls the provider up to nine times: once, then eight retries
 1s → 2s → 4s → 8s → 8s → 8s → 8s → 8s
 ```
 
-Each wait gets ±20% jitter and is capped at 8 seconds, so an unreachable token endpoint fails the call after about 45 seconds. Only `JanuaryTokenProviderError` with `retryable: true` is retried. Other errors, `CancellationError`, and a returned token that's empty or nearly expired stop at once.
+Each wait gets ±20% jitter and is capped at 8 seconds, so an unreachable token endpoint fails the call after about 47 seconds. Only `JanuaryTokenProviderError` with `retryable: true` is retried. Other errors, `CancellationError`, and a returned token that's empty or nearly expired stop at once.
 
 To change the policy, pass `tokenRetryPolicy`:
 

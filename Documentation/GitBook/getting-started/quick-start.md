@@ -142,6 +142,6 @@ January SDK
 <number> calories
 ```
 
-On failure, it shows the error message and a **Try Again** button. An error from your token endpoint shows the provider's message, such as "Your token endpoint returned HTTP 401." If the endpoint can't be reached, the SDK retries for about 45 seconds before showing the error. See [Errors](../reference/error-handling.md) and [Troubleshooting](../reference/troubleshooting.md).
+On failure, it shows the error message and a **Try Again** button. An error from your token endpoint shows the provider's message, such as "Your token endpoint returned HTTP 401." If the endpoint can't be reached, the SDK retries for about 47 seconds before showing the error. See [Errors](../reference/error-handling.md) and [Troubleshooting](../reference/troubleshooting.md).
 
 Next: [Example app](example-app.md), or skip to [Core concepts](https://docs.january.ai/ios-sdk/concepts).
