@@ -62,7 +62,7 @@ repeat {
 } while true
 ```
 
-The response has only `items`, with no `totalCount`, so keep paging while full pages come back. An empty page ends the menu, including for a restaurant with no menu on record. An unknown restaurant fails with `.notFound`; in a discovery UI, fall back to `searchMenuItems` with the user's original query and location.
+The response has only `items`, with no `totalCount`, so keep paging while full pages come back. An empty page ends the menu, including for a restaurant with no menu on record. An unknown restaurant fails with `.notFound`; in a discovery UI, fall back to `searchMenuItems` with the user's original query and location when the first page is empty or the restaurant is not found.
 
 ## Input limits
 
