@@ -85,7 +85,7 @@ demo. The first run takes about ten minutes.
     ```
 
 11. Choose an iOS Simulator and press **Run**. When the app opens, search for
-    `banana`. Terminal 1 prints `minted=true status=200` the first time the
+    `banana`. Terminal 1 prints `minted=true status=201` the first time the
     app asks for a token.
 
 For production or any shared build, never put the `sk-…` key in an iOS app.
@@ -198,10 +198,11 @@ The SDK caches and refreshes client tokens automatically. The
 [authentication guide](Documentation/GitBook/getting-started/authentication.md)
 contains production retry and error mapping.
 
-Your production endpoint returns `{ "token": "ct-…", "expiresIn": 1800 }`,
-derives the stable end-user ID from the verified app session, and chooses scopes
-on the server. See the
+Your production endpoint authenticates the app session, takes the end-user ID
+from that session (never from the request), mints the token with the scopes
+your app uses, and returns January's response unchanged. See the
 [backend token endpoint guide](Documentation/GitBook/getting-started/backend-token-endpoint.md)
+and [Your token endpoint](https://docs.january.ai/docs/authentication#your-token-endpoint)
 for the complete contract.
 
 ## Common tasks
