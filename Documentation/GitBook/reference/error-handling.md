@@ -21,7 +21,7 @@ do {
     case (.rateLimited, "rate_limited"?):
         showRetryState() // A short limit: retry later, with backoff.
     case (.rateLimited, _):
-        showQuotaExhausted() // The monthly allowance is spent: don't retry.
+        showQuotaExhausted() // The billing period's allowance is spent: don't retry.
     case (.timeout, _), (.transport, _), (.server, _):
         showRetryState()
     case (.notFound, _):
@@ -34,7 +34,7 @@ do {
 }
 ```
 
-Branch on `category`, and on `code` where it matters. Codes and when to retry them are in the [API error table](https://docs.january.ai/rest-api/api-overview#errors). Retry only `rate_limited`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` reset next month; don't retry them.
+Branch on `category`, and on `code` where it matters. Codes and when to retry them are in the [API error table](https://docs.january.ai/rest-api/api-overview#errors). Retry only `rate_limited`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` last until your billing period resets; don't retry them.
 
 ## Properties
 

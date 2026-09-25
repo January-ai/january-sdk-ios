@@ -49,7 +49,7 @@ Set `JANUARY_PARTNER_TOKEN_URL` in the Xcode Run scheme, plus `JANUARY_PARTNER_S
 
 ## Requests are rate limited
 
-Retry only `code == "rate_limited"`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` reset next month; don't retry them. The SDK doesn't expose the `Retry-After` header in 0.3.2.
+Retry only `code == "rate_limited"`, with backoff. `request_limit_exceeded` and `credit_limit_exceeded` last until your billing period resets; don't retry them. The SDK doesn't expose the `Retry-After` header in 0.3.2.
 
 ## Support diagnostics
 
