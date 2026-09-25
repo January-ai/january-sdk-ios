@@ -59,6 +59,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key only.**
     ///
+    /// **Never consumes credits.**
+    ///
     /// Exchanges your partner API key for a short-lived token bound to one of your end users, so your mobile app can call the v1.2 API directly instead of through a proxy that holds your key.
     ///
     /// **This endpoint requires your API key (`sk-…`), so always call it from your backend** — behind whatever login already protects your own APIs. Never ship your API key in a mobile app in order to call this from the device: that puts a credential for your whole account in every copy of your app, which is the problem client tokens exist to solve.
@@ -258,6 +260,8 @@ package struct Client: APIProtocol {
     /// Revoke an end user’s client tokens
     ///
     /// **API key only.**
+    ///
+    /// **Never consumes credits.**
     ///
     /// Revokes every outstanding client token for one end user. Safe to call repeatedly: it reports how many tokens it actually stopped, so an immediate second call reports 0.
     ///
@@ -461,7 +465,11 @@ package struct Client: APIProtocol {
     ///
     /// **API key only.**
     ///
-    /// Your API credit allowance and consumption for the current calendar month (UTC). Each successful billable data operation consumes credits — how many depends on the operation and your plan — while requests that fail cost nothing and v1.1 calls are not counted. Checking your balance, creating client tokens, and revoking client tokens never consume credits. Reading your balance is also exempt from the request limits that bound the rest of the API, so it keeps answering once your allowance is spent or your request limit is reached — it carries only a cap of its own, 60 reads per minute unless we have agreed a different one with you. Read your balance when a request is rejected or on a schedule rather than before every call, and treat that balance — not a fixed per-call price — as the source of truth. When credits run out, v1.2 endpoints return `429` with code `credit_limit_exceeded` until the allowance resets — retrying does not help before then.
+    /// **Never consumes credits.**
+    ///
+    /// Your API credit allowance and consumption for the current **billing period**. `period_start`, `period_end` and `resets_at` state it.
+    ///
+    /// Each successful call costs the credits on the [price list](https://docs.january.ai/rest-api/credits-and-pricing). A call that costs more than you have left is refused before it runs, and once your credits are spent every v1.2 endpoint — the free ones included — returns `429` with code `credit_limit_exceeded` until `resets_at`; retrying does not help before then.
     ///
     /// - Remark: HTTP `GET /v1.2/credits`.
     /// - Remark: Generated from `#/paths//v1.2/credits/get(getCredits)`.
@@ -623,6 +631,8 @@ package struct Client: APIProtocol {
     /// Search foods by name
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Full-text search over the January food database, returning up to 50 ranked matches per call. Generic foods, branded products and recipes are searched together unless `type` narrows it to one; page deeper with `offset`. To look up a scanned barcode, use `GET /v1.2/foods/barcode/{barcode}` instead.
     ///
@@ -839,6 +849,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Lightweight food suggestions for a partial name, built for type-ahead ("ban" → banana, banana bread, …): generic foods first, then branded, each with its id, name, brand, a thumbnail and calories. Once the user picks one, fetch `GET /v1.2/foods/{food_id}` for servings and full nutrition. `items` is empty for fewer than 2 letters or digits, no match, or a search-index error (the suggestion service fails open so a typing user is not interrupted); an unreachable service still answers with the standard 502/504.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -1046,6 +1058,8 @@ package struct Client: APIProtocol {
     /// Suggest healthier alternatives for a food
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 4 credits per successful call.**
     ///
     /// Returns healthier alternatives for a food, honoring the given dietary restrictions and preferences. Omit either array (or send `[]`) if it does not apply. An empty `alternatives` result is valid — no suitable alternatives were found.
     ///
@@ -1267,6 +1281,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Exact lookup of the food a barcode names — one food, not a list. The `barcode` on the returned food is the database's normalized form and may differ from the digits you scanned in leading zeros, so display it rather than comparing it. For free-text search, use `GET /v1.2/foods` instead.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -1478,6 +1494,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 1 credit per successful call.**
+    ///
     /// One food's full record — most importantly the **complete list of serving sizes**. Search, barcode, and food-analysis results carry a single default serving; fetch the food here to let an end user pick "1 cup" vs "100 g" vs "1 medium" when logging or predicting. Nutrition is per the default serving, in the shared nutrient vocabulary.
     ///
     /// Callable with a client token carrying the `foods:read` scope.
@@ -1688,6 +1706,8 @@ package struct Client: APIProtocol {
     /// Search restaurants near a location
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// Search restaurants matching `query` around (`latitude`, `longitude`), ranked by proximity. Every result is a restaurant — `type` is always `restaurant`. To search the dishes those restaurants serve, use `GET /v1.2/menu-items`.
     ///
@@ -1910,6 +1930,8 @@ package struct Client: APIProtocol {
     /// List a restaurant's menu items
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 2 credits per successful call.**
     ///
     /// The menu of one restaurant, by the `id` a `GET /v1.2/restaurants` result carries — a listing, not a search. Items come ordered by name with the nutrition their menu source publishes; each carries one serving, and `GET /v1.2/foods/{food_id}` returns the complete list. Page a long menu with `limit` and `offset`: a page shorter than `limit` is the last one. To find dishes across restaurants near a location, use `GET /v1.2/menu-items`.
     ///
@@ -2136,6 +2158,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 2 credits per successful call.**
+    ///
     /// Search dishes across restaurants near (`latitude`, `longitude`), with the nutrition each menu source publishes. Use `radius_meters` to widen or narrow the search, e.g. `radius_meters=5000` for 5 kilometers; each result reports its own `distance_meters`. To find the restaurants themselves, use `GET /v1.2/restaurants`.
     ///
     /// Callable with a client token carrying the `restaurants:read` scope.
@@ -2357,6 +2381,8 @@ package struct Client: APIProtocol {
     /// Analyze a food or label photo
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 10 credits per successful call.**
     ///
     /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
     ///
@@ -2600,6 +2626,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Costs 5 credits per successful call.**
+    ///
     /// Parses free text like "a bowl of oatmeal with honey" into detected foods with quantities and nutrition — the text counterpart of `POST /v1.2/food-analysis/image`. Text analyses return `meal_name: null` (the caller already has the words) and grade nothing, so every detection carries `confidence: null`. For keyword search over the food database, use `GET /v1.2/foods`.
     ///
     /// Callable with a client token carrying the `food_analysis:write` scope.
@@ -2795,6 +2823,8 @@ package struct Client: APIProtocol {
     /// Correct an analysis in plain English
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 5 credits per successful call — one is free for every successful `POST /v1.2/food-analysis/image` in your billing period.**
     ///
     /// Revises an analysis result. Send back the `analysis` object exactly as `POST /v1.2/food-analysis/image` or `/text` returned it, plus `instruction` describing the correction; the response is a corrected result with recalculated totals. Adjust portions through `instruction` ("it was about half of that") rather than editing serving quantities by hand. Nutrient keys a detection omits are filled in as zero automatically, and each detection must carry its selected catalog serving and consumed serving count.
     ///
@@ -3014,6 +3044,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Returns the logs between `start_date` and `end_date` (both inclusive local calendar dates in `timezone`; the range spans at most 60 days), ordered by timestamp. An empty list is a valid result.
     ///
     /// Callable with a client token carrying the `food_logs:read` scope.
@@ -3226,6 +3258,8 @@ package struct Client: APIProtocol {
     /// Log foods for a user
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Creates a food log from food + serving ids (from search or food-analysis results). The response echoes the log hydrated with full nutrition — save its `id` to update or delete the log, or fetch it again with GET /v1.2/food-logs/{log_id}. Not idempotent: verify with the list or get endpoint before retrying a timed-out create.
     ///
@@ -3663,6 +3697,8 @@ package struct Client: APIProtocol {
     ///
     /// **API key or client token.**
     ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
+    ///
     /// Fetches one food log by the id returned when it was created.
     ///
     /// Callable with a client token carrying the `food_logs:read` scope.
@@ -3878,6 +3914,8 @@ package struct Client: APIProtocol {
     /// Update a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Replaces any subset of the log: `foods`, `created_at`, `name`. Omitted fields are left unchanged.
     ///
@@ -4103,6 +4141,8 @@ package struct Client: APIProtocol {
     /// Delete a food log
     ///
     /// **API key or client token.**
+    ///
+    /// **Free up to your plan's free-call limit, then 1 credit per 100 calls.**
     ///
     /// Idempotent: deleting an unknown or already-deleted log answers the same 204, so it is safe to retry.
     ///
@@ -5286,6 +5326,8 @@ package struct Client: APIProtocol {
     /// Predict the glucose response to a meal
     ///
     /// **API key or client token.**
+    ///
+    /// **Costs 3 credits per successful call.**
     ///
     /// Predicts the glucose curve a meal will produce for the given profile and body.timezone (required — the IANA timezone the end user is in; the prediction depends on the meal's local time of day). Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Nothing is stored, so there is no end-user identity to send: the request acts as the partner itself.
     ///
