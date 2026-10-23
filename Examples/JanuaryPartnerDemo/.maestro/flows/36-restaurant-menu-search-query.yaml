@@ -27,7 +27,7 @@ tags:
 - tapOn:
     id: restaurant-menu-search
 - inputText: bowl
-- hideKeyboard
+- pressKey: Enter
 - tapOn:
     id: restaurant-menu-search-submit
 - extendedWaitUntil:
