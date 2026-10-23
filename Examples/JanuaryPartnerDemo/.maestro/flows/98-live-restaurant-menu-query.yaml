@@ -35,6 +35,32 @@ tags:
     timeout: 60000
 - assertVisible: "(?i).*chicken.*"
 - tapOn:
+    id: restaurant-menu-item-0
+- extendedWaitUntil:
+    visible:
+      id: menu-item-detail-screen
+    timeout: 15000
+- assertVisible: "(?i).*chicken.*"
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: menu-glucose-button
+- assertVisible:
+    id: menu-glucose-button
+- tapOn:
+    text: Back
+- extendedWaitUntil:
+    visible:
+      id: restaurant-detail-screen
+    timeout: 15000
+- runFlow:
+    file: ../scroll-to.yaml
+    env:
+      TARGET_ID: restaurant-menu-search
+- assertVisible: CHICKEN
+- assertVisible:
+    id: restaurant-menu-item-0
+- tapOn:
     id: restaurant-menu-search
 - eraseText: 32
 - inputText: jan159-no-such-dish
