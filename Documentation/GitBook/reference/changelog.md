@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 - 2026-10-23
+
+- Search one restaurant's menu by dish name through the SDK and demo.
+- Support optional menu queries and pages up to 500 items.
+
+
 Read [Versioning and support](versioning-and-support.md) before you update.
 
 ## 0.3.2 - 2026-09-24

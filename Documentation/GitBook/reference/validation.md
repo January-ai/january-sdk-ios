@@ -15,7 +15,10 @@ The SDK checks these inputs before it sends a request. Most failures throw a `Ja
 | Latitude | −90 through 90 |
 | Longitude | −180 through 180 |
 | Restaurant radius | 1 through 50,000 meters |
-| Restaurant limit | Integer from 1 through 100 |
+| Nearby restaurant search limit | Integer from 1 through 100 |
+| Restaurant menu page limit | Integer from 1 through 500 |
+| Restaurant menu query | Optional, up to 256 characters; blank lists the whole menu |
+| Restaurant menu ID | 1-64 letters, digits, underscores or hyphens |
 | Food-log `timestampUTC` | ISO 8601 date-time |
 | Food-log update | At least one of `foods`, `timestampUTC`, `name` |
 | Water amount | 1 through 811.5 fl oz, 0.1 through 101.4 cup, or 30 through 24,000 ml |

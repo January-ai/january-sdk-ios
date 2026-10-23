@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.3 - 2026-10-23
+
+- Add optional dish-name filtering to restaurant menu lookup and demo search.
+- Accept menu pages up to 500 items and preserve published logged-serving changes.
+
+
 All notable changes to the January SDK for iOS are documented here. This project
 uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
