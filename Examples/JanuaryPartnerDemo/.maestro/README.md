@@ -80,7 +80,7 @@ every pull request; it needs no simulator.
 
 ## Live flows
 
-Flows `90`–`97` are tagged `live`. They run the demo as a fresh install in
+Flows `90`–`98` are tagged `live`. They run the demo as a fresh install in
 client-token mode against the January API, exercise search, food detail,
 alternatives, barcode, meal description, photo scan and correction,
 restaurants and menus, glucose prediction, food logs, water, weight, and the
@@ -149,3 +149,12 @@ pipeline runs on `main`. When the repository has a `JANUARY_API_KEY` secret,
 `ui-test-ios (live)` also starts the token relay on the runner and runs
 `run-live.mjs` as the end user `ci-nightly-ios` (or the `JANUARY_LIVE_END_USER`
 repository variable); without the secret it is skipped.
+
+## Review recordings
+
+Use a dedicated SDK demo simulator when recording live flows. Verify the installed
+app is `January Demo` (`ai.january.partner.demo`), and pass that simulator’s exact
+UDID to both `run-live.mjs --device` and `xcrun simctl io <UDID> recordVideo`.
+A shared simulator can show another project’s app before the test launches the
+demo, even when the flow itself passes. Start the review clip after the live
+bootstrap completes, and inspect the complete recording timeline before delivery.
