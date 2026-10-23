@@ -61,16 +61,17 @@ public struct RestaurantsResource: Sendable {
         }
     }
 
-    /// Loads one page of a restaurant's menu by its search-result ID.
+    /// Loads one page of a restaurant's menu, optionally filtered by dish name.
     public func getMenuItems(_ request: GetRestaurantMenuItemsRequest) async throws -> GetRestaurantMenuItemsResponse {
-        guard request.restaurantID.range(of: "^[A-Za-z0-9_-]{1,256}$", options: .regularExpression) != nil,
-              (1...100).contains(request.limit), (0...2_147_483_647).contains(request.offset) else {
+        guard request.restaurantID.range(of: "^[A-Za-z0-9_-]{1,64}$", options: .regularExpression) != nil,
+              (request.query?.count ?? 0) <= 256,
+              (1...500).contains(request.limit), (0...2_147_483_647).contains(request.offset) else {
             throw JanuaryError(category: .validation, message: "A restaurant id and valid menu pagination are required.")
         }
         return try await performTransportRequest {
             let output = try await client.getRestaurantMenuItems(.init(
                 path: .init(restaurantId: request.restaurantID),
-                query: .init(limit: request.limit, offset: request.offset)
+                query: .init(query: request.query, limit: request.limit, offset: request.offset)
             ))
             switch output {
             case .ok(let response):

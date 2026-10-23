@@ -1484,6 +1484,8 @@ private struct RestaurantDetailView: View {
     let client: JanuaryClient
     let restaurant: Restaurant
     let endUserID: PartnerUserID?
+    @State private var menuDraft = ""
+    @State private var menuQuery = ""
     @StateObject private var model: RestaurantDetailViewModel
 
     init(
@@ -1532,6 +1534,23 @@ private struct RestaurantDetailView: View {
 
                     VStack(alignment: .leading, spacing: 12) {
                         SectionLabel("Menu items")
+                        TextField("Search this menu", text: $menuDraft)
+                            .textFieldStyle(.roundedBorder)
+                            .textInputAutocapitalization(.never)
+                            .submitLabel(.search)
+                            .onSubmit { if menuDraft.count <= 256 { menuQuery = menuDraft.trimmingCharacters(in: .whitespacesAndNewlines) } }
+                            .accessibilityIdentifier("restaurant-menu-search")
+                        HStack {
+                            Button("Search menu") { menuQuery = menuDraft.trimmingCharacters(in: .whitespacesAndNewlines) }
+                                .disabled(menuDraft.count > 256)
+                                .accessibilityIdentifier("restaurant-menu-search-submit")
+                            if !menuQuery.isEmpty || !menuDraft.isEmpty {
+                                Button("Show full menu") { menuDraft = ""; menuQuery = "" }
+                                    .accessibilityIdentifier("restaurant-menu-search-clear")
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        if menuDraft.count > 256 { Text("Use 256 characters or fewer.").foregroundStyle(AppPalette.ink) }
                         menuContent
                     }
 
@@ -1548,7 +1567,7 @@ private struct RestaurantDetailView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("restaurant-detail-screen")
         .appNavigationBar("Restaurant")
-        .task(id: restaurant.id) { await model.loadIfNeeded() }
+        .task(id: menuQuery) { await model.search(menuQuery) }
     }
 
     @ViewBuilder

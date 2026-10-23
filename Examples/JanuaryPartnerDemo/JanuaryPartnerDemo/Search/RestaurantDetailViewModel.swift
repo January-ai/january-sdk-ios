@@ -15,6 +15,8 @@ final class RestaurantDetailViewModel: ObservableObject {
     private let resultLimit: Int
     private let endUserID: PartnerUserID?
     private var hasLoaded = false
+    private var query = ""
+    private var activeLoad = UUID()
 
     init(
         client: JanuaryClient,
@@ -47,71 +49,48 @@ final class RestaurantDetailViewModel: ObservableObject {
         await load()
     }
 
+    func search(_ query: String) async {
+        self.query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        await load()
+    }
+
     private func load() async {
-        guard !isLoading else { return }
+        let loadID = UUID()
+        activeLoad = loadID
+        let menuQuery = query
         hasLoaded = true
         isLoading = true
+        menuItems = []
         error = nil
-
         do {
-            do {
-                var items: [RestaurantMenuItem] = []
-                while true {
-                    let page = try await client.restaurants.getMenuItems(.init(
-                        restaurantID: restaurant.id, offset: items.count, endUserID: endUserID
-                    ))
-                    items.append(contentsOf: page.items.enumerated().map { index, entry in
-                        RestaurantMenuItem(
-                            id: entry.id ?? "menu-\(items.count + index)",
-                            name: entry.name,
-                            restaurantName: restaurant.name,
-                            calories: entry.calories,
-                            protein: entry.protein,
-                            carbohydrates: entry.carbohydrates,
-                            netCarbohydrates: entry.netCarbohydrates,
-                            totalFat: entry.totalFat,
-                            fiber: entry.fiber,
-                            totalSugars: entry.totalSugars,
-                            addedSugars: entry.addedSugars,
-                            glycemicIndex: entry.glycemicIndex,
-                            glycemicLoad: entry.glycemicLoad,
-                            servings: entry.servings
-                        )
-                    })
-                    if page.items.count < 100 { break }
-                }
-                menuItems = items
-            } catch let failure as JanuaryError where isRestaurantMenuUnavailable(failure) {
-                let page = try await client.restaurants.searchMenuItems(.init(
-                    query: restaurant.name ?? "Restaurant",
-                    latitude: latitude,
-                    longitude: longitude,
-                    radius: radius,
-                    limit: min(max(resultLimit, 1), 100),
-                    endUserID: endUserID
+            var items: [RestaurantMenuItem] = []
+            var offset = 0
+            while true {
+                let page = try await client.restaurants.getMenuItems(.init(
+                    restaurantID: restaurant.id, offset: offset, endUserID: endUserID, query: menuQuery
                 ))
-                let selectedName = normalizedRestaurantName(restaurant.name ?? "Restaurant")
-                menuItems = page.items.filter {
-                    normalizedRestaurantName($0.restaurantName ?? "") == selectedName
-                }
+                guard activeLoad == loadID, !Task.isCancelled else { return }
+                items.append(contentsOf: page.items.enumerated().map { index, entry in
+                    RestaurantMenuItem(
+                        id: entry.id ?? "menu-\(offset + index)",
+                        name: entry.name, restaurantName: restaurant.name,
+                        calories: entry.calories, protein: entry.protein,
+                        carbohydrates: entry.carbohydrates, netCarbohydrates: entry.netCarbohydrates,
+                        totalFat: entry.totalFat, fiber: entry.fiber,
+                        totalSugars: entry.totalSugars, addedSugars: entry.addedSugars,
+                        glycemicIndex: entry.glycemicIndex, glycemicLoad: entry.glycemicLoad,
+                        servings: entry.servings
+                    )
+                })
+                offset += page.items.count
+                if page.items.count < 100 { break }
             }
+            menuItems = items
         } catch {
+            guard activeLoad == loadID, !Task.isCancelled else { return }
             self.error = error
         }
-
-        isLoading = false
+        if activeLoad == loadID { isLoading = false }
     }
 
-    private func isRestaurantMenuUnavailable(_ error: JanuaryError) -> Bool {
-        error.httpStatus == 404
-    }
-
-    private func normalizedRestaurantName(_ value: String) -> String {
-        let baseName = value.split(separator: "(", maxSplits: 1).first.map(String.init) ?? value
-        return baseName
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .components(separatedBy: CharacterSet.alphanumerics.inverted)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
-    }
 }

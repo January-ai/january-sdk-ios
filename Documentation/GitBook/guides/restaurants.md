@@ -74,3 +74,14 @@ The response has only `items`, with no `totalCount`, so keep paging while full p
 * Menu offset: 0 or more
 
 Next: [Food analysis](photo-scanning.md).
+
+## Search this restaurant’s menu
+
+```swift
+let dishes = try await client.restaurants.getMenuItems(.init(restaurantID: restaurantID, query: "burger"))
+```
+
+Omit `query` or pass an empty string to show the full menu. Dish-name matching
+is case insensitive and accepts up to 256 characters. Pagination (`limit` 1–500,
+default 100; `offset` starting at zero) applies to the matching dishes. Stop at
+a page shorter than the requested limit; restart at offset zero for a new query.

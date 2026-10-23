@@ -15,4 +15,5 @@ xcodebuild \
   -destination "$destination" \
   -retry-tests-on-failure \
   -test-iterations 2 \
+  "$@" \
   test

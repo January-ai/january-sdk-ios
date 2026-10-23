@@ -1933,7 +1933,7 @@ package struct Client: APIProtocol {
     ///
     /// **Costs 2 credits per successful call.**
     ///
-    /// The menu of one restaurant, by the `id` a `GET /v1.2/restaurants` result carries — a listing, not a search. Items come ordered by name with the nutrition their menu source publishes; each carries one serving, and `GET /v1.2/foods/{food_id}` returns the complete list. Page a long menu with `limit` and `offset`: a page shorter than `limit` is the last one. To find dishes across restaurants near a location, use `GET /v1.2/menu-items`.
+    /// The menu of one restaurant, by the `id` a `GET /v1.2/restaurants` result carries. Items come ordered by name with the nutrition their menu source publishes; each carries one serving, and `GET /v1.2/foods/{food_id}` returns the complete list. Pass `query` to keep only the dishes whose name contains it, ignoring case, e.g. `query=burger` on a diner's menu. Page a long menu, or a long list of matches, with `limit` and `offset`: a page shorter than `limit` is the last one. To find dishes across restaurants near a location, use `GET /v1.2/menu-items`.
     ///
     /// Callable with a client token carrying the `restaurants:read` scope.
     ///
@@ -1955,6 +1955,13 @@ package struct Client: APIProtocol {
                     method: .get
                 )
                 suppressMutabilityWarning(&request)
+                try converter.setQueryItemAsURI(
+                    in: &request,
+                    style: .form,
+                    explode: true,
+                    name: "query",
+                    value: input.query.query
+                )
                 try converter.setQueryItemAsURI(
                     in: &request,
                     style: .form,
@@ -2384,7 +2391,7 @@ package struct Client: APIProtocol {
     ///
     /// **Costs 10 credits per successful call.**
     ///
-    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost.
+    /// Analyzes a food photo and returns the detected foods with their nutrition and an aggregated total. The photo can show the food itself or a packaged product — the front of the pack, the ingredient list, or the Nutrition Facts panel all work, and a packaged product comes back as a single detection in the usual result shape. `image` accepts either an http(s) URL or a base64 data URI. Analysis can take tens of seconds for complex meals. Omit `reasoning` or set `reasoning.effort` to `xhigh` to use the reasoning-based analyzer; set its effort to `none` to use the standard analyzer. Both modes return the same response shape and use the same rate-limit bucket and credit cost. An optional `context` note (beta) adds details the photo may not show.
     ///
     /// **Beta:** label reading is in testing — returned nutrition can be incomplete or differ from the printed values, so validate results before relying on them. A photo of nothing but a barcode is rejected; use `GET /v1.2/foods/barcode/{barcode}` for those. Best results come from sharp, well-lit photos with the food or the complete panel large in the frame; ~1,024 px on the shorter side is plenty, and downsizing huge images lowers latency.
     ///
@@ -3196,6 +3203,28 @@ package struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .forbidden(.init(body: body))
+                case 409:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.ListFoodLogs.Output.Conflict.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .conflict(.init(body: body))
                 case 429:
                     let headers: Operations.ListFoodLogs.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
                         in: response.headerFields,
@@ -3852,6 +3881,28 @@ package struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .notFound(.init(body: body))
+                case 409:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.GetFoodLog.Output.Conflict.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.ErrorResponse.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .conflict(.init(body: body))
                 case 429:
                     let headers: Operations.GetFoodLog.Output.TooManyRequests.Headers = .init(retryAfter: try converter.getOptionalHeaderFieldAsURI(
                         in: response.headerFields,
@@ -5329,7 +5380,7 @@ package struct Client: APIProtocol {
     ///
     /// **Costs 3 credits per successful call.**
     ///
-    /// Predicts the glucose curve a meal will produce for the given profile and body.timezone (required — the IANA timezone the end user is in; the prediction depends on the meal's local time of day). Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Nothing is stored, so there is no end-user identity to send: the request acts as the partner itself.
+    /// Predicts the glucose curve a meal will produce for the given profile and body.timezone (required — the IANA timezone the end user is in; the prediction depends on the meal's local time of day). Optionally personalize by sending cgm_data with the consumed_foods eaten during it (both together; the upstream needs at least five complete days of paired history). Nothing is stored, so there is no end-user identity to send.
     ///
     /// Callable with a client token carrying the `glucose:read` scope.
     ///

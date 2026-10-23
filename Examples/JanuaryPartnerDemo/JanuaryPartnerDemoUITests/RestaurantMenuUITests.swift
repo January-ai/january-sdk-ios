@@ -24,20 +24,22 @@ final class RestaurantMenuUITests: XCTestCase {
         attachScreenshot("restaurant-menu-success")
     }
 
-    func testProductionStyle404FallsBackWithoutShowingAnError() async throws {
-        try await control("/v1.2/restaurants/cafe/menu-items", status: 404)
+    func testSearchesWithinMenuAndClearsFilter() async throws {
         openRestaurant()
+        let field = app.textFields["restaurant-menu-search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap(); field.typeText("SOUP\n")
+        XCTAssertTrue(app.staticTexts["Fixture soup"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Fixture bowl"].exists)
+        app.buttons["restaurant-menu-search-clear"].tap()
         XCTAssertTrue(app.staticTexts["Fixture bowl"].waitForExistence(timeout: 5))
-        XCTAssertFalse(app.staticTexts["No matching result was found"].exists)
-        attachScreenshot("restaurant-menu-404-fallback")
+        attachScreenshot("restaurant-menu-search")
     }
 
-    func testEmpty404FallbackShowsEmptyState() async throws {
+    func testUnknownRestaurantShowsError() async throws {
         try await control("/v1.2/restaurants/cafe/menu-items", status: 404)
-        try await control("/v1.2/menu-items", empty: true)
         openRestaurant()
-        XCTAssertTrue(app.staticTexts["No menu items found"].waitForExistence(timeout: 5))
-        attachScreenshot("restaurant-menu-empty")
+        XCTAssertTrue(app.otherElements["menu-error"].waitForExistence(timeout: 5))
     }
 
     func testServerErrorShowsRetryAndRecovers() async throws {
