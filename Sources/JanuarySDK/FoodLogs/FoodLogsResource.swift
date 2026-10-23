@@ -111,6 +111,7 @@ public struct FoodLogsResource: Sendable {
                     totalCount: value.items.count,
                     items: try value.items.map(mapFoodLog)
                 )
+            case .conflict(let response): throw apiError(.validation, status: 409, response: try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)
@@ -157,6 +158,7 @@ public struct FoodLogsResource: Sendable {
             ))
             switch output {
             case .ok(let response): return try mapFoodLog(try response.body.json)
+            case .conflict(let response): throw apiError(.validation, status: 409, response: try response.body.json)
             case .badRequest(let response): throw apiError(.validation, status: 400, response: try response.body.json)
             case .unauthorized(let response): throw apiError(.authentication, status: 401, response: try response.body.json)
             case .forbidden(let response): throw apiError(.authorization, status: 403, response: try response.body.json)

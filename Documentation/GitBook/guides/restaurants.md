@@ -62,7 +62,7 @@ repeat {
 } while true
 ```
 
-The response has only `items`, with no `totalCount`, so keep paging while full pages come back. An empty page ends the menu, including for a restaurant with no menu on record. An unknown restaurant fails with `.notFound`; in a discovery UI, fall back to `searchMenuItems` with the user's original query and location when the first page is empty or the restaurant is not found.
+The response has only `items`, with no `totalCount`, so keep paging while full pages come back. An empty page ends the menu, including for a restaurant with no menu on record. An unknown restaurant fails with `.notFound`. Show the lookup error or the empty state while keeping the selected restaurant.
 
 ## Input limits
 
@@ -74,3 +74,14 @@ The response has only `items`, with no `totalCount`, so keep paging while full p
 * Menu offset: 0 or more
 
 Next: [Food analysis](photo-scanning.md).
+
+## Search this restaurant’s menu
+
+```swift
+let dishes = try await client.restaurants.getMenuItems(.init(restaurantID: restaurantID, query: "burger"))
+```
+
+Omit `query` or pass an empty string to show the full menu. Dish-name matching
+is case insensitive and accepts up to 256 characters. Pagination (`limit` 1–500,
+default 100; `offset` starting at zero) applies to the matching dishes. Stop at
+a page shorter than the requested limit; restart at offset zero for a new query.

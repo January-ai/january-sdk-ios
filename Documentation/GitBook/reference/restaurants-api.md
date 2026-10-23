@@ -18,7 +18,7 @@ public func getMenuItems(
 
 ## Requests and defaults
 
-Both request types require `query`, `latitude`, and `longitude`. Both default to `radius: 8000`, `limit: 10`, and `endUserID: nil`.
+The two location search request types require `query`, `latitude`, and `longitude`. Both default to `radius: 8000`, `limit: 10`, and `endUserID: nil`.
 
 ```swift
 public struct SearchRestaurantsRequest: Hashable, Sendable {
@@ -36,7 +36,7 @@ public struct SearchRestaurantsRequest: Hashable, Sendable {
 `SearchRestaurantMenuItemsRequest` has the same initializer shape.
 
 `GetRestaurantMenuItemsRequest` loads a menu from a restaurant ID returned by
-`search`. It defaults to a 100-item page, the SDK's maximum, and the first offset:
+`search`. It defaults to a 100-item page (up to 500), and the first offset:
 
 ```swift
 public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
@@ -44,7 +44,8 @@ public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
         restaurantID: String,
         limit: Int = 100,
         offset: Int = 0,
-        endUserID: PartnerUserID? = nil
+        endUserID: PartnerUserID? = nil,
+        query: String? = nil
     )
 }
 ```

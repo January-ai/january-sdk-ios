@@ -2,10 +2,13 @@ import Foundation
 
 public struct GetRestaurantMenuItemsRequest: Hashable, Sendable {
     public var restaurantID: String
+    /// Optional case-insensitive dish-name filter; omit or leave blank to list the whole menu.
+    public var query: String?
     public var limit: Int
     public var offset: Int
     public var endUserID: PartnerUserID?
-    public init(restaurantID: String, limit: Int = 100, offset: Int = 0, endUserID: PartnerUserID? = nil) {
+    public init(restaurantID: String, limit: Int = 100, offset: Int = 0, endUserID: PartnerUserID? = nil, query: String? = nil) {
+        self.query = query
         self.restaurantID = restaurantID; self.limit = limit; self.offset = offset; self.endUserID = endUserID
     }
 }

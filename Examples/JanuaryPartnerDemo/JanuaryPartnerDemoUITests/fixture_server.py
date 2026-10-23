@@ -223,7 +223,9 @@ class Handler(BaseHTTPRequestHandler):
         elif "/foods/barcode/" in path: result = food(full=False)
         elif path.endswith("/restaurants/cafe/menu-items"):
             direct = [{"id": str(identifier), "name": name, "nutrients": NUTRIENTS, "glycemic_index": None, "glycemic_load": None, "servings": SERVINGS} for identifier, name in [(101, "Fixture bowl"), (102, "Fixture soup")]]
-            result = {"items": [] if empty or int(query.get("offset", 0)) > 0 else direct}
+            matches = [] if empty else [item for item in direct if query.get("query", "").strip().lower() in item["name"].lower()]
+            offset, limit = int(query.get("offset", 0)), int(query.get("limit", 100))
+            result = {"items": matches[offset:offset + limit]}
         elif path.endswith("/menu-items") and "/restaurants/" not in path:
             result = {"items": [] if empty else [{"type": "menu_item", "id": str(identifier), "name": name, "restaurant_name": "Fixture Cafe", "is_chain": False, "distance_meters": 100, "image_url": None, "nutrients": NUTRIENTS, "glycemic_index": None, "glycemic_load": None, "servings": SERVINGS} for identifier, name in [(101, "Fixture bowl"), (102, "Fixture soup")]]}
         elif path.endswith("/restaurants"):
